@@ -1,5 +1,4 @@
-use essay_graphics::{prelude::*, plot::grid_color, artist::{Shading, patch::{Patch, self}}, frame::{AspectMode, Data}};
-use essay_tensor::init::{linspace, meshgrid};
+use essay_graphics::{prelude::*, artist::patch::Patch, frame::Data};
 
 fn main() { 
     let mut figure = Figure::new();
@@ -13,17 +12,10 @@ fn main() {
         PathCode::ClosePoly(Point(0., 2.)),
     ]);
     graph.artist(Patch::new(path)).color("teal").edge_color("black");
-    //let patch = patch::arrow((4., 1.), (0.707, 0.707));
-    //graph.artist(patch).color("teal").edge_color("black");
-
-    // TODO: triangulation bug
-    let patch = patch::arrow((6., 1.), (-0.707, 0.707));
-    //graph.artist(patch).color("black");
 
     graph.aspect(1.);
     graph.xlim(0., 20.);
     graph.ylim(0., 20.);
-    //graph.aspect_mode(AspectMode::View);
 
     figure.show();
 }
