@@ -1,4 +1,4 @@
-use essay_plot_api::{Bounds, Point, Canvas, Clip, PathOpt, Path, PathCode, driver::Renderer};
+use essay_graphics_api::{Bounds, Point, Canvas, Clip, PathOpt, Path, PathCode, driver::Renderer};
 use essay_tensor::Tensor;
 
 use crate::{frame::Data, tri::{Triangulation, triangulate}};

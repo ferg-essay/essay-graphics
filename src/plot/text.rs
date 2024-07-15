@@ -1,4 +1,4 @@
-use essay_plot_api::Point;
+use essay_graphics_api::Point;
 
 use crate::{artist::{TextOpt, Text}, graph::Graph};
 

@@ -1,6 +1,6 @@
 [package]
-name = "essay-plot"
-version = "0.1.28-dev"
+name = "essay-graphics"
+version = "0.1.34-dev"
 edition = "2021"
 publish=false
 
@@ -11,8 +11,8 @@ path = "src/lib.rs"
 env_logger = { version = "0.11" }
 log = { version = "0.4.17" }
 essay-tensor = { path = "../essay-tensor"  }
-essay-plot-api = { path = "crates/essay-plot-api" }
-essay-plot-wgpu = { path = "crates/essay-plot-wgpu" }
+essay-graphics-api = { path = "crates/essay-graphics-api" }
+essay-graphics-wgpu = { path = "crates/essay-graphics-wgpu" }
 futures = "0.3"
 
 [workspace]

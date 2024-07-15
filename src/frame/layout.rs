@@ -1,6 +1,6 @@
 use std::sync::{Arc, Mutex};
 
-use essay_plot_api::{Bounds, Canvas, Point, Coord, driver::Renderer, CanvasEvent};
+use essay_graphics_api::{Bounds, Canvas, Point, Coord, driver::Renderer, CanvasEvent};
 
 use crate::{graph::{Config, ConfigArc}, artist::Artist};
 

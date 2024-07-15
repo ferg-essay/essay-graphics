@@ -1,4 +1,4 @@
-use essay_plot_api::{
+use essay_graphics_api::{
     Bounds, Coord, Canvas, PathOpt,
     driver::Renderer, Clip
 };

@@ -1,7 +1,7 @@
 use core::fmt;
 use std::ops::Index;
 
-use essay_plot_api::Color;
+use essay_graphics_api::Color;
 
 
 pub struct ColorCycle {
@@ -250,7 +250,7 @@ impl From<&Hsv> for Color {
 
 #[cfg(test)]
 mod test {
-    use essay_plot_api::Color;
+    use essay_graphics_api::Color;
 
     use crate::artist::color::Hsva;
 

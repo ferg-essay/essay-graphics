@@ -1,4 +1,4 @@
-use essay_plot_api::{Point, Canvas, Bounds, driver::Renderer, Clip, PathOpt, Color, CapStyle};
+use essay_graphics_api::{Point, Canvas, Bounds, driver::Renderer, Clip, PathOpt, Color, CapStyle};
 use essay_tensor::{Tensor, init::linspace, tf32};
 
 use crate::frame::Data;

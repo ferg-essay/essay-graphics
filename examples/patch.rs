@@ -1,4 +1,4 @@
-use essay_plot::{artist::{patch, Patch}, prelude::*};
+use essay_graphics::{artist::{patch, Patch}, prelude::*};
 
 fn main() { 
     let mut figure = Figure::new();

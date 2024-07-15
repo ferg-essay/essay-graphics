@@ -1,8 +1,8 @@
 use std::ops;
 
-use essay_plot_wgpu::WgpuBackend;
+use essay_graphics_wgpu::WgpuBackend;
 
-use essay_plot_api::{
+use essay_graphics_api::{
     driver::{Renderer, Backend, FigureApi},
     Bounds, Point, CanvasEvent, Canvas,
 };

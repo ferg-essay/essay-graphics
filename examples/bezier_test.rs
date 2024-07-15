@@ -1,5 +1,5 @@
-use essay_plot::{artist::{patch::PathPatch, paths, DrawStyle, IntoMarker, Markers}, frame::Data, graph::{Graph, PlotOpt}, plot::{bar, contour, fill_between, grid_color, matshow, plot, stem, tricontour, triplot}, prelude::*};
-use essay_plot_api::{Point, Color, PathCode, Path, JoinStyle, CapStyle, LineStyle, Angle};
+use essay_graphics::{artist::{patch::PathPatch, paths, DrawStyle, IntoMarker, Markers}, frame::Data, graph::{Graph, PlotOpt}, plot::{bar, contour, fill_between, grid_color, matshow, plot, stem, tricontour, triplot}, prelude::*};
+use essay_graphics_api::{Point, Color, PathCode, Path, JoinStyle, CapStyle, LineStyle, Angle};
 use essay_tensor::{prelude::*, init::{linspace, meshgrid, meshgrid_ij}, tensor::TensorVec};
 
 

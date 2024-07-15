@@ -1,6 +1,6 @@
 use core::fmt;
 
-use essay_plot_api::{path_opt::Hatch, CapStyle, Color, JoinStyle, LineStyle, PathOpt, TextureId};
+use essay_graphics_api::{path_opt::Hatch, CapStyle, Color, JoinStyle, LineStyle, PathOpt, TextureId};
 
 use crate::graph::Config;
 

@@ -1,5 +1,5 @@
-use essay_plot_api::driver::Renderer;
-use essay_plot_api::{Canvas, Bounds, Point, Clip, PathOpt};
+use essay_graphics_api::driver::Renderer;
+use essay_graphics_api::{Canvas, Bounds, Point, Clip, PathOpt};
 use essay_tensor::Tensor;
 
 use crate::data_artist_option_struct;

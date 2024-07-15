@@ -1,3 +1,3 @@
-# essay-plot
+# essay-graphics
 
-Plotting library for the essays on mind project.
+Base graphics library for the essays on mind project.

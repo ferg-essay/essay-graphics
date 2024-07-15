@@ -1,4 +1,4 @@
-use essay_plot_api::{Canvas, Bounds, Point, Clip, PathOpt, Path, driver::Renderer};
+use essay_graphics_api::{Canvas, Bounds, Point, Clip, PathOpt, Path, driver::Renderer};
 use essay_tensor::{Tensor, tensor::TensorVec, math::normalize_unit};
 
 use crate::{frame::Data, contour::ContourGenerator};

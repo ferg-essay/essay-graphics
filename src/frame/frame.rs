@@ -1,6 +1,6 @@
 use std::f32::consts::PI;
 
-use essay_plot_api::{
+use essay_graphics_api::{
     PathOpt,
     driver::Renderer, Bounds, Canvas, Affine2d, Point, CanvasEvent, VertAlign, Color, Clip, 
 };

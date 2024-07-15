@@ -1,4 +1,4 @@
-use essay_plot::{prelude::*, plot::grid_color, artist::{Shading, patch::{Patch, self}}, frame::{AspectMode, Data}};
+use essay_graphics::{prelude::*, plot::grid_color, artist::{Shading, patch::{Patch, self}}, frame::{AspectMode, Data}};
 use essay_tensor::init::{linspace, meshgrid};
 
 fn main() { 

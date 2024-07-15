@@ -2,7 +2,7 @@ use core::fmt;
 
 use essay_tensor::{Tensor, array::Axis};
 
-use essay_plot_api::{
+use essay_graphics_api::{
     Bounds, Point, Canvas, Path, PathCode, PathOpt,
     driver::Renderer, Clip
 };

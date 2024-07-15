@@ -62,17 +62,17 @@ macro_rules! data_artist_option_struct {
 macro_rules! path_style_options {
     ($field: ident) => {
 
-        pub fn color(&mut self, color: impl Into<essay_plot_api::Color>) -> &mut Self {
+        pub fn color(&mut self, color: impl Into<essay_graphics_api::Color>) -> &mut Self {
             self.write(|ticks| { ticks.$field.color(color); });
             self
         }
 
-        pub fn face_color(&mut self, color: impl Into<essay_plot_api::Color>) -> &mut Self {
+        pub fn face_color(&mut self, color: impl Into<essay_graphics_api::Color>) -> &mut Self {
             self.write(|ticks| { ticks.$field.face_color(color); });
             self
         }
 
-        pub fn edge_color(&mut self, color: impl Into<essay_plot_api::Color>) -> &mut Self {
+        pub fn edge_color(&mut self, color: impl Into<essay_graphics_api::Color>) -> &mut Self {
             self.write(|ticks| { ticks.$field.edge_color(color); });
             self
         }
@@ -82,22 +82,22 @@ macro_rules! path_style_options {
             self
         }
     
-        pub fn line_style(&mut self, style: impl Into<essay_plot_api::LineStyle>) -> &mut Self {
+        pub fn line_style(&mut self, style: impl Into<essay_graphics_api::LineStyle>) -> &mut Self {
             self.write(|ticks| { ticks.$field.line_style(style); });
             self
         }
     
-        pub fn join_style(&mut self, style: impl Into<essay_plot_api::JoinStyle>) -> &mut Self {
+        pub fn join_style(&mut self, style: impl Into<essay_graphics_api::JoinStyle>) -> &mut Self {
             self.write(|ticks| { ticks.$field.join_style(style); });
             self
         }
     
-        pub fn cap_style(&mut self, style: impl Into<essay_plot_api::CapStyle>) -> &mut Self {
+        pub fn cap_style(&mut self, style: impl Into<essay_graphics_api::CapStyle>) -> &mut Self {
             self.write(|ticks| { ticks.$field.cap_style(style); });
             self
         }
     
-        pub fn hatch(&mut self, hatch: impl Into<essay_plot_api::Hatch>) -> &mut Self {
+        pub fn hatch(&mut self, hatch: impl Into<essay_graphics_api::Hatch>) -> &mut Self {
             self.write(|ticks| { ticks.$field.hatch(hatch); });
             self
         }

@@ -1,7 +1,7 @@
 use std::{collections::HashMap, ops::{Index, IndexMut}};
 
 use bytemuck_derive::{Zeroable, Pod};
-use essay_plot_api::{Affine2d, Color, Hatch, Point, TextureId};
+use essay_graphics_api::{Affine2d, Color, Hatch, Point, TextureId};
 use wgpu::util::DeviceExt;
 
 use super::{render::line_normal, texture_store::TextureCache};

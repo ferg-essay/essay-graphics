@@ -1,6 +1,6 @@
 use core::fmt;
 
-use essay_plot_api::{
+use essay_graphics_api::{
     PathOpt, Point, Affine2d, Bounds, Canvas, Path, Angle,
     driver::Renderer, Coord, Clip
 };

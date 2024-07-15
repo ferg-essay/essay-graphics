@@ -1,5 +1,5 @@
 use bytemuck_derive::{Zeroable, Pod};
-use essay_plot_api::{Point, Color, Affine2d, HorizAlign, VertAlign};
+use essay_graphics_api::{Point, Color, Affine2d, HorizAlign, VertAlign};
 use wgpu::util::DeviceExt;
 
 use super::{text_texture::TextTexture, text_cache::{TextCache, FontId}};

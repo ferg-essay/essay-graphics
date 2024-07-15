@@ -1,4 +1,4 @@
-use essay_plot_api::{
+use essay_graphics_api::{
     Bounds, Canvas, Clip, PathOpt, driver::Renderer, 
     PathCode, Path, Point, TextStyle, VertAlign, HorizAlign
 };

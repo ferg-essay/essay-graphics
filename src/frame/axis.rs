@@ -1,4 +1,4 @@
-use essay_plot_api::{TextStyle, Canvas, driver::Renderer, Clip, PathOpt, VertAlign, Point, Path, HorizAlign, Bounds, PathCode};
+use essay_graphics_api::{TextStyle, Canvas, driver::Renderer, Clip, PathOpt, VertAlign, Point, Path, HorizAlign, Bounds, PathCode};
 
 use crate::{artist::{PathStyle, TextCanvas, Artist, patch::CanvasPatch, paths, ToCanvas}, graph::Config, frame_option_struct, path_style_options};
 

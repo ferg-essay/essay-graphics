@@ -1,4 +1,4 @@
-use essay_plot_api::{
+use essay_graphics_api::{
     driver::{FigureApi, RenderErr, Renderer}, Affine2d, Bounds, Canvas, CapStyle, Clip, Color, Coord, FontStyle, FontTypeId, HorizAlign, ImageId, JoinStyle, LineStyle, Path, PathCode, PathOpt, Point, TextStyle, TextureId, VertAlign
 };
 use essay_tensor::Tensor;

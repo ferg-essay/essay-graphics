@@ -1,4 +1,4 @@
-use essay_plot_api::{Angle, Point};
+use essay_graphics_api::{Angle, Point};
 use essay_tensor::Tensor;
 
 use crate::{artist::{patch, Container, ContainerOpt}, graph::Graph};

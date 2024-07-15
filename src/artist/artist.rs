@@ -1,6 +1,6 @@
 use std::ops::Deref;
 
-use essay_plot_api::{
+use essay_graphics_api::{
     Coord, Bounds, Affine2d, Canvas, PathOpt,
     driver::Renderer, Clip,
 };

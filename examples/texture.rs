@@ -1,4 +1,4 @@
-use essay_plot::{prelude::*, artist::patch::Patch};
+use essay_graphics::{prelude::*, artist::patch::Patch};
 use path_opt::Hatch;
 
 fn main() { 

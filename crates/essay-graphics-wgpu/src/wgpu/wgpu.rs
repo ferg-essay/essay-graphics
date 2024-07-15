@@ -1,4 +1,4 @@
-use essay_plot_api::driver::{Backend, FigureApi, DeviceErr};
+use essay_graphics_api::driver::{Backend, FigureApi, DeviceErr};
 
 use super::main_loop::main_loop;
 

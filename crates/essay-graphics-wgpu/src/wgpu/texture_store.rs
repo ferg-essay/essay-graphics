@@ -1,4 +1,4 @@
-use essay_plot_api::TextureId;
+use essay_graphics_api::TextureId;
 
 
 pub struct TextureCache {

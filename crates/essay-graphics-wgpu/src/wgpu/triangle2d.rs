@@ -1,5 +1,5 @@
 use bytemuck_derive::{Pod, Zeroable};
-use essay_plot_api::{Affine2d, Clip};
+use essay_graphics_api::{Affine2d, Clip};
 use wgpu::util::DeviceExt;
 
 pub struct GridMesh2dRender {

@@ -1,4 +1,4 @@
-use essay_plot_api::{driver::Renderer, Affine2d, Bounds, Canvas, CapStyle, Clip, Color, JoinStyle, Path, PathOpt, Point};
+use essay_graphics_api::{driver::Renderer, Affine2d, Bounds, Canvas, CapStyle, Clip, Color, JoinStyle, Path, PathOpt, Point};
 use essay_tensor::{Tensor, tensor::TensorVec, tf32, math::normalize_unit};
 
 use crate::{frame::{Data, LegendHandler}, artist::{Norm, Norms}, graph::ConfigArc, data_artist_option_struct};

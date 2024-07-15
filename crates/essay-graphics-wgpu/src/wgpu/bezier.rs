@@ -1,5 +1,5 @@
 use bytemuck_derive::{Pod, Zeroable};
-use essay_plot_api::{Point, Color, Affine2d};
+use essay_graphics_api::{Point, Color, Affine2d};
 use wgpu::util::DeviceExt;
 
 pub struct BezierRender {
