@@ -48,7 +48,7 @@ impl Graph {
     pub fn add_simple_artist<'a, A>(
         &mut self, 
         artist: A,
-    ) -> PlotOpt
+    ) // -> PlotOpt
     where
         A: Artist<Data> + 'static
     {
@@ -67,11 +67,11 @@ impl Graph {
     pub fn artist<'a, A>(
         &mut self, 
         _artist: A,
-    ) -> <A::Artist as PlotArtist<Data>>::Opt 
+    ) // -> <A::Artist as PlotArtist<Data>>::Opt 
     where
         A: IntoArtist<Data> + 'static
     {
-        todo!();
+        //todo!();
         /*
         let artist = artist.into_artist();
 

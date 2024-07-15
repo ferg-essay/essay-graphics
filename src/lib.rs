@@ -16,7 +16,7 @@ pub mod wgpu {
 }
 
 pub mod prelude {
-    pub use crate::graph::Figure;
+    // pub use crate::graph::Figure;
     // pub use crate::plot::{Plot, PlotOpt};
 
     pub use crate::api::*;

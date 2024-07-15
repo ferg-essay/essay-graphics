@@ -1,4 +1,4 @@
-use essay_graphics::{prelude::*, artist::patch::Patch, frame::Data};
+use essay_graphics::{artist::patch::Patch, frame::Data, layout::Figure, prelude::*};
 
 fn main() { 
     let mut figure = Figure::new();
@@ -11,11 +11,13 @@ fn main() {
         PathCode::LineTo(Point(7.7, 10.)),
         PathCode::ClosePoly(Point(0., 2.)),
     ]);
-    graph.artist(Patch::new(path)).color("teal").edge_color("black");
+    graph.artist(Patch::new(path));
 
-    graph.aspect(1.);
-    graph.xlim(0., 20.);
-    graph.ylim(0., 20.);
+    //graph.artist(Patch::new(path)).color("teal").edge_color("black");
+
+    //graph.aspect(1.);
+    //graph.xlim(0., 20.);
+    //graph.ylim(0., 20.);
 
     figure.show();
 }

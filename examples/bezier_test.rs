@@ -1,7 +1,5 @@
-use essay_graphics::{artist::{patch::PathPatch, paths, DrawStyle, IntoMarker, Markers}, frame::Data, graph::{Graph, PlotOpt}, plot::{bar, contour, fill_between, grid_color, matshow, plot, stem, tricontour, triplot}, prelude::*};
-use essay_graphics_api::{Point, Color, PathCode, Path, JoinStyle, CapStyle, LineStyle, Angle};
-use essay_tensor::{prelude::*, init::{linspace, meshgrid, meshgrid_ij}, tensor::TensorVec};
-
+use essay_graphics::{prelude::*, artist::{patch::PathPatch, paths}, frame::Data, graph::{Graph, PlotOpt}, layout::Figure};
+use essay_graphics_api::{Point, PathCode, Path, Angle};
 
 fn main() {
     //let mut gui = WgpuBackend::new();
@@ -11,69 +9,8 @@ fn main() {
 
     let test = Tests::WEDGE;
 
-    graph.add_simple_artist(PathPatch::new(test.path())).color(Color(0x0080c080));
-
-    /*
-    match test {
-        Tests::A => {
-            graph.add_simple_artist(PathPatch::new(
-                Path::move_to(0.5, 0.)
-                    .bezier2_to([1.0, 1.0], [1.5, 0.0])
-                    .to_path())
-            ).color(Color(0x0080c080));
-        },
-        Tests::A_P => {
-            graph.add_simple_artist(PathPatch::new(
-                Path::move_to(0.5, 0.)
-                    .bezier2_to([1.0, 1.0], [1.5, 0.0])
-                    .close_poly(0.5, 0.)
-                    .to_path())
-            ).color(Color(0x0080c080));
-        },
-        Tests::SEMICIRCLE => {
-            graph.add_simple_artist(PathPatch::new(
-                Path::move_to(0.0, 0.)
-                    .bezier2_to([0.5, 1.0], [1., 0.0])
-                    .line_to(0.75, 0.)
-                    .bezier2_to([0.5, 0.5], [0.25, 0.0])
-                    .close_poly(0., 0.)
-                    .to_path())
-            ).color(Color(0x0080c080));
-        },
-        Tests::CUT_BOX => {
-            graph.add_simple_artist(PathPatch::new(
-                Path::move_to(0.0, 0.)
-                    .line_to(0., 1.)
-                    .line_to(1., 1.)
-                    .line_to(1., 0.)
-                    .line_to(0.75, 0.)
-                    .bezier2_to([0.5, 0.5], [0.25, 0.0])
-                    .close_poly(0., 0.)
-                    .to_path())
-            ).color(Color(0x0080c080));
-        },
-        Tests::CUT_BOX_B => {
-            graph.add_simple_artist(PathPatch::new(
-                Path::move_to(0.0, 0.)
-                    .line_to(0., 1.)
-                    .line_to(1., 1.)
-                    .line_to(1., 0.)
-                    .line_to(0.75, 0.)
-                    .line_to(0.5, 0.5)
-                    .line_to(0.25, 0.0)
-                    .close_poly(0., 0.)
-                    .to_path())
-            ).color(Color(0x0080c080));
-        },
-    }
-    */
-    //bezier2(graph, [-1.5, 0.], [-1.0, -1.0], [-0.5, 0.0]).color(Color(0x0080c080));
-    //bezier2(graph, [0., -0.5], [1.0, -1.0], [0.0, -1.5]).color(Color(0x0080c080));
-
-    //axes.bezier2([-1., 0.], [0.5, 1.0], [1.0, 0.0]);
-    // axes.bezier2([0., -1.], [-0.5, 0.0], [0.0, 1.]);
-    //axes.bezier3([0., 0.], [0.25, 1.0], [0.5, -1.0], [1.0, 0.0]);
-    //axes.bezier3([-1., 0.], [1.0, 1.0], [-1.0, -1.0], [1.0, 0.0]);
+    graph.add_simple_artist(PathPatch::new(test.path()));
+    
     figure.show();
 }
 enum Tests {
@@ -162,17 +99,6 @@ impl Tests {
             },
         }
     }
-}
-
-pub fn bezier3(
-    graph: &mut Graph, 
-    p0: impl Into<Point>,
-    p1: impl Into<Point>,
-    p2: impl Into<Point>,
-    p3: impl Into<Point>
-) {
-    //graph.add_data_artist(Bezier3(p0.into(), p1.into(), p2.into(), p3.into()));
-    todo!()
 }
 
 pub fn bezier2(
