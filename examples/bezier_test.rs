@@ -4,14 +4,16 @@ use essay_graphics_api::{Point, PathCode, Path, Angle};
 fn main() {
     //let mut gui = WgpuBackend::new();
 
+    /*
     let mut figure = Figure::new();
-    let mut graph = figure.new_graph([1., 1.]);
+    let mut graph = figure.new_frame([1., 1.]);
 
     let test = Tests::WEDGE;
 
     graph.add_simple_artist(PathPatch::new(test.path()));
-    
+
     figure.show();
+    */
 }
 enum Tests {
     A, A_P,
