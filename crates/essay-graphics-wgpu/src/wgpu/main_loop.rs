@@ -381,16 +381,6 @@ impl<'a> MainRenderer<'a> {
     }
 }
 
-pub trait ViewRenderer {
-    fn render(
-        &mut self,
-        device: &wgpu::Device, 
-        queue: &wgpu::Queue, 
-        view: &wgpu::TextureView, 
-        encoder: &wgpu::CommandEncoder
-    );
-}
-
 pub(crate) fn main_loop(figure: Box<dyn FigureApi>) {
     let event_loop = EventLoop::new().unwrap();
     

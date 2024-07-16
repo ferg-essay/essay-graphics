@@ -1,5 +1,5 @@
 use essay_graphics_api::{
-    driver::{FigureApi, RenderErr, Renderer}, Affine2d, Bounds, Canvas, CapStyle, Clip, Color, Coord, FontStyle, FontTypeId, HorizAlign, ImageId, JoinStyle, LineStyle, Path, PathCode, PathOpt, Point, TextStyle, TextureId, VertAlign
+    driver::{FigureApi, RenderErr, Renderer}, Affine2d, Bounds, Canvas, CapStyle, Clip, Color, FontStyle, FontTypeId, HorizAlign, ImageId, JoinStyle, LineStyle, Path, PathCode, PathOpt, Point, TextStyle, TextureId, VertAlign
 };
 use essay_tensor::Tensor;
 
@@ -394,7 +394,7 @@ impl PlotCanvas {
     ///
     /// Returns the boundary of the canvas, usually in pixels or points.
     ///
-    fn get_canvas(&self) -> &Canvas {
+    pub fn get_canvas(&self) -> &Canvas {
         &self.canvas
     }
 
@@ -925,9 +925,6 @@ impl Cursor {
     }
 }
 
-struct Gpu {}
-impl Coord for Gpu {}
-
 impl PlotCanvas {
     pub(crate) fn draw(
         &mut self,
@@ -946,7 +943,9 @@ impl PlotCanvas {
         self.set_canvas_bounds(width, height);
         let pt_to_px_factor = 4. / 3.;
         self.set_scale_factor(scale_factor * pt_to_px_factor);
-        let draw_bounds = self.canvas.bounds().clone();
+        //let draw_bounds = self.canvas.bounds().clone();
+
+        figure.update(&self.canvas);
 
         /*
         let mut renderer = DrawRenderer::new(
@@ -958,7 +957,8 @@ impl PlotCanvas {
         */
         let mut renderer = self.renderer(device, queue, view);
 
-        figure.draw(&mut renderer, &draw_bounds);
+        //figure.draw(&mut renderer, &draw_bounds);
+        figure.draw(&mut renderer);
 
         renderer.flush_inner(&Clip::None);
     }

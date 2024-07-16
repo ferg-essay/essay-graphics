@@ -1,7 +1,7 @@
 use core::fmt;
 use std::{any::Any, marker::PhantomData, sync::{Arc, Mutex}};
 
-use essay_graphics_api::{Bounds, Canvas, Point, Coord, driver::Renderer, CanvasEvent};
+use essay_graphics_api::{driver::{FigureApi, Renderer}, Bounds, Canvas, CanvasEvent, Coord, Point};
 
 #[derive(Clone)]
 pub struct Layout(Arc<Mutex<LayoutInner>>);
@@ -53,17 +53,21 @@ impl Layout {
     fn write<T: ViewTrait + 'static, R>(&self, id: ViewId, fun: impl FnOnce(&mut T) -> R) -> R {
         self.0.lock().unwrap().views[id.0].write(fun)
     }
+}
 
-    pub fn update_canvas(&mut self, canvas: &Canvas) {
+impl FigureApi for Layout {
+    #[inline]
+    fn update(&mut self, canvas: &Canvas) {
         self.0.lock().unwrap().layout(&canvas);
     }
 
-    pub fn draw(&mut self, renderer: &mut dyn Renderer) {
+    #[inline]
+    fn draw(&mut self, renderer: &mut dyn Renderer) {
         self.0.lock().unwrap().draw(renderer);
     }
 
     #[inline]
-    pub fn event(&mut self, renderer: &mut dyn Renderer, event: &CanvasEvent) {
+    fn event(&mut self, renderer: &mut dyn Renderer, event: &CanvasEvent) {
         self.0.lock().unwrap().event(renderer, event);
     }
 }

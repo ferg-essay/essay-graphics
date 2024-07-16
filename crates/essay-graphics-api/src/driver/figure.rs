@@ -1,8 +1,10 @@
 use super::Renderer;
-use crate::{CanvasEvent, Bounds, Canvas};
+use crate::{CanvasEvent, Canvas};
 
 pub trait FigureApi {
-    fn draw(&mut self, renderer: &mut dyn Renderer, bounds: &Bounds<Canvas>);
+    fn update(&mut self, canvas: &Canvas);
+
+    fn draw(&mut self, renderer: &mut dyn Renderer);
 
     fn event(&mut self, renderer: &mut dyn Renderer, event: &CanvasEvent);
 }

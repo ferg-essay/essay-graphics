@@ -32,6 +32,8 @@ pub fn draw_hardcopy(
     let view = wgpu.create_view();
     wgpu.clear_screen(&view.view);
 
+    figure.update(plot_canvas.get_canvas());
+
     let mut plot_renderer = PlotRenderer::new(
         &mut plot_canvas, 
         &wgpu.device, 
@@ -41,12 +43,12 @@ pub fn draw_hardcopy(
 
         //canvas.clear_screen(&view);
 
-    let bounds = Bounds::<Canvas>::from([
-        (0., 0.),
-        (width as f32, height as f32)
-    ]);
+    // let bounds = Bounds::<Canvas>::from([
+    //    (0., 0.),
+    //    (width as f32, height as f32)
+    // ]);
 
-    figure.draw(&mut plot_renderer, &bounds);
+    figure.draw(&mut plot_renderer);
         //plot_renderer.draw_path(path, style, &Clip::None).unwrap();
 
     plot_renderer.flush_inner(&Clip::None);
