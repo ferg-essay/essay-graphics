@@ -1,17 +1,9 @@
 use core::fmt;
 
-use essay_graphics_api::{path_opt::Hatch, CapStyle, Color, JoinStyle, LineStyle, PathOpt, TextureId};
-
-use crate::graph::Config;
-
-use super::Markers;
-
-pub trait PathStyleOpt : PathOpt {
-    fn get_marker(&self) -> &Option<Markers>;
-}
+use crate::{CapStyle, Color, Hatch, JoinStyle, LineStyle, PathOpt, TextureId};
 
 #[derive(Clone)]
-pub struct PathStyle {
+pub struct PathStyleBase {
     color: Option<Color>,
     face_color: Option<Color>,
     edge_color: Option<Color>,
@@ -26,29 +18,11 @@ pub struct PathStyle {
     hatch: Option<Hatch>,
 
     gap_color: Option<Color>,
-
-    marker: Option<Markers>,
 }
 
-impl PathStyle {
-    pub fn new() -> PathStyle {
-        PathStyle::default()
-    }
-
-    pub(crate) fn from_config(cfg: &Config, prefix: &str) -> PathStyle {
-        let mut style = PathStyle::default();
-
-        style.color = cfg.get_as_type(prefix, "color");
-        style.face_color = cfg.get_as_type(prefix, "face_color");
-        style.edge_color = cfg.get_as_type(prefix, "edge_color");
-        style.gap_color = cfg.get_as_type(prefix, "gap_color");
-        style.line_width = cfg.get_as_type(prefix, "line_width");
-        style.line_style = cfg.get_as_type(prefix, "line_style");
-        style.join_style = cfg.get_as_type(prefix, "join_style");
-        style.cap_style = cfg.get_as_type(prefix, "cap_style");
-        style.alpha = cfg.get_as_type(prefix, "alpha");
-        style.marker = cfg.get_as_type(prefix, "marker");
-        style
+impl PathStyleBase {
+    pub fn new() -> PathStyleBase {
+        PathStyleBase::default()
     }
 
     pub fn color(&mut self, color: impl Into<Color>) -> &mut Self {
@@ -113,15 +87,9 @@ impl PathStyle {
 
         self
     }
-
-    pub fn marker(&mut self, marker: impl Into<Markers>) -> &mut Self {
-        self.marker = Some(marker.into());
-
-        self
-    }
 }
 
-impl fmt::Debug for PathStyle {
+impl fmt::Debug for PathStyleBase {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut fmt = f.debug_struct("PathStyle");
 
@@ -161,15 +129,11 @@ impl fmt::Debug for PathStyle {
             fmt.field("gap_color", gap_color);
         }
         
-        if let Some(marker) = &self.marker {
-            fmt.field("marker", marker);
-        }
-        
         fmt.finish()
     }
 }
 
-impl PathOpt for PathStyle {
+impl PathOpt for PathStyleBase {
     fn get_face_color(&self) -> &Option<Color> {
         match &self.face_color {
             Some(_color) => &self.face_color,
@@ -213,13 +177,7 @@ impl PathOpt for PathStyle {
     }
 }
 
-impl PathStyleOpt for PathStyle {
-    fn get_marker(&self) -> &Option<Markers> {
-        &self.marker
-    }
-}
-
-impl Default for PathStyle {
+impl Default for PathStyleBase {
     fn default() -> Self {
         Self { 
             color: None,
@@ -233,7 +191,6 @@ impl Default for PathStyle {
             alpha: None,
             texture: None,
             hatch: None,
-            marker: None,
         }
     }
 }

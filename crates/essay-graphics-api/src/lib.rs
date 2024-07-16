@@ -12,6 +12,7 @@ mod color_data;
 pub mod driver;
 mod path;
 pub mod path_opt;
+pub mod path_style;
 mod text;
 
 pub use affine::Affine2d;
