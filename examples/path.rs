@@ -1,5 +1,4 @@
 use essay_graphics::{layout::{LayoutMainLoop, ViewTrait}, prelude::*};
-use path_style::PathStyleBase;
 
 fn main() { 
     let mut figure = LayoutMainLoop::new();
