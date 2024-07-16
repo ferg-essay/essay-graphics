@@ -1,4 +1,4 @@
-use essay_graphics::{prelude::*, artist::{patch::PathPatch, paths}, frame::Data, graph::{Graph, PlotOpt}, layout::Figure};
+use essay_graphics::{prelude::*, artist::{patch::PathPatch, paths}, frame::Data, graph::{Graph, PlotOpt}, layout::LayoutMainLoop};
 use essay_graphics_api::{Point, PathCode, Path, Angle};
 
 fn main() {

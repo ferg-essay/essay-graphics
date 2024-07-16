@@ -1,9 +1,9 @@
-use essay_graphics::layout::Figure;
+use essay_graphics::layout::LayoutMainLoop;
 
 fn main() {
     //let mut gui = WgpuBackend::new();
 
-    let mut figure = Figure::new();
+    let mut figure = LayoutMainLoop::new();
     //let mut graph = figure.new_graph([1., 1.]);
 
     //let x = linspace(0., 2. * PI, 30);

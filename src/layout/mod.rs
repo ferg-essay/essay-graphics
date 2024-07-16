@@ -1,11 +1,9 @@
-mod ptr;
-mod figure;
 mod layout;
-
-pub use figure::{
-    Figure, FigureInner, 
-};
+mod layout_main_loop;
 
 pub use layout::{
     Layout, View, ViewTrait
 };
+
+pub use layout_main_loop::LayoutMainLoop;
+

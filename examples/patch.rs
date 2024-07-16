@@ -1,4 +1,4 @@
-use essay_graphics::{artist::Patch, layout::Figure, prelude::*};
+use essay_graphics::{artist::Patch, layout::LayoutMainLoop, prelude::*};
 
 fn main() { 
     /*

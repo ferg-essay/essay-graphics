@@ -2,25 +2,21 @@ use essay_graphics_wgpu::WgpuBackend;
 
 use essay_graphics_api::{
     driver::{Renderer, Backend, FigureApi},
-    Bounds, Point, CanvasEvent, Canvas,
+    Bounds, CanvasEvent, Canvas,
 };
 
 use super::{layout::Grid, Layout, View, ViewTrait};
 
-//use super::config::read_config;
-
-pub struct Figure {
-    // inner: Arc<Mutex<FigureInner>>,
-    device: Box<dyn Backend>,
-    inner: FigureInner,
+pub struct LayoutMainLoop {
+    backend: Box<dyn Backend>,
+    inner: MainLoopInner,
 }
 
-impl Figure {
+impl LayoutMainLoop {
     pub fn new() -> Self {
         Self {
-            // inner: Arc::new(Mutex::new(FigureInner::new())),
-            inner: FigureInner::new(),
-            device: Box::new(WgpuBackend::new()),
+            inner: MainLoopInner::new(),
+            backend: Box::new(WgpuBackend::new()),
         }
     }
 
@@ -35,7 +31,7 @@ impl Figure {
     pub fn show(self) {
         // let mut figure = self;
         let inner = self.inner;
-        let mut device = self.device;
+        let mut device = self.backend;
 
         device.main_loop(Box::new(inner)).unwrap();
     }
@@ -63,27 +59,15 @@ impl Figure {
     }
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
-pub struct GraphId(usize);
-
-impl GraphId {
-    #[inline]
-    pub fn index(&self) -> usize {
-        self.0
-    }
-}
-
-pub struct FigureInner {
+struct MainLoopInner {
     layout: Layout,
 
     size: (f32, f32),
     dpi: f32,
-
-    // graphs: Vec<Graph>,
 }
 
-impl FigureInner {
-    pub fn new() -> Self {
+impl MainLoopInner {
+    fn new() -> Self {
         Self {
             size: (6.4, 4.8),
             dpi: 200.,
@@ -92,22 +76,18 @@ impl FigureInner {
         }
     }
 
-    pub fn new_frame<T: ViewTrait + 'static>(
-        &mut self, 
-        pos: impl Into<Bounds<Grid>>, 
-        view: T
-    ) -> View<T> {
-        self.layout.add_view(pos, view)
-    }
-
-    pub fn update_canvas(&mut self, canvas: &Canvas) {
+    fn _update_canvas(&mut self, canvas: &Canvas) {
         self.layout.update_canvas(canvas);
     }
 }
 
-impl FigureApi for FigureInner {
+impl FigureApi for MainLoopInner {
     fn draw(&mut self, renderer: &mut dyn Renderer, bounds: &Bounds<Canvas>) {
-        self.layout.draw(renderer, bounds);
+        let canvas = Canvas::new(bounds.clone(), renderer.to_px(1.));
+        
+        self.layout.update_canvas(&canvas);
+
+        self.layout.draw(renderer);
     }
 
     fn event(&mut self, renderer: &mut dyn Renderer, event: &CanvasEvent) {

@@ -1,8 +1,6 @@
-use core::{alloc, fmt};
-use std::{any::{Any, TypeId}, marker::PhantomData, mem::ManuallyDrop, ptr::NonNull, sync::{Arc, Mutex}};
+use core::fmt;
+use std::{any::Any, marker::PhantomData, sync::{Arc, Mutex}};
 
-//use downcast_rs::Downcast;
-//use downcast_rs::impl_downcast;
 use essay_graphics_api::{Bounds, Canvas, Point, Coord, driver::Renderer, CanvasEvent};
 
 #[derive(Clone)]
@@ -17,7 +15,7 @@ impl Layout {
 impl Layout {
     #[inline]
     pub fn bounds(&self) -> Bounds<Grid> {
-        self.0.lock().unwrap().bounds().clone()
+        self.0.lock().unwrap().grid_bounds().clone()
     }
 
     #[inline]
@@ -41,18 +39,6 @@ impl Layout {
         View::new(id, self.clone())
     }
 
-    pub(crate) fn update_canvas(&mut self, canvas: &Canvas) {
-        self.0.lock().unwrap().layout(&canvas);
-    }
-
-    pub(crate) fn draw(&mut self, renderer: &mut dyn Renderer, bounds: &Bounds<Canvas>) {
-        self.0.lock().unwrap().draw(renderer, bounds);
-    }
-
-    pub(crate) fn event(&mut self, renderer: &mut dyn Renderer, event: &CanvasEvent) {
-        self.0.lock().unwrap().event(renderer, event);
-    }
-
     #[inline]
     fn pos(&self, id: ViewId) -> Bounds<Canvas> {
         self.0.lock().unwrap().pos(id).clone()
@@ -67,28 +53,31 @@ impl Layout {
     fn write<T: ViewTrait + 'static, R>(&self, id: ViewId, fun: impl FnOnce(&mut T) -> R) -> R {
         self.0.lock().unwrap().views[id.0].write(fun)
     }
+
+    pub fn update_canvas(&mut self, canvas: &Canvas) {
+        self.0.lock().unwrap().layout(&canvas);
+    }
+
+    pub fn draw(&mut self, renderer: &mut dyn Renderer) {
+        self.0.lock().unwrap().draw(renderer);
+    }
+
+    #[inline]
+    pub fn event(&mut self, renderer: &mut dyn Renderer, event: &CanvasEvent) {
+        self.0.lock().unwrap().event(renderer, event);
+    }
 }
 
 pub struct Grid;
 impl Coord for Grid {}
 
 struct LayoutInner {
-    sizes: LayoutSizes,
-    
-    extent: Bounds<Grid>,
-
-    views: Vec<LayoutBox>,
+    views: Vec<ViewBox>,
 }
 
 impl LayoutInner {
     pub fn new() -> Self {
-        let sizes = LayoutSizes::new();
-
         Self {
-            sizes,            
-
-            extent: Bounds::unit(),
-
             views: Vec::new(),
         }
     }
@@ -107,53 +96,34 @@ impl LayoutInner {
         assert!(pos.width() <= 11.);
         assert!(pos.height() <= 11.);
 
-        self.extent = self.extent.union(&pos);
+        // self.extent = self.extent.union(&pos);
 
         let id = ViewId(self.views.len());
 
-        // let frame = Frame::new(id, Box::new(frame));
-
-        self.views.push(LayoutBox::new(pos, view));
-
-        // self.frame_mut(id)
+        self.views.push(ViewBox::new(pos, view));
 
         id
     }
 
-    /*
-    #[inline]
-    pub fn frame(&self, id: FrameId) -> &Frame {
-        self.frames[id.index()].frame()
-    }
-
-    #[inline]
-    pub fn frame_mut(&mut self, id: FrameId) -> &mut Frame {
-        self.frames[id.index()].frame_mut()
-    }
-    */
     #[inline]
     fn pos(&self, id: ViewId) -> &Bounds<Canvas> {
         self.views[id.index()].pos()
     }
 
-    fn bounds(&self) -> &Bounds<Grid> {
-        &self.extent
-    }
-
     fn layout(&mut self, canvas: &Canvas) {
-        let bounds = self.layout_bounds();
-
+        let bounds = self.grid_bounds();
+        
         assert!(bounds.xmin() == 0.);
         assert!(bounds.ymin() == 0.);
 
         assert!(1. <= bounds.width() && bounds.width() <= 11.);
         assert!(1. <= bounds.height() && bounds.height() <= 11.);
         
-        let x_min = canvas.x_min() + canvas.width() * self.sizes.left;
-        let x_max = canvas.x_min() + canvas.width() * self.sizes.right;
+        let x_min = canvas.x_min();
+        let x_max = canvas.x_min() + canvas.width();
         
-        let y_min = canvas.y_min() + canvas.height() * self.sizes.bottom;
-        let y_max = canvas.y_min() + canvas.height() * self.sizes.top;
+        let y_min = canvas.y_min();
+        let y_max = canvas.y_min() + canvas.height();
 
         // TODO: nonlinear grid sizes
         let h = y_max - y_min; // canvas.height();
@@ -173,8 +143,8 @@ impl LayoutInner {
         }
     }
 
-    fn layout_bounds(&self) -> Bounds<Grid> {
-        let mut bounds = Bounds::unit();
+    fn grid_bounds(&self) -> Bounds<Grid> {
+        let mut bounds = Bounds::zero();
 
         for item in &self.views {
             bounds = bounds.union(&item.pos_grid);
@@ -186,74 +156,30 @@ impl LayoutInner {
     fn draw(
         &mut self, 
         renderer: &mut dyn Renderer,
-        bounds: &Bounds<Canvas>,
     ) {
-        let canvas = Canvas::new(bounds.clone(), renderer.to_px(1.));
-        
-        self.layout(&canvas);
-
         for item in &mut self.views {
             item.draw(renderer);
         }
     }
 
     fn event(&mut self, _renderer: &mut dyn Renderer, event: &CanvasEvent) {
-        for item in &mut self.views {
-            // let frame = item.frame_mut();
-
-            //if frame.pos().contains(event.point()) {
+        for view in &mut self.views {
+            if view.pos().contains(event.point()) {
                 // frame.event(renderer, event);
-            //}
-        }
-    }
-
-    fn _write<R>(&mut self, fun: impl FnOnce(&mut LayoutInner) -> R) -> R {
-        fun(self)
-    }
-}
-
-struct LayoutSizes {
-    top: f32,
-    bottom: f32,
-    left: f32,
-    right: f32,
-}
-
-impl LayoutSizes {
-    fn new() -> Self {
-        let bottom = 0.;
-        let top = 1.;
-        let left = 0.;
-        let right = 1.;
-
-        Self {
-            bottom,
-            top, 
-            left,
-            right, 
+            }
         }
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-struct ViewId(usize);
-
-impl ViewId {
-    pub fn index(&self) -> usize {
-        self.0
-    }
-}
-
-struct LayoutBox {
+struct ViewBox {
     pos_grid: Bounds<Grid>,
     pos_canvas: Bounds<Canvas>,
 
     ptr: Box<dyn Any>,
     handle: Box<dyn ViewHandleTrait>,
-    // view: Box<dyn ViewTrait>,
 }
 
-impl LayoutBox {
+impl ViewBox {
     fn new<T: ViewTrait + 'static>(pos: Bounds<Grid>, view: T) -> Self {
         Self {
             pos_grid: pos.into(),
@@ -310,67 +236,19 @@ trait ViewHandleTrait {
 impl<V: ViewTrait + 'static> ViewHandleTrait for ViewHandle<V> {
     fn update(&mut self, any: &mut dyn Any, pos: &Bounds<Canvas>, canvas: &Canvas) {
         any.downcast_mut::<V>().unwrap().update(pos, canvas)
-        // self.view.draw(renderer)
     }
 
     fn draw(&mut self, any: &mut dyn Any, renderer: &mut dyn Renderer) {
         any.downcast_mut::<V>().unwrap().draw(renderer)
-        // self.view.draw(renderer)
     }
-
-    /*
-    fn read<T: 'static, R>(&self, fun: impl FnOnce(&T) -> R) -> R{
-        fun(self.view.as_any().downcast_ref::<T>().unwrap())
-    }
-
-    fn write<T: 'static, R>(&mut self, fun: impl FnOnce(&mut T) -> R) -> R{
-        fun(self.view.as_any_mut().downcast_mut::<T>().unwrap())
-    }
-    */
 }
 
-// TODO: replace with downcast crate
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+struct ViewId(usize);
 
-struct Ptr {
-    type_id: TypeId, 
-    data: NonNull<u8>,
-}
-
-impl Ptr {
-    fn new<T: 'static>(view: T) -> Self {
-        let layout = std::alloc::Layout::new::<T>();
-        let data = unsafe { std::alloc::alloc(layout) };
-        let mut value = ManuallyDrop::new(view);
-        let source: NonNull<u8> = NonNull::from(&mut *value).cast();
-
-        let src = source.as_ptr();
-        let count = std::mem::size_of::<T>();
-
-        // TODO: drop
-
-        unsafe {
-            std::ptr::copy_nonoverlapping::<u8>(src, data, count);
-        }
-
-        Self {
-            type_id: TypeId::of::<T>(),
-            data: NonNull::new(data).unwrap(),
-        }
-    }
-
-    unsafe fn deref<T: 'static>(&self) -> &T {
-        assert_eq!(self.type_id, TypeId::of::<T>());
-
-        &*self.data.as_ptr().cast::<T>()
-    }
-
-    pub unsafe fn deref_mut<T>(&self) -> &mut T
-    where
-        T: ViewTrait + 'static
-    {
-        assert_eq!(self.type_id, TypeId::of::<T>());
-
-        &mut *self.data.as_ptr().cast::<T>()
+impl ViewId {
+    pub fn index(&self) -> usize {
+        self.0
     }
 }
 
@@ -425,14 +303,13 @@ impl<T: ViewTrait> fmt::Debug for View<T> {
 }
 
 pub trait ViewTrait : Send + Sync {
+    ///
+    /// update the canvas coordinates for the view
+    /// 
     fn update(&mut self, pos: &Bounds<Canvas>, canvas: &Canvas);
 
     ///
-    /// Sets the device bounds and propagates to children
+    /// Draws the view in the renderer
     /// 
-    /// The position for a frame is the size of the data box. The frame,
-    /// axes and titles are relative to the data box.
-    /// 
-
     fn draw(&mut self, renderer: &mut dyn Renderer);
 }
