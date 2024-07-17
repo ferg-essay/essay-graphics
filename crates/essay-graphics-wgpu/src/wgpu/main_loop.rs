@@ -7,7 +7,9 @@ use winit::{
     window::{Window, CursorIcon},
 };
 
-use super::render::{PlotCanvas, PlotRenderer};
+use crate::PlotCanvas;
+
+use super::render::PlotRenderer;
 
 async fn init_wgpu_args(window: &Window) -> EventLoopArgs {
     window.set_title("Essay Plot");

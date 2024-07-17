@@ -54,6 +54,14 @@ pub trait Renderer {
         clip: &Clip,
     ) -> Result<(), RenderErr>;
 
+    fn draw_3d(
+        &mut self,
+        vertices: Tensor<f32>,  // Nx3 x,y in canvas coordinates
+        colors: Tensor<u32>,    // N in rgba
+        triangles: Tensor<u32>, // Mx3 vertex indices
+        clip: &Clip,
+    ) -> Result<(), RenderErr>;
+
     fn draw_image(
         &mut self,
         bounds: &Bounds<Canvas>,

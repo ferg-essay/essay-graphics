@@ -1,10 +1,12 @@
+mod canvas;
 mod bezier;
-mod triangle2d;
-mod shape2d;
-mod shape2d_texture;
 mod image;
 mod main_loop;
 mod render;
+mod shape2d;
+mod shape2d_texture;
+mod triangle2d;
+mod triangle3d;
 mod triangulate;
 mod text;
 mod text_texture;
@@ -15,8 +17,8 @@ pub mod hardcopy;
 
 pub use self::wgpu::WgpuBackend;
 
-pub use render::{
-    PlotCanvas, PlotRenderer,
-};
+pub use canvas::PlotCanvas;
+
+pub use render::PlotRenderer;
 
 pub use hardcopy::draw_hardcopy;
