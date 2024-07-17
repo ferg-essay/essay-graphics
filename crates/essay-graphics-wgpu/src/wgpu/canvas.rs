@@ -73,6 +73,8 @@ impl PlotCanvas {
         self.shape2d_texture_render.clear();
         self.triangle_render.clear();
         self.image_render.clear();
+
+        self.triangle3d_render.clear();
     }
 
     pub fn set_canvas_bounds(&mut self, width: u32, height: u32) {
