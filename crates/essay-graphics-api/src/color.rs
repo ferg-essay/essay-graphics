@@ -389,7 +389,7 @@ impl<const N: usize> From<[&str; N]> for Colors {
 }
 
 #[derive(Clone, Debug)]
-pub struct ColorErr(String);
+pub struct ColorErr(pub String);
 
 #[cfg(test)]
 mod test {

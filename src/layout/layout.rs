@@ -7,7 +7,7 @@ use essay_graphics_api::{driver::{FigureApi, Renderer}, Bounds, Canvas, CanvasEv
 pub struct Layout(Arc<Mutex<LayoutInner>>);
 
 impl Layout {
-    pub(crate) fn new() -> Layout {
+    pub fn new() -> Layout {
         Layout(Arc::new(Mutex::new(LayoutInner::new())))
     }
 }
@@ -23,7 +23,7 @@ impl Layout {
         &mut self, 
         pos: impl Into<Bounds<Grid>>,
         view: V, 
-    ) -> View<V> {
+    ) -> ViewHandle<V> {
         let mut pos : Bounds<Grid> = pos.into();
 
         if pos.is_zero() || pos.is_none() {
@@ -36,7 +36,7 @@ impl Layout {
 
         let id = self.0.lock().unwrap().add_view(pos, view);
 
-        View::new(id, self.clone())
+        ViewHandle::new(id, self.clone())
     }
 
     #[inline]
@@ -190,7 +190,7 @@ impl ViewBox {
             pos_canvas: Bounds::unit(),
 
             ptr: Box::new(view),
-            handle: Box::new(ViewHandle::<T>::new()),
+            handle: Box::new(ViewTraitHandle::<T>::new()),
         }
     }
 
@@ -220,11 +220,11 @@ impl ViewBox {
     }
 }
 
-struct ViewHandle<V: ViewTrait> {
+struct ViewTraitHandle<V: ViewTrait> {
     marker: PhantomData<V>,
 }
 
-impl<V: ViewTrait> ViewHandle<V> {
+impl<V: ViewTrait> ViewTraitHandle<V> {
     fn new() -> Self {
         Self {
             marker: PhantomData::default(),
@@ -237,7 +237,7 @@ trait ViewHandleTrait {
     fn draw(&mut self, any: &mut dyn Any, renderer: &mut dyn Renderer);
 }
 
-impl<V: ViewTrait + 'static> ViewHandleTrait for ViewHandle<V> {
+impl<V: ViewTrait + 'static> ViewHandleTrait for ViewTraitHandle<V> {
     fn update(&mut self, any: &mut dyn Any, pos: &Bounds<Canvas>, canvas: &Canvas) {
         any.downcast_mut::<V>().unwrap().update(pos, canvas)
     }
@@ -256,8 +256,7 @@ impl ViewId {
     }
 }
 
-#[derive(Clone)]
-pub struct View<T: ViewTrait> {
+pub struct ViewHandle<T: ViewTrait> {
     id: ViewId,
 
     layout: Layout,
@@ -265,7 +264,17 @@ pub struct View<T: ViewTrait> {
     marker: PhantomData<T>,
 }
 
-impl<T: ViewTrait + 'static> View<T> {
+impl<T: ViewTrait> Clone for ViewHandle<T> {
+    fn clone(&self) -> Self {
+        Self { 
+            id: self.id.clone(), 
+            layout: self.layout.clone(), 
+            marker: Default::default(),
+        }
+    }
+}
+
+impl<T: ViewTrait + 'static> ViewHandle<T> {
     fn new(id: ViewId, layout: Layout) -> Self {
         let frame = Self {
             id,
@@ -292,7 +301,7 @@ impl<T: ViewTrait + 'static> View<T> {
     }
 }
 
-impl<T: ViewTrait> fmt::Debug for View<T> {
+impl<T: ViewTrait> fmt::Debug for ViewHandle<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let pos = self.layout.pos(self.id);
 
@@ -306,7 +315,7 @@ impl<T: ViewTrait> fmt::Debug for View<T> {
     }
 }
 
-pub trait ViewTrait : Send + Sync {
+pub trait ViewTrait { // }: Send + Sync {
     ///
     /// update the canvas coordinates for the view
     /// 
@@ -316,4 +325,8 @@ pub trait ViewTrait : Send + Sync {
     /// Draws the view in the renderer
     /// 
     fn draw(&mut self, renderer: &mut dyn Renderer);
+
+    #[allow(unused_variables)]
+    fn event(&mut self, renderer: &mut dyn Renderer, event: &CanvasEvent) {
+    }
 }

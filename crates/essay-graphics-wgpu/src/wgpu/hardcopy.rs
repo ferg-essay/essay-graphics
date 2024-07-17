@@ -1,6 +1,6 @@
 use std::{fs::File, io::BufWriter};
 
-use essay_graphics_api::{Canvas, driver::FigureApi, Bounds, Clip};
+use essay_graphics_api::{driver::FigureApi, Clip};
 use wgpu::TextureView;
 use image::{ImageBuffer, Rgba};
 

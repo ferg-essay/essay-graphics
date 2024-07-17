@@ -5,7 +5,7 @@ use essay_graphics_api::{
     Bounds,
 };
 
-use super::{layout::Grid, Layout, View, ViewTrait};
+use super::{layout::Grid, Layout, ViewHandle, ViewTrait};
 
 pub struct LayoutMainLoop {
     backend: Box<dyn Backend>,
@@ -30,7 +30,7 @@ impl LayoutMainLoop {
         &mut self, 
         pos: impl Into<Bounds<Grid>>, 
         view: T
-    ) -> View<T> {
+    ) -> ViewHandle<T> {
         self.layout.add_view(pos, view)
     }
 
