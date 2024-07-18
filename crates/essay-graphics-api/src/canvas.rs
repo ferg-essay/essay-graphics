@@ -1,6 +1,7 @@
 use super::{Bounds, Coord};
 
 
+#[derive(Clone)]
 pub struct Canvas {
     bounds: Bounds<Canvas>,
     scale_factor: f32,

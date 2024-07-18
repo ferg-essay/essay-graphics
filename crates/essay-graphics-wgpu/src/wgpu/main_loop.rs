@@ -1,10 +1,8 @@
 use std::time::Instant;
 
-use essay_graphics_api::{driver::FigureApi, Point, CanvasEvent};
+use essay_graphics_api::{driver::Drawable, Bounds, Canvas, CanvasEvent, Clip, Point};
 use winit::{
-    event::{Event, WindowEvent, ElementState, MouseButton },    
-    event_loop::{EventLoop, ControlFlow}, 
-    window::{Window, CursorIcon},
+    event::{ElementState, Event, MouseButton, WindowEvent }, event_loop::{ControlFlow, EventLoop}, keyboard::{Key, NamedKey}, window::{CursorIcon, Window}
 };
 
 use crate::PlotCanvas;
@@ -120,7 +118,7 @@ fn run_event_loop(
     event_loop: EventLoop<()>, 
     window: Window, 
     args: EventLoopArgs,
-    figure: Box<dyn FigureApi>,
+    drawable: Box<dyn Drawable>,
 ) {
     let EventLoopArgs {
         instance,
@@ -131,15 +129,23 @@ fn run_event_loop(
         queue,
     } = args;
 
-    let mut figure = figure;
+    let mut drawable = drawable;
 
     //let mut staging_belt = wgpu::util::StagingBelt::new(1024);
 
-    let mut figure_renderer = PlotCanvas::new(
+    let mut canvas = PlotCanvas::new(
         &device,
         &queue,
         config.format,
     );
+
+    /*
+    let bounds = canvas.get_canvas().bounds().clone();
+    let mut draw_renderer = PlotRenderer::new(&mut canvas, &device, Some(&queue), None);
+    // drawable.update(&mut draw_renderer, &bounds);
+    drawable.event(&mut draw_renderer, &CanvasEvent::Resize(bounds));
+    draw_renderer.flush_inner(&Clip::None);
+    */
 
     let pan_min = 20.;
     let zoom_min = 20.;
@@ -151,7 +157,7 @@ fn run_event_loop(
     let mut mouse = MouseState::new();
 
     event_loop.run(move |event, window_target| {
-        let _ = (&instance, &adapter, &figure);
+        let _ = (&instance, &adapter, &drawable);
 
         let mut main_renderer = MainRenderer::new(
             &surface,
@@ -159,10 +165,8 @@ fn run_event_loop(
             &queue,
         );
 
-        let mut draw_renderer = PlotRenderer::new(&mut figure_renderer, &device, None, None);
+        let mut renderer = PlotRenderer::new(&mut canvas, &device, Some(&queue), None);
 
-        let mut is_draw = false;
-    
         window_target.set_control_flow(ControlFlow::Wait);
         match event {
             Event::WindowEvent {
@@ -173,7 +177,10 @@ fn run_event_loop(
                 config.height = size.height;
                 surface.configure(&device, &config);
                 // figure_renderer.set_canvas_bounds(config.width, config.height);
-                window.request_redraw();
+                let bounds = Bounds::<Canvas>::from([size.width as f32, size.height as f32]);
+                // drawable.update(&mut renderer, &bounds);
+                drawable.event(&mut renderer, &CanvasEvent::Resize(bounds));
+                canvas.request_redraw(true);
             }
             Event::WindowEvent {
                 event: WindowEvent::MouseInput {
@@ -188,15 +195,15 @@ fn run_event_loop(
                         mouse.left = state;
 
                         if state == ElementState::Pressed {
-                            figure.event(
-                                &mut draw_renderer,
+                            drawable.event(
+                                &mut renderer,
                                 &CanvasEvent::MouseLeftPress(cursor.position),
                             );
                             let now = Instant::now();
 
                             if now.duration_since(mouse.left_press_time).as_millis() < dbl_click {
-                                figure.event(
-                                    &mut draw_renderer,
+                                drawable.event(
+                                    &mut renderer,
                                     &CanvasEvent::ResetView(cursor.position),
                                 )
                             }
@@ -214,8 +221,8 @@ fn run_event_loop(
 
                         match state {
                             ElementState::Pressed => {
-                                figure.event(
-                                    &mut draw_renderer,
+                                drawable.event(
+                                    &mut renderer,
                                     &CanvasEvent::MouseRightPress(cursor.position),
                                 );
 
@@ -224,14 +231,14 @@ fn run_event_loop(
                                 window.set_cursor_icon(CursorIcon::Crosshair);
                             }
                             ElementState::Released => {
-                                figure.event(
-                                    &mut draw_renderer,
+                                drawable.event(
+                                    &mut renderer,
                                     &CanvasEvent::MouseRightRelease(cursor.position),
                                 );
 
                                 if zoom_min <= mouse.right_press_start.dist(&cursor.position) {
-                                    figure.event(
-                                        &mut draw_renderer,
+                                    drawable.event(
+                                        &mut renderer,
                                         &CanvasEvent::ZoomBounds(
                                             mouse.right_press_start, 
                                             cursor.position
@@ -256,8 +263,8 @@ fn run_event_loop(
 
                 if mouse.left == ElementState::Pressed 
                     && pan_min <= mouse.left_press_start.dist(&cursor.position) {
-                    figure.event(
-                        &mut draw_renderer,
+                    drawable.event(
+                        &mut renderer,
                         &CanvasEvent::Pan(
                             mouse.left_press_start, 
                             mouse.left_press_last, 
@@ -269,38 +276,81 @@ fn run_event_loop(
                 }
                 if mouse.right == ElementState::Pressed
                     && pan_min <= mouse.left_press_start.dist(&cursor.position) {
-                        figure.event(
-                            &mut draw_renderer,
+                        drawable.event(
+                            &mut renderer,
                             &CanvasEvent::MouseRightDrag(mouse.left_press_start, cursor.position),
                     );
+                }
+            }
+            Event::WindowEvent {
+                event: WindowEvent::KeyboardInput { event, .. },
+                ..
+            } => {
+                if event.state == ElementState::Pressed {
+                    let pos = Point(0., 0.);
+
+                    match event.logical_key {
+                        Key::Character(key) => {
+                            let ch = key.chars().next().unwrap();
+                            drawable.event(
+                                &mut renderer,
+                                &CanvasEvent::KeyPress(pos, ch)
+                            );
+                        }
+                        Key::Named(NamedKey::Space) => {
+                            // TODO: replace with KeyPressNamed
+                            drawable.event(
+                                &mut renderer,
+                                &CanvasEvent::KeyPress(pos, ' ')
+                            );
+                        },
+                        Key::Named(NamedKey::Tab) => {
+                            // TODO: replace with KeyPressNamed
+                            drawable.event(
+                                &mut renderer,
+                                &CanvasEvent::KeyPress(pos, '\r')
+                            );
+                        },
+                        Key::Named(NamedKey::Enter) => {
+                            // TODO: replace with KeyPressNamed
+                            drawable.event(
+                                &mut renderer,
+                                &CanvasEvent::KeyPress(pos, '\n')
+                            );
+                        },
+                        Key::Named(_) => {},
+                        Key::Unidentified(_) => {},
+                        Key::Dead(_) => {},
+                    }
                 }
             }
             Event::WindowEvent {
                 event: WindowEvent::RedrawRequested,
                 ..
             } => {
-                //figure_renderer.clear();
-                //figure.draw(&mut figure_renderer);
-                is_draw = true;
+                canvas.request_redraw(true);
             },
             Event::WindowEvent {
                 event: WindowEvent::CloseRequested,
                 ..
             } => window_target.exit(),
+            Event::AboutToWait => {
+                if canvas.is_request_redraw() {
+                    canvas.request_redraw(false);
+                    main_renderer.render(|device, queue, view| {
+                        canvas.draw(
+                            &mut drawable,
+                            (config.width, config.height),
+                            window.scale_factor() as f32,
+                            device, 
+                            queue, 
+                            view);
+                    });
+                }
+            }
             _ => {}
         }
 
-        if is_draw || figure_renderer.is_request_redraw() {
-            main_renderer.render(|device, queue, view| {
-                figure_renderer.draw(
-                    &mut figure,
-                    (config.width, config.height),
-                    window.scale_factor() as f32,
-                    device, 
-                    queue, 
-                    view);
-            });
-        }
 }).unwrap();
 }
 
@@ -383,7 +433,7 @@ impl<'a> MainRenderer<'a> {
     }
 }
 
-pub(crate) fn main_loop(figure: Box<dyn FigureApi>) {
+pub(crate) fn main_loop(figure: Box<dyn Drawable>) {
     let event_loop = EventLoop::new().unwrap();
     
     //EventLoopWindowTarget::from(&event_loop);

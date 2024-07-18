@@ -1,14 +1,15 @@
 use essay_tensor::Tensor;
 
 use crate::{
-    affine3d::Affine3d, matrix4::Matrix4, Bounds, Canvas, Clip, Color, FontStyle, FontTypeId, ImageId, Path, PathOpt, Point, TextStyle, TextureId
+    matrix4::Matrix4, Bounds, Canvas, Clip, Color, FontStyle, FontTypeId, 
+    ImageId, Path, PathOpt, Point, TextStyle, TextureId
 };
 
 pub trait Renderer {
     ///
     /// Returns the boundary of the canvas, usually in pixels or points.
     ///
-    fn get_canvas(&self) -> &Canvas;
+    fn bounds(&self) -> &Bounds<Canvas>;
 
     fn to_px(&self, size: f32) -> f32 {
         size
@@ -54,15 +55,6 @@ pub trait Renderer {
         clip: &Clip,
     ) -> Result<(), RenderErr>;
 
-    fn draw_3d(
-        &mut self,
-        vertices: Tensor<f32>,  // Nx3 x,y in canvas coordinates
-        triangles: Tensor<u32>, // Mx3 vertex indices
-        color: Color,
-        camera: &Matrix4,
-        clip: &Clip,
-    ) -> Result<(), RenderErr>;
-
     fn draw_image(
         &mut self,
         bounds: &Bounds<Canvas>,
@@ -85,6 +77,15 @@ pub trait Renderer {
         bounds: &Bounds<Canvas>,
         image: ImageId,
         clip: &Clip
+    ) -> Result<(), RenderErr>;
+
+    fn draw_3d(
+        &mut self,
+        vertices: Tensor<f32>,  // Nx3 x,y in canvas coordinates
+        triangles: Tensor<u32>, // Mx3 vertex indices
+        color: Color,
+        camera: &Matrix4,
+        clip: &Clip,
     ) -> Result<(), RenderErr>;
 
     fn flush(

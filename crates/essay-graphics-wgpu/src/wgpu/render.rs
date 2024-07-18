@@ -1,12 +1,12 @@
 use essay_graphics_api::{
-    affine3d::Affine3d, driver::{RenderErr, Renderer}, matrix4::Matrix4, Bounds, Canvas, Clip, Color, FontStyle, FontTypeId, ImageId, Path, PathOpt, Point, TextStyle, TextureId
+    driver::{RenderErr, Renderer}, matrix4::Matrix4, Bounds, Canvas, Clip, Color, FontStyle, FontTypeId, ImageId, Path, PathOpt, Point, TextStyle, TextureId
 };
 use essay_tensor::Tensor;
 
 use super::canvas::PlotCanvas;
 
 pub struct PlotRenderer<'a> {
-    figure: &'a mut PlotCanvas,
+    canvas: &'a mut PlotCanvas,
     device: &'a wgpu::Device,
     queue: Option<&'a wgpu::Queue>,
     view: Option<&'a wgpu::TextureView>,
@@ -21,7 +21,7 @@ impl<'a> PlotRenderer<'a> {
     ) -> Self {
         Self {
             device,
-            figure,
+            canvas: figure,
             queue,
             view,
         }
@@ -33,17 +33,17 @@ impl<'a> PlotRenderer<'a> {
                 let mut encoder =
                    self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
 
-                let scissor = self.figure.to_scissor(clip);
+                let scissor = self.canvas.to_scissor(clip);
 
-                self.figure.image_render.flush(queue, view, &mut encoder);
-                self.figure.triangle_render.flush(self.device, queue, view, &mut encoder, clip);
+                self.canvas.image_render.flush(queue, view, &mut encoder);
+                self.canvas.triangle_render.flush(self.device, queue, view, &mut encoder, clip);
                 // TODO: order issues with bezier and shape2d
-                self.figure.shape2d_render.flush(self.device, queue, view, &mut encoder, scissor);
-                self.figure.bezier_render.flush(self.device, queue, view, &mut encoder, scissor);
-                self.figure.shape2d_texture_render.flush(self.device, queue, view, &mut encoder, scissor);
-                self.figure.text_render.flush(queue, view, &mut encoder);
+                self.canvas.shape2d_render.flush(self.device, queue, view, &mut encoder, scissor);
+                self.canvas.bezier_render.flush(self.device, queue, view, &mut encoder, scissor);
+                self.canvas.shape2d_texture_render.flush(self.device, queue, view, &mut encoder, scissor);
+                self.canvas.text_render.flush(queue, view, &mut encoder);
 
-                self.figure.triangle3d_render.flush(self.device, queue, view, &mut encoder, clip);
+                self.canvas.triangle3d_render.flush(self.device, queue, view, &mut encoder, clip);
         
                 queue.submit(Some(encoder.finish()));
             }
@@ -53,12 +53,12 @@ impl<'a> PlotRenderer<'a> {
 }
 
 impl Renderer for PlotRenderer<'_> {
-    fn get_canvas(&self) -> &Canvas {
-        self.figure.get_canvas()
+    fn bounds(&self) -> &Bounds<Canvas> {
+        self.canvas.get_canvas().bounds()
     }
 
     fn to_px(&self, size: f32) -> f32 {
-        self.figure.to_px(size)
+        self.canvas.to_px(size)
     }
 
     fn draw_path(
@@ -67,7 +67,7 @@ impl Renderer for PlotRenderer<'_> {
         style: &dyn PathOpt, 
         clip: &Clip,
     ) -> Result<(), RenderErr> {
-        self.figure.draw_path(path, style, clip)
+        self.canvas.draw_path(path, style, clip)
     }
 
     fn draw_markers(
@@ -79,14 +79,14 @@ impl Renderer for PlotRenderer<'_> {
         style: &dyn PathOpt, 
         clip: &Clip,
     ) -> Result<(), RenderErr> {
-        self.figure.draw_markers(marker, xy, scale, color, style, clip)
+        self.canvas.draw_markers(marker, xy, scale, color, style, clip)
     }
 
     fn font(
         &mut self,
         style: &FontStyle
     ) -> Result<FontTypeId, RenderErr> {
-        self.figure.font(style)
+        self.canvas.font(style)
     }
 
     fn draw_text(
@@ -98,7 +98,7 @@ impl Renderer for PlotRenderer<'_> {
         text_style: &TextStyle,
         clip: &Clip,
     ) -> Result<(), RenderErr> {
-        self.figure.draw_text(xy, text, angle, style, text_style, clip)
+        self.canvas.draw_text(xy, text, angle, style, text_style, clip)
     }
 
     fn draw_triangles(
@@ -108,7 +108,7 @@ impl Renderer for PlotRenderer<'_> {
         triangles: Tensor<u32>, // Mx3 vertex indices
         clip: &Clip,
     ) -> Result<(), RenderErr> {
-        self.figure.draw_triangles(vertices, colors, triangles, clip)
+        self.canvas.draw_triangles(vertices, colors, triangles, clip)
     }
 
     fn draw_3d(
@@ -119,14 +119,14 @@ impl Renderer for PlotRenderer<'_> {
         camera: &Matrix4,
         clip: &Clip,
     ) -> Result<(), RenderErr> {
-        self.figure.draw_3d(vertices, triangles, color, camera, clip)
+        self.canvas.draw_3d(vertices, triangles, color, camera, clip)
     }
 
     fn request_redraw(
         &mut self,
-        bounds: &Bounds<Canvas>
+        _bounds: &Bounds<Canvas>
     ) {
-        self.figure.request_redraw(bounds)
+        self.canvas.request_redraw(true)
     }
 
     fn draw_image(
@@ -135,23 +135,23 @@ impl Renderer for PlotRenderer<'_> {
         colors: &Tensor<u8>,
         clip: &Clip
     ) -> Result<(), RenderErr> {
-        let image = self.figure.create_image(self.device, colors);
+        let image = self.canvas.create_image(self.device, colors);
 
-        self.figure.draw_image_ref(self.device, bounds, image, clip)
+        self.canvas.draw_image_ref(self.device, bounds, image, clip)
     }
 
     fn create_image(
         &mut self,
         colors: &Tensor<u8>, // [rows, cols, 4]
     ) -> ImageId {
-        self.figure.create_image(self.device, colors)
+        self.canvas.create_image(self.device, colors)
     }
 
     fn create_texture(
         &mut self,
         colors: &Tensor<u8>, // [rows, cols, 4]
     ) -> TextureId {
-        self.figure.create_texture(colors)
+        self.canvas.create_texture(colors)
     }
 
     fn draw_image_ref(
@@ -160,7 +160,7 @@ impl Renderer for PlotRenderer<'_> {
         image: ImageId,
         clip: &Clip
     ) -> Result<(), RenderErr> {
-        self.figure.draw_image_ref(self.device, bounds, image, clip)
+        self.canvas.draw_image_ref(self.device, bounds, image, clip)
     }
 
     fn flush(

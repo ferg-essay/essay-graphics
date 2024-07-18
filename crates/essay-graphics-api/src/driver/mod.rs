@@ -7,7 +7,7 @@ pub use backend::{
 };
 
 pub use figure::{
-    FigureApi,
+    Drawable,
 };
 
 pub use renderer::{

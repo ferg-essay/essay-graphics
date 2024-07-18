@@ -1,3 +1,4 @@
+use driver::Renderer;
 use essay_graphics::{layout::{LayoutMainLoop, ViewTrait}, prelude::*};
 
 fn main() { 
@@ -37,14 +38,15 @@ impl PathView {
 }
 
 impl ViewTrait for PathView {
-    fn update(&mut self, pos: &Bounds<Canvas>, _canvas: &Canvas) {
-        let to_canvas = Bounds::<Data>::new((0., 0.), (1., 1.)).affine_to(pos);
+    fn event(&mut self, _renderer: &mut dyn Renderer, event: &CanvasEvent) {
+        if let CanvasEvent::Resize(pos) = event {
+            let to_canvas = Bounds::<Data>::new((0., 0.), (1., 1.)).affine_to(pos);
 
-        self.path = self.path_data.transform(&to_canvas);
+            self.path = self.path_data.transform(&to_canvas);
+        }
     }
 
-    fn draw(&mut self, renderer: &mut dyn driver::Renderer) {
-
+    fn draw(&mut self, renderer: &mut dyn Renderer, _pos: &Bounds<Canvas>) {
         let style = PathStyleBase::new();
 
         renderer.draw_path(&self.path, &style, &Clip::None).unwrap();

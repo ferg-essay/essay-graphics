@@ -1,4 +1,4 @@
-use essay_graphics_api::driver::{Backend, FigureApi, DeviceErr};
+use essay_graphics_api::driver::{Backend, Drawable, DeviceErr};
 
 use super::main_loop::main_loop;
 
@@ -14,7 +14,7 @@ impl WgpuBackend {
 }
 
 impl Backend for WgpuBackend {
-    fn main_loop(&mut self, figure: Box<dyn FigureApi>) -> Result<(), DeviceErr> {
+    fn main_loop(&mut self, figure: Box<dyn Drawable>) -> Result<(), DeviceErr> {
         main_loop(figure);
 
         Ok(())

@@ -1,4 +1,4 @@
-use essay_graphics_api::{affine3d::Affine3d, driver::{FigureApi, RenderErr}, matrix4::Matrix4, Affine2d, Bounds, Canvas, CapStyle, Clip, Color, FontStyle, FontTypeId, HorizAlign, ImageId, JoinStyle, LineStyle, Path, PathCode, PathOpt, Point, TextStyle, TextureId, VertAlign};
+use essay_graphics_api::{driver::{Drawable, RenderErr}, matrix4::Matrix4, Affine2d, Bounds, Canvas, CapStyle, Clip, Color, FontStyle, FontTypeId, HorizAlign, ImageId, JoinStyle, LineStyle, Path, PathCode, PathOpt, Point, TextStyle, TextureId, VertAlign};
 use essay_tensor::Tensor;
 
 use crate::PlotRenderer;
@@ -64,9 +64,11 @@ impl PlotCanvas {
         self.is_request_redraw
     }
 
-    pub fn clear(&mut self) {
-        self.is_request_redraw = false;
+    pub fn request_redraw(&mut self, is_redraw: bool) {
+        self.is_request_redraw = is_redraw;
+    }
 
+    pub fn clear(&mut self) {
         self.bezier_render.clear();
         self.text_render.clear();
         self.shape2d_render.clear();
@@ -670,13 +672,9 @@ impl PlotCanvas {
         Ok(())
     }
 
-    pub fn request_redraw(&mut self, _bounds: &Bounds<Canvas>) {
-        self.is_request_redraw = true;
-    }
-
     pub(crate) fn draw(
         &mut self,
-        figure: &mut Box<dyn FigureApi>,
+        figure: &mut Box<dyn Drawable>,
         bounds: (u32, u32),
         scale_factor: f32,
         device: &wgpu::Device,
@@ -693,7 +691,10 @@ impl PlotCanvas {
         self.set_scale_factor(scale_factor * pt_to_px_factor);
         //let draw_bounds = self.canvas.bounds().clone();
 
-        figure.update(&self.canvas);
+        let pos = self.canvas.bounds().clone();
+        // let mut renderer = self.renderer(device, queue, view);
+        // figure.update(&mut renderer, &pos);
+        // renderer.flush_inner(&Clip::None);
 
         /*
         let mut renderer = DrawRenderer::new(
@@ -706,7 +707,7 @@ impl PlotCanvas {
         let mut renderer = self.renderer(device, queue, view);
 
         //figure.draw(&mut renderer, &draw_bounds);
-        figure.draw(&mut renderer);
+        figure.draw(&mut renderer, &pos);
 
         renderer.flush_inner(&Clip::None);
     }

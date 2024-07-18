@@ -1,9 +1,11 @@
-use crate::Point;
+use crate::{Bounds, Canvas, Point};
 
 // TODO: Consider changing these to abstract events like Pan, Zoom because
 // of tablets, etc.
 #[derive(Clone, Debug)]
 pub enum CanvasEvent {
+    Resize(Bounds<Canvas>),
+
     MouseLeftPress(Point),
     MouseLeftRelease(Point),
     Pan(Point, Point, Point),
@@ -19,12 +21,16 @@ pub enum CanvasEvent {
     MouseMiddleRelease(Point),
     MouseMiddleDrag(Point, Point),
     MouseMiddleDoubleClick(Point),
+
+    KeyPress(Point, char),
 }
 
 impl CanvasEvent {
     #[inline]
     pub fn point(&self) -> Point {
         match self {
+            CanvasEvent::Resize(_) => Point(0., 0.),
+
             CanvasEvent::MouseLeftPress(point) => *point,
             CanvasEvent::MouseLeftRelease(point) => *point,
             CanvasEvent::Pan(point, _, _) => *point,
@@ -40,6 +46,8 @@ impl CanvasEvent {
             CanvasEvent::MouseMiddleRelease(point) => *point,
             CanvasEvent::MouseMiddleDrag(point, _) => *point,
             CanvasEvent::MouseMiddleDoubleClick(point) => *point,
+
+            CanvasEvent::KeyPress(point, _) => *point,
         }
     }
 }

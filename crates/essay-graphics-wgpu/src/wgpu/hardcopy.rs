@@ -1,6 +1,6 @@
 use std::{fs::File, io::BufWriter};
 
-use essay_graphics_api::{driver::FigureApi, Clip};
+use essay_graphics_api::{driver::Drawable, CanvasEvent, Clip};
 use wgpu::TextureView;
 use image::{ImageBuffer, Rgba};
 
@@ -10,7 +10,7 @@ pub fn draw_hardcopy(
     width: f32,
     height: f32,
     dpi: f32,
-    figure: &mut dyn FigureApi,
+    figure: &mut dyn Drawable,
     path: impl AsRef<std::path::Path>,
 ) {
     let width = width as u32;
@@ -32,7 +32,7 @@ pub fn draw_hardcopy(
     let view = wgpu.create_view();
     wgpu.clear_screen(&view.view);
 
-    figure.update(plot_canvas.get_canvas());
+    let pos = plot_canvas.get_canvas().bounds().clone();
 
     let mut plot_renderer = PlotRenderer::new(
         &mut plot_canvas, 
@@ -41,6 +41,7 @@ pub fn draw_hardcopy(
         Some(&view.view)
     );
 
+    figure.event(&mut plot_renderer, &CanvasEvent::Resize(pos.clone()));
         //canvas.clear_screen(&view);
 
     // let bounds = Bounds::<Canvas>::from([
@@ -48,7 +49,7 @@ pub fn draw_hardcopy(
     //    (width as f32, height as f32)
     // ]);
 
-    figure.draw(&mut plot_renderer);
+    figure.draw(&mut plot_renderer, &pos);
         //plot_renderer.draw_path(path, style, &Clip::None).unwrap();
 
     plot_renderer.flush_inner(&Clip::None);

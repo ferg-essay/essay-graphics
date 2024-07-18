@@ -150,13 +150,14 @@ impl Matrix4 {
         let f_depth = far / (far - near);
         let fn_depth = far * near / (far - near);
 
-        
+        /*
         let project = tf32!([
             [uw, 0.,       0., 0.],
             [0., uh,       0., 0.],
             [0., 0., f_depth, -fn_depth],
             [0., 0., 1., 0.],
-        ]); 
+        ]);
+        */ 
 
         let project = tf32!([
             [uw, 0.,       0., 0.],

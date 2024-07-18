@@ -1,4 +1,4 @@
-use super::FigureApi;
+use super::Drawable;
 
 #[derive(Debug)]
 pub enum DeviceErr {
@@ -11,5 +11,5 @@ pub type Result<T, E = DeviceErr> = std::result::Result<T, E>;
 pub trait Backend {
     // fn renderer(&mut self) -> &dyn Renderer;
 
-    fn main_loop(&mut self, figure: Box<dyn FigureApi>) -> Result<()>;
+    fn main_loop(&mut self, figure: Box<dyn Drawable>) -> Result<()>;
 }

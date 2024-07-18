@@ -1,7 +1,7 @@
 use core::fmt;
 use std::{any::Any, marker::PhantomData, sync::{Arc, Mutex}};
 
-use essay_graphics_api::{driver::{FigureApi, Renderer}, Bounds, Canvas, CanvasEvent, Coord, Point};
+use essay_graphics_api::{driver::{Drawable, Renderer}, Bounds, Canvas, CanvasEvent, Coord, Point};
 
 #[derive(Clone)]
 pub struct Layout(Arc<Mutex<LayoutInner>>);
@@ -55,15 +55,15 @@ impl Layout {
     }
 }
 
-impl FigureApi for Layout {
-    #[inline]
-    fn update(&mut self, canvas: &Canvas) {
-        self.0.lock().unwrap().layout(&canvas);
-    }
+impl Drawable for Layout {
+    //#[inline]
+    //fn update(&mut self, renderer: &mut dyn Renderer, pos: &Bounds<Canvas>) {
+    //    self.0.lock().unwrap().layout(renderer, pos);
+    //}
 
     #[inline]
-    fn draw(&mut self, renderer: &mut dyn Renderer) {
-        self.0.lock().unwrap().draw(renderer);
+    fn draw(&mut self, renderer: &mut dyn Renderer, pos: &Bounds<Canvas>) {
+        self.0.lock().unwrap().draw(renderer, pos);
     }
 
     #[inline]
@@ -114,7 +114,7 @@ impl LayoutInner {
         self.views[id.index()].pos()
     }
 
-    fn layout(&mut self, canvas: &Canvas) {
+    fn layout(&mut self, renderer: &mut dyn Renderer, pos: &Bounds<Canvas>) {
         let bounds = self.grid_bounds();
         
         assert!(bounds.xmin() == 0.);
@@ -123,11 +123,11 @@ impl LayoutInner {
         assert!(1. <= bounds.width() && bounds.width() <= 11.);
         assert!(1. <= bounds.height() && bounds.height() <= 11.);
         
-        let x_min = canvas.x_min();
-        let x_max = canvas.x_min() + canvas.width();
+        let x_min = pos.xmin();
+        let x_max = pos.xmin() + pos.width();
         
-        let y_min = canvas.y_min();
-        let y_max = canvas.y_min() + canvas.height();
+        let y_min = pos.ymin();
+        let y_max = pos.ymin() + pos.height();
 
         // TODO: nonlinear grid sizes
         let h = y_max - y_min; // canvas.height();
@@ -143,7 +143,9 @@ impl LayoutInner {
                 Point(x_min + dw * pos_layout.xmax(), y_max - dh * pos_layout.ymin()),
             );
 
-            item.update(&pos, canvas);
+            item.pos_canvas = pos.clone();
+
+            item.event(renderer, &CanvasEvent::Resize(pos));
         }
     }
 
@@ -160,16 +162,26 @@ impl LayoutInner {
     fn draw(
         &mut self, 
         renderer: &mut dyn Renderer,
+        pos: &Bounds<Canvas>,
     ) {
         for item in &mut self.views {
-            item.draw(renderer);
+            item.draw(renderer, pos);
         }
     }
 
-    fn event(&mut self, _renderer: &mut dyn Renderer, event: &CanvasEvent) {
-        for view in &mut self.views {
-            if view.pos().contains(event.point()) {
-                // frame.event(renderer, event);
+    fn event(&mut self, renderer: &mut dyn Renderer, event: &CanvasEvent) {
+        match event {
+            CanvasEvent::Resize(bounds) => {
+                self.layout(renderer, bounds);
+            },
+            _ => {
+                let point = event.point();
+
+                for view in &mut self.views {
+                    if view.pos().contains(point) {
+                        view.event(renderer, event);
+                    }
+                }
             }
         }
     }
@@ -199,16 +211,21 @@ impl ViewBox {
         &self.pos_canvas
     }
 
-    #[inline]
-    fn update(&mut self, pos: &Bounds<Canvas>, canvas: &Canvas) {
-        self.pos_canvas = pos.clone();
+    // #[inline]
+    //fn update(&mut self, renderer: &mut dyn Renderer, pos: &Bounds<Canvas>) {
+    //    self.pos_canvas = pos.clone();
+    //
+    //    self.handle.update(self.ptr.as_mut(), renderer, pos);
+    //}
 
-        self.handle.update(self.ptr.as_mut(), pos, canvas);
+    #[inline]
+    fn draw(&mut self, renderer: &mut dyn Renderer, pos: &Bounds<Canvas>) {
+        self.handle.draw(self.ptr.as_mut(), renderer, pos);
     }
 
     #[inline]
-    fn draw(&mut self, renderer: &mut dyn Renderer) {
-        self.handle.draw(self.ptr.as_mut(), renderer);
+    fn event(&mut self, renderer: &mut dyn Renderer, event: &CanvasEvent) {
+        self.handle.event(self.ptr.as_mut(), renderer, event);
     }
 
     fn read<T: 'static, R>(&self, fun: impl FnOnce(&T) -> R) -> R {
@@ -233,17 +250,22 @@ impl<V: ViewTrait> ViewTraitHandle<V> {
 }
 
 trait ViewHandleTrait {
-    fn update(&mut self, any: &mut dyn Any, pos: &Bounds<Canvas>, canvas: &Canvas);
-    fn draw(&mut self, any: &mut dyn Any, renderer: &mut dyn Renderer);
+    //fn update(&mut self, any: &mut dyn Any, renderer: &mut dyn Renderer, pos: &Bounds<Canvas>);
+    fn draw(&mut self, any: &mut dyn Any, renderer: &mut dyn Renderer, pos: &Bounds<Canvas>);
+    fn event(&mut self, any: &mut dyn Any, renderer: &mut dyn Renderer, event: &CanvasEvent);
 }
 
 impl<V: ViewTrait + 'static> ViewHandleTrait for ViewTraitHandle<V> {
-    fn update(&mut self, any: &mut dyn Any, pos: &Bounds<Canvas>, canvas: &Canvas) {
-        any.downcast_mut::<V>().unwrap().update(pos, canvas)
+    //fn update(&mut self, any: &mut dyn Any, renderer: &mut dyn Renderer, pos: &Bounds<Canvas>) {
+    //    any.downcast_mut::<V>().unwrap().update_pos(renderer, pos)
+    //}
+
+    fn draw(&mut self, any: &mut dyn Any, renderer: &mut dyn Renderer, pos: &Bounds<Canvas>) {
+        any.downcast_mut::<V>().unwrap().draw(renderer, pos)
     }
 
-    fn draw(&mut self, any: &mut dyn Any, renderer: &mut dyn Renderer) {
-        any.downcast_mut::<V>().unwrap().draw(renderer)
+    fn event(&mut self, any: &mut dyn Any, renderer: &mut dyn Renderer, event: &CanvasEvent) {
+        any.downcast_mut::<V>().unwrap().event(renderer, event)
     }
 }
 
@@ -317,14 +339,19 @@ impl<T: ViewTrait> fmt::Debug for ViewHandle<T> {
 
 pub trait ViewTrait { // }: Send + Sync {
     ///
-    /// update the canvas coordinates for the view
+    /// Update the view position. The position will be the same as any
+    /// subsequent draw.
     /// 
-    fn update(&mut self, pos: &Bounds<Canvas>, canvas: &Canvas);
+    //#[allow(unused_variables)]
+    //fn update_pos(&mut self, renderer: &mut dyn Renderer, pos: &Bounds<Canvas>) {
+    //}
 
     ///
-    /// Draws the view in the renderer
+    /// Draws the view in the renderer.
     /// 
-    fn draw(&mut self, renderer: &mut dyn Renderer);
+    /// Pos is the same as the most recent CanvasEvent::Resize pos.
+    /// 
+    fn draw(&mut self, renderer: &mut dyn Renderer, pos: &Bounds<Canvas>);
 
     #[allow(unused_variables)]
     fn event(&mut self, renderer: &mut dyn Renderer, event: &CanvasEvent) {
