@@ -1,9 +1,22 @@
-use essay_graphics_api::{driver::{Drawable, RenderErr}, matrix4::Matrix4, Affine2d, Bounds, Canvas, CapStyle, Clip, Color, FontStyle, FontTypeId, HorizAlign, ImageId, JoinStyle, LineStyle, Path, PathCode, PathOpt, Point, TextStyle, TextureId, VertAlign};
+use essay_graphics_api::{
+    driver::{Drawable, RenderErr}, 
+    form::{Form, FormId, Matrix4}, 
+    Affine2d, Bounds, Canvas, CapStyle, Clip, Color, FontStyle, FontTypeId, 
+    HorizAlign, ImageId, JoinStyle, LineStyle, Path, PathCode, 
+    PathOpt, Point, TextStyle, TextureId, VertAlign
+};
 use essay_tensor::Tensor;
 
 use crate::PlotRenderer;
 
-use super::{bezier::BezierRender, image::ImageRender, shape2d::Shape2dRender, shape2d_texture::Shape2dTextureRender, text::TextRender, text_cache::FontId, triangle2d::GridMesh2dRender, triangle3d::Triangle3dRender, triangulate::triangulate2};
+use super::{
+    bezier::BezierRender, 
+    image::ImageRender, 
+    shape2d::Shape2dRender, 
+    shape2d_texture::Shape2dTextureRender, text::TextRender, text_cache::FontId, triangle2d::GridMesh2dRender, 
+    form3d::Form3dRender, 
+    triangulate::triangulate2
+};
 
 
 pub struct PlotCanvas {
@@ -11,7 +24,7 @@ pub struct PlotCanvas {
 
     pub(crate) image_render: ImageRender,
     pub(crate) triangle_render: GridMesh2dRender,
-    pub(crate) triangle3d_render: Triangle3dRender,
+    pub(crate) form3d_render: Form3dRender,
     pub(crate) shape2d_render: Shape2dRender,
     pub(crate) shape2d_texture_render: Shape2dTextureRender,
     pub(crate) bezier_render: BezierRender,
@@ -33,7 +46,7 @@ impl PlotCanvas {
     
         let image_render = ImageRender::new(device, format);
         let triangle_render = GridMesh2dRender::new(device, format);
-        let triangle3d_render = Triangle3dRender::new(device, format);
+        let triangle3d_render = Form3dRender::new(device, format);
         let shape2d_render = Shape2dRender::new(device, format);
         let shape2d_texture_render = Shape2dTextureRender::new(device, queue, format);
         let bezier_render = BezierRender::new(device, format);
@@ -49,7 +62,7 @@ impl PlotCanvas {
             shape2d_texture_render,
             text_render,
             triangle_render,
-            triangle3d_render,
+            form3d_render: triangle3d_render,
             bezier_render,
 
             font_id_default,
@@ -76,7 +89,7 @@ impl PlotCanvas {
         self.triangle_render.clear();
         self.image_render.clear();
 
-        self.triangle3d_render.clear();
+        self.form3d_render.clear();
     }
 
     pub fn set_canvas_bounds(&mut self, width: u32, height: u32) {
@@ -597,36 +610,21 @@ impl PlotCanvas {
         Ok(())
     }
 
-    pub fn draw_3d(
+    pub fn create_form(
         &mut self,
-        vertices: Tensor<f32>,  // Nx2 x,y in canvas coordinates
-        triangles: Tensor<u32>, // Mx3 vertex indices
-        color: Color,    // N in rgba
+        form: &Form,
+    ) -> FormId {
+        self.form3d_render.create_form(form)
+    }
+
+    pub fn draw_form(
+        &mut self,
+        form: FormId,
         camera: &Matrix4,
         _clip: &Clip,
     ) -> Result<(), RenderErr> {
-        assert!(vertices.rank() == 2, 
-            "vertices must be 3d (rank3) shape={:?}",
-            vertices.shape().as_slice());
-        assert!(vertices.cols() == 3, 
-            "vertices must be rows of 2 columns (x, y) shape={:?}",
-            vertices.shape().as_slice());
-        assert!(triangles.cols() == 3, 
-            "triangle indices must have 3 vertices (3 columns) shape={:?}",
-            triangles.shape().as_slice());
-
-        self.triangle3d_render.start_triangles();
-
-        for xy in vertices.iter_row() {
-            self.triangle3d_render.draw_vertex(xy[0], xy[1], xy[2]);
-        }
-
-        for tri in triangles.iter_row() {
-            self.triangle3d_render.draw_triangle(tri[0], tri[1], tri[2]);
-        }
-
-        self.triangle3d_render.draw_style(color);
-        self.triangle3d_render.camera(camera);
+        self.form3d_render.camera(camera);
+        self.form3d_render.draw_form(form);
         
         Ok(())
     }

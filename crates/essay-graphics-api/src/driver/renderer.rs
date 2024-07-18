@@ -1,7 +1,7 @@
 use essay_tensor::Tensor;
 
 use crate::{
-    matrix4::Matrix4, Bounds, Canvas, Clip, Color, FontStyle, FontTypeId, 
+    form::{Form, FormId, Matrix4}, Bounds, Canvas, Clip, Color, FontStyle, FontTypeId, 
     ImageId, Path, PathOpt, Point, TextStyle, TextureId
 };
 
@@ -79,11 +79,14 @@ pub trait Renderer {
         clip: &Clip
     ) -> Result<(), RenderErr>;
 
-    fn draw_3d(
+    fn create_form(
         &mut self,
-        vertices: Tensor<f32>,  // Nx3 x,y in canvas coordinates
-        triangles: Tensor<u32>, // Mx3 vertex indices
-        color: Color,
+        form: &Form,
+    ) -> FormId;
+
+    fn draw_form(
+        &mut self,
+        form: FormId,
         camera: &Matrix4,
         clip: &Clip,
     ) -> Result<(), RenderErr>;

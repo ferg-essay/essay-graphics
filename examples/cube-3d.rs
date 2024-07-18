@@ -1,36 +1,39 @@
 use driver::Renderer;
 use essay_graphics::{layout::{LayoutMainLoop, ViewTrait}, prelude::*};
 use essay_tensor::Tensor;
-use matrix4::Matrix4;
+use form::{Form, FormId, Matrix4};
 
 fn main() { 
     let mut figure = LayoutMainLoop::new();
 
-    let mut vertices = Vec::<[f32; 3]>::new();
-    vertices.push([-1., -1., -1.]);
-    vertices.push([-1., -1., 1.]);
-    vertices.push([-1., 1., -1.]);
-    vertices.push([-1., 1., 1.]);
-    vertices.push([1., -1., -1.]);
-    vertices.push([1., -1., 1.]);
-    vertices.push([1., 1., -1.]);
-    vertices.push([1., 1., 1.]);
+    let mut form = Form::new();
+    // let mut vertices = Vec::<[f32; 3]>::new();
+    form.vertex([-1., -1., -1.]);
+    form.vertex([-1., -1., 1.]);
+    form.vertex([-1., 1., -1.]);
+    form.vertex([-1., 1., 1.]);
+    form.vertex([1., -1., -1.]);
+    form.vertex([1., -1., 1.]);
+    form.vertex([1., 1., -1.]);
+    form.vertex([1., 1., 1.]);
 
-    let mut triangles = Vec::<[u32; 3]>::new();
-    triangles.push([0, 1, 3]);
-    triangles.push([3, 2, 0]);
+    // let mut triangles = Vec::<[u32; 3]>::new();
+    form.triangle([0, 1, 3]);
+    form.triangle([3, 2, 0]);
 
-    triangles.push([4, 5, 7]);
-    triangles.push([7, 6, 4]);
+    form.triangle([4, 5, 7]);
+    form.triangle([7, 6, 4]);
 
-    triangles.push([0, 2, 6]);
-    triangles.push([6, 4, 0]);
+    form.triangle([0, 2, 6]);
+    form.triangle([6, 4, 0]);
 
-    triangles.push([1, 3, 7]);
-    triangles.push([7, 5, 1]);
+    form.triangle([1, 3, 7]);
+    form.triangle([7, 5, 1]);
+
+    form.color(Color::from("teal"));
 
     figure.add_view((), 
-        CubeView::new(vertices, triangles)
+        CubeView::new(form)
     );
 
     // println!("Path {:?} ", view.read(|t| t.path()));
@@ -39,27 +42,30 @@ fn main() {
 }
 
 struct CubeView {
-    vertices: Tensor,
-    triangles: Tensor<u32>,
+    form: Form,
+    form_id: Option<FormId>,
+    
     camera: Camera,
+
+
     is_dirty: bool,
 }
 
 impl CubeView {
-    fn new(vertices: impl Into<Tensor>, triangles: impl Into<Tensor<u32>>) -> Self {
+    fn new(form: Form) -> Self {
         Self {
-            vertices: vertices.into(),
-            triangles: triangles.into(),
+            form,
+            form_id: None,
             camera: Camera::new([0., 0.2, -4.]),
             is_dirty: true,
         }
     }
 
     fn fill_model(&mut self, renderer: &mut dyn Renderer) {
-
+        self.form_id = Some(renderer.create_form(&self.form));
     }
 
-    fn camera(&self, renderer: &mut dyn Renderer, pos: &Bounds<Canvas>) -> Matrix4 {
+    fn camera(&self, _renderer: &mut dyn Renderer, _pos: &Bounds<Canvas>) -> Matrix4 {
         self.camera.matrix()
     }
 }
@@ -70,18 +76,19 @@ impl ViewTrait for CubeView {
 
     fn draw(&mut self, renderer: &mut dyn driver::Renderer, pos: &Bounds<Canvas>) {
         if self.is_dirty {
+            self.is_dirty = false;
             self.fill_model(renderer);
         }
 
         let camera = self.camera(renderer, pos);
 
-        renderer.draw_3d(
-            self.vertices.clone(), 
-            self.triangles.clone(), 
-            Color::from("teal"),
-            &camera,
-            &Clip::None
-        ).unwrap();
+        if let Some(id) = self.form_id {
+            renderer.draw_form(
+                id,
+                &camera,
+                &Clip::None
+            ).unwrap();
+        }
     }
 
     fn event(&mut self, renderer: &mut dyn Renderer, event: &CanvasEvent) {

@@ -1,5 +1,7 @@
 use essay_graphics_api::{
-    driver::{RenderErr, Renderer}, matrix4::Matrix4, Bounds, Canvas, Clip, Color, FontStyle, FontTypeId, ImageId, Path, PathOpt, Point, TextStyle, TextureId
+    driver::{RenderErr, Renderer}, 
+    form::{Form, FormId, Matrix4}, 
+    Bounds, Canvas, Clip, Color, FontStyle, FontTypeId, ImageId, Path, PathOpt, Point, TextStyle, TextureId
 };
 use essay_tensor::Tensor;
 
@@ -43,7 +45,7 @@ impl<'a> PlotRenderer<'a> {
                 self.canvas.shape2d_texture_render.flush(self.device, queue, view, &mut encoder, scissor);
                 self.canvas.text_render.flush(queue, view, &mut encoder);
 
-                self.canvas.triangle3d_render.flush(self.device, queue, view, &mut encoder, clip);
+                self.canvas.form3d_render.flush(self.device, queue, view, &mut encoder, clip);
         
                 queue.submit(Some(encoder.finish()));
             }
@@ -111,15 +113,20 @@ impl Renderer for PlotRenderer<'_> {
         self.canvas.draw_triangles(vertices, colors, triangles, clip)
     }
 
-    fn draw_3d(
+    fn create_form(
         &mut self,
-        vertices: Tensor<f32>,  // Nx3 x,y in canvas coordinates
-        triangles: Tensor<u32>, // Mx3 vertex indices
-        color: Color,
+        form: &Form,
+    ) -> FormId {
+        self.canvas.create_form(form)
+    }
+
+    fn draw_form(
+        &mut self,
+        form: FormId,
         camera: &Matrix4,
         clip: &Clip,
     ) -> Result<(), RenderErr> {
-        self.canvas.draw_3d(vertices, triangles, color, camera, clip)
+        self.canvas.draw_form(form, camera, clip)
     }
 
     fn request_redraw(

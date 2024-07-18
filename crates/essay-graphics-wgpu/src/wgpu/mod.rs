@@ -6,7 +6,7 @@ mod render;
 mod shape2d;
 mod shape2d_texture;
 mod triangle2d;
-mod triangle3d;
+mod form3d;
 mod triangulate;
 mod text;
 mod text_texture;

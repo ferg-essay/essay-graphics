@@ -1,8 +1,8 @@
 use bytemuck_derive::{Pod, Zeroable};
-use essay_graphics_api::{matrix4::Matrix4, Clip, Color};
+use essay_graphics_api::{form::{Form, FormId, Matrix4}, Clip, Color};
 use wgpu::util::DeviceExt;
 
-pub struct Triangle3dRender {
+pub struct Form3dRender {
     vertex_stride: usize,
     vertex_vec: Vec<Vertex>,
     vertex_buffer: wgpu::Buffer,
@@ -21,15 +21,17 @@ pub struct Triangle3dRender {
     camera: CameraUniform,
     camera_buffer: wgpu::Buffer,
 
-    mesh_items: Vec<Item>,
+    form_items: Vec<FormItem>,
+    draw_items: Vec<DrawItem>,
 
     pipeline: wgpu::RenderPipeline,
     camera_bind_group: wgpu::BindGroup,
 
     is_stale: bool,
+    is_buffer_stale: bool,
 }
 
-impl Triangle3dRender {
+impl Form3dRender {
     pub(crate) fn new(
         device: &wgpu::Device, 
         format: wgpu::TextureFormat,
@@ -104,37 +106,61 @@ impl Triangle3dRender {
             style_offset: 0,
             // style_bind_group,
 
+            form_items: Vec::new(),
+            draw_items: Vec::new(),
+
             camera,
             camera_bind_group: camera_bind_group(device, &camera_buffer),
             camera_buffer,
 
-            mesh_items: Vec::new(),
             pipeline,
 
             is_stale: false,
+            is_buffer_stale: false,
         }
     }
 
     pub fn clear(&mut self) {
-        self.vertex_offset = 0;
-        self.index_offset = 0;
-        self.style_offset = 0;
-        self.mesh_items.drain(..);
-        self.is_stale = false;
+        self.draw_items.drain(..);
     }
 
-    pub fn start_triangles(&mut self) {
-        self.mesh_items.push(Item {
+    pub fn create_form(&mut self, form: &Form) -> FormId {
+        let id = FormId(self.form_items.len());
+        println!("Form {:?}", id);
+        let mut item = FormItem {
             v_start: self.vertex_offset,
             v_end: usize::MAX,
             i_start: self.index_offset,
             i_end: usize::MAX,
             s_start: self.style_offset,
             s_end: usize::MAX,
-        });
+        };
+
+        for xy in form.vertices().iter() {
+            self.draw_vertex(xy[0], xy[1], xy[2]);
+        }
+
+        for tri in form.triangles().iter() {
+            self.draw_triangle(
+                tri[0] as u32, 
+                tri[1] as u32, 
+                tri[2] as u32
+            );
+        }
+
+        self.draw_style(form.get_color());
+        
+        item.v_end = self.vertex_offset;
+        item.i_end = self.index_offset;
+        item.s_end = self.style_offset;
+
+        self.form_items.push(item);
+        self.is_stale = true;
+
+        id
     }
 
-    pub fn draw_vertex(&mut self, x: f32, y: f32, z: f32) {
+    fn draw_vertex(&mut self, x: f32, y: f32, z: f32) {
         let vertex = Vertex { 
             position: [x, y, z],
         };
@@ -142,52 +168,53 @@ impl Triangle3dRender {
         let len = self.vertex_vec.len();
         if len <= self.vertex_offset {
             self.vertex_vec.resize(len + 2048, Vertex::empty());
-            self.is_stale = true;
+            self.is_buffer_stale = true;
         }
         
         self.vertex_vec[self.vertex_offset] = vertex;
         self.vertex_offset += 1;
     }
 
-    pub fn draw_triangle(&mut self, v0: u32, v1: u32, v2: u32) {
-        let item = &self.mesh_items[self.mesh_items.len() - 1];
-
-        let v_start = item.v_start;
+    fn draw_triangle(&mut self, v0: u32, v1: u32, v2: u32) {
+        // let item = &self.form_items[self.form_items.len() - 1];
+        // let v_start = item.v_start;
         let offset = self.index_offset;
 
         let len = self.index_vec.len();
         if len <= self.index_offset + 2 {
             self.index_vec.resize(len + 2048, 0);
-            self.is_stale = true;
+            self.is_buffer_stale = true;
         }
 
-        assert!((v_start + v0 as usize) < self.vertex_offset);
+        // assert!((v_start + v0 as usize) < self.vertex_offset);
+        assert!(v0 < self.vertex_offset as u32);
         self.index_vec[offset] = v0;
-        assert!((v_start + v1 as usize) < self.vertex_offset);
+        // assert!((v_start + v1 as usize) < self.vertex_offset);
+        assert!(v1 < self.vertex_offset as u32);
         self.index_vec[offset + 1] = v1;
-        assert!((v_start + v2 as usize) < self.vertex_offset);
+        // assert!((v_start + v2 as usize) < self.vertex_offset);
+        assert!(v2 < self.vertex_offset as u32);
         self.index_vec[offset + 2] = v2;
 
         self.index_offset += 3;
     }
 
-    pub fn draw_style(
+    fn draw_style(
         &mut self, 
         color: Color,
     ) {
-        let v_end = self.vertex_offset;
-        let i_end = self.index_offset;
-
-        let len = self.mesh_items.len();
-        let item = &mut self.mesh_items[len - 1];
-
-        item.v_end = v_end;
-        item.i_end = i_end;
+        let len = self.style_vec.len();
+        if len <= self.style_offset + 2 {
+            self.style_vec.resize(len + 512, Style::new(Color::black()));
+            self.is_buffer_stale = true;
+        }
 
         self.style_vec[self.style_offset] = Style::new(color);
         self.style_offset += 1;
+    }
 
-        item.s_end = self.style_offset;
+    pub fn draw_form(&mut self, form: FormId) {
+        self.draw_items.push(DrawItem::new(form));
     }
 
     pub fn camera(
@@ -205,7 +232,7 @@ impl Triangle3dRender {
         encoder: &mut wgpu::CommandEncoder,
         clip: &Clip,
     ) {
-        if self.mesh_items.len() == 0 {
+        if self.draw_items.len() == 0 {
             return;
         }
 
@@ -224,8 +251,8 @@ impl Triangle3dRender {
             occlusion_query_set: None,
         });
 
-        if self.is_stale {
-            self.is_stale = false;
+        if self.is_buffer_stale {
+            self.is_buffer_stale = false;
  
             self.vertex_buffer = device.create_buffer_init(
                 &wgpu::util::BufferInitDescriptor {
@@ -252,23 +279,27 @@ impl Triangle3dRender {
             );
         }
 
-        queue.write_buffer(
-            &mut self.vertex_buffer, 
-            0,
-            bytemuck::cast_slice(self.vertex_vec.as_slice())
-        );
+        if self.is_stale {
+            self.is_stale = false;
 
-        queue.write_buffer(
-            &mut self.index_buffer, 
-            0,
-            bytemuck::cast_slice(self.index_vec.as_slice())
-        );
+            queue.write_buffer(
+                &mut self.vertex_buffer, 
+                0,
+                bytemuck::cast_slice(self.vertex_vec.as_slice())
+            );
 
-        queue.write_buffer(
-            &mut self.style_buffer, 
-            0,
-            bytemuck::cast_slice(self.style_vec.as_slice())
-        );
+            queue.write_buffer(
+                &mut self.index_buffer, 
+                0,
+                bytemuck::cast_slice(self.index_vec.as_slice())
+            );
+
+            queue.write_buffer(
+                &mut self.style_buffer, 
+                0,
+                bytemuck::cast_slice(self.style_vec.as_slice())
+            );
+        }
 
         queue.write_buffer(
             &mut self.camera_buffer,
@@ -276,15 +307,17 @@ impl Triangle3dRender {
             bytemuck::cast_slice(&[self.camera])
         );
 
-        rpass.set_pipeline(&self.pipeline);
-
         if let Clip::Bounds(p0, p1) = clip {
             rpass.set_scissor_rect(p0.0 as u32, p0.1 as u32, (p1.0 - p0.0) as u32, (p1.1 - p0.1) as u32);
         }
 
+        rpass.set_pipeline(&self.pipeline);
+
         rpass.set_bind_group(0, &self.camera_bind_group, &[]);
 
-        for item in self.mesh_items.drain(..) {
+        for draw_item in self.draw_items.drain(..) {
+            let item = &self.form_items[draw_item.id.0];
+
             if item.v_start < item.v_end && item.i_start < item.i_end {
                 let stride = self.vertex_stride;
                 rpass.set_vertex_buffer(0, self.vertex_buffer.slice(
@@ -310,7 +343,7 @@ impl Triangle3dRender {
     }
 }
 
-struct Item {
+struct FormItem {
     v_start: usize,
     v_end: usize,
 
@@ -319,6 +352,18 @@ struct Item {
 
     s_start: usize,
     s_end: usize,
+}
+
+struct DrawItem {
+    id: FormId,
+}
+
+impl DrawItem {
+    fn new(id: FormId) -> Self {
+        Self {
+            id
+        }
+    }
 }
 
 #[repr(C)]
@@ -435,7 +480,7 @@ fn create_triangle3d_pipeline(
     device: &wgpu::Device,
     format: wgpu::TextureFormat,
 ) -> wgpu::RenderPipeline {
-    let shader = device.create_shader_module(wgpu::include_wgsl!("triangle3d.wgsl"));
+    let shader = device.create_shader_module(wgpu::include_wgsl!("form3d.wgsl"));
 
     let vertex_entry = "vs_triangle";
     let fragment_entry = "fs_triangle";
