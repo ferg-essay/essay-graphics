@@ -1,10 +1,10 @@
 use bytemuck_derive::{Pod, Zeroable};
-use essay_graphics_api::{Affine2d, Clip};
+use essay_graphics_api::{matrix4::Matrix4, Clip, Color};
 use wgpu::util::DeviceExt;
 
 pub struct Triangle3dRender {
     vertex_stride: usize,
-    vertex_vec: Vec<Triangle3dVertex>,
+    vertex_vec: Vec<Vertex>,
     vertex_buffer: wgpu::Buffer,
     vertex_offset: usize,
 
@@ -14,13 +14,17 @@ pub struct Triangle3dRender {
     index_offset: usize,
 
     style_stride: usize,
-    style_vec: Vec<Triangle3dStyle>,
+    style_vec: Vec<Style>,
     style_buffer: wgpu::Buffer,
     style_offset: usize,
 
-    mesh_items: Vec<GridMesh2dItem>,
+    camera: CameraUniform,
+    camera_buffer: wgpu::Buffer,
+
+    mesh_items: Vec<Item>,
 
     pipeline: wgpu::RenderPipeline,
+    camera_bind_group: wgpu::BindGroup,
 
     is_stale: bool,
 }
@@ -32,10 +36,9 @@ impl Triangle3dRender {
     ) -> Self {
         let len = 2048;
 
-        let mut vertex_vec = Vec::<Triangle3dVertex>::new();
-        vertex_vec.resize(len, Triangle3dVertex { 
+        let mut vertex_vec = Vec::<Vertex>::new();
+        vertex_vec.resize(len, Vertex { 
             position: [0., 0., 0.], 
-            color: 0 
         });
 
         let vertex_buffer = device.create_buffer_init(
@@ -57,10 +60,9 @@ impl Triangle3dRender {
             }
         );
 
-        let mut style_vec = Vec::<Triangle3dStyle>::new();
-        style_vec.resize(len, Triangle3dStyle { 
-            affine_0: [0.0, 0.0, 0.0, 0.0], 
-            affine_1: [0.0, 0.0, 0.0, 0.0], 
+        let mut style_vec = Vec::<Style>::new();
+        style_vec.resize(len, Style { 
+            color: [0.0, 0.0, 0.0, 0.0], 
         });
 
         let style_buffer = device.create_buffer_init(
@@ -71,13 +73,22 @@ impl Triangle3dRender {
             }
         );
 
+        let camera = CameraUniform::new();
+        let camera_buffer = device.create_buffer_init(
+            &wgpu::util::BufferInitDescriptor {
+                label: Some("Camera Buffer"),
+                contents: bytemuck::cast_slice(&[camera]),
+                usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+            }
+        );
+
         let pipeline = create_triangle3d_pipeline(
             device, 
             format,
         );
     
         Self {
-            vertex_stride: std::mem::size_of::<Triangle3dVertex>(),
+            vertex_stride: std::mem::size_of::<Vertex>(),
             vertex_vec,
             vertex_buffer,
             vertex_offset: 0,
@@ -87,11 +98,15 @@ impl Triangle3dRender {
             index_buffer,
             index_offset: 0,
 
-            style_stride: std::mem::size_of::<Triangle3dStyle>(),
+            style_stride: std::mem::size_of::<Style>(),
             style_vec,
             style_buffer,
             style_offset: 0,
             // style_bind_group,
+
+            camera,
+            camera_bind_group: camera_bind_group(device, &camera_buffer),
+            camera_buffer,
 
             mesh_items: Vec::new(),
             pipeline,
@@ -109,7 +124,7 @@ impl Triangle3dRender {
     }
 
     pub fn start_triangles(&mut self) {
-        self.mesh_items.push(GridMesh2dItem {
+        self.mesh_items.push(Item {
             v_start: self.vertex_offset,
             v_end: usize::MAX,
             i_start: self.index_offset,
@@ -119,15 +134,14 @@ impl Triangle3dRender {
         });
     }
 
-    pub fn draw_vertex(&mut self, x: f32, y: f32, z: f32, rgba: u32) {
-        let vertex = Triangle3dVertex { 
+    pub fn draw_vertex(&mut self, x: f32, y: f32, z: f32) {
+        let vertex = Vertex { 
             position: [x, y, z],
-            color: rgba,
         };
 
         let len = self.vertex_vec.len();
         if len <= self.vertex_offset {
-            self.vertex_vec.resize(len + 2048, Triangle3dVertex::empty());
+            self.vertex_vec.resize(len + 2048, Vertex::empty());
             self.is_stale = true;
         }
         
@@ -159,7 +173,7 @@ impl Triangle3dRender {
 
     pub fn draw_style(
         &mut self, 
-        affine: &Affine2d,
+        color: Color,
     ) {
         let v_end = self.vertex_offset;
         let i_end = self.index_offset;
@@ -170,10 +184,17 @@ impl Triangle3dRender {
         item.v_end = v_end;
         item.i_end = i_end;
 
-        self.style_vec[self.style_offset] = Triangle3dStyle::new(affine);
+        self.style_vec[self.style_offset] = Style::new(color);
         self.style_offset += 1;
 
         item.s_end = self.style_offset;
+    }
+
+    pub fn camera(
+        &mut self, 
+        camera: &Matrix4,
+    ) {
+        self.camera.set(camera);
     }
 
     pub fn flush(
@@ -249,11 +270,19 @@ impl Triangle3dRender {
             bytemuck::cast_slice(self.style_vec.as_slice())
         );
 
+        queue.write_buffer(
+            &mut self.camera_buffer,
+            0,
+            bytemuck::cast_slice(&[self.camera])
+        );
+
         rpass.set_pipeline(&self.pipeline);
 
         if let Clip::Bounds(p0, p1) = clip {
             rpass.set_scissor_rect(p0.0 as u32, p0.1 as u32, (p1.0 - p0.0) as u32, (p1.1 - p0.1) as u32);
         }
+
+        rpass.set_bind_group(0, &self.camera_bind_group, &[]);
 
         for item in self.mesh_items.drain(..) {
             if item.v_start < item.v_end && item.i_start < item.i_end {
@@ -281,7 +310,7 @@ impl Triangle3dRender {
     }
 }
 
-pub struct GridMesh2dItem {
+struct Item {
     v_start: usize,
     v_end: usize,
 
@@ -294,61 +323,112 @@ pub struct GridMesh2dItem {
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug, Pod, Zeroable)]
-pub struct Triangle3dVertex {
+struct Vertex {
     position: [f32; 3],
-    color: u32,
 }
 
-impl Triangle3dVertex {
-    const ATTRS: [wgpu::VertexAttribute; 2] =
-        wgpu::vertex_attr_array![0 => Float32x3, 1 => Uint32 ];
+impl Vertex {
+    const ATTRS: [wgpu::VertexAttribute; 1] =
+        wgpu::vertex_attr_array![0 => Float32x3 ];
 
     fn empty() -> Self {
         Self {
             position: [0., 0., 0.],
-            color: 0,
         }
     }
 
     pub(crate) fn desc() -> wgpu::VertexBufferLayout<'static> {
         wgpu::VertexBufferLayout {
-            array_stride: std::mem::size_of::<Triangle3dVertex>() as wgpu::BufferAddress,
+            array_stride: std::mem::size_of::<Vertex>() as wgpu::BufferAddress,
             step_mode: wgpu::VertexStepMode::Vertex,
             attributes: &Self::ATTRS,
         }
     }
 
 }
+
 #[repr(C)]
 #[derive(Copy, Clone, Debug, Pod, Zeroable)]
-pub struct Triangle3dStyle {
-    affine_0: [f32; 4],
-    affine_1: [f32; 4],
+struct Style {
+    color: [f32; 4],
 }
 
-impl Triangle3dStyle {
-    const ATTRS: [wgpu::VertexAttribute; 2] =
+impl Style {
+    const ATTRS: [wgpu::VertexAttribute; 1] =
         wgpu::vertex_attr_array![
-            2 => Float32x4, 
-            3 => Float32x4,
+            1 => Float32x4, 
         ];
 
     pub(crate) fn desc() -> wgpu::VertexBufferLayout<'static> {
         wgpu::VertexBufferLayout {
-            array_stride: std::mem::size_of::<Triangle3dStyle>() as wgpu::BufferAddress,
+            array_stride: std::mem::size_of::<Style>() as wgpu::BufferAddress,
             step_mode: wgpu::VertexStepMode::Instance,
             attributes: &Self::ATTRS,
         }
     }
 
-    fn new(affine: &Affine2d) -> Self {
-        let mat = affine.mat();
-
+    fn new(color: Color) -> Self {
         Self {
-            affine_0: [mat[0], mat[1], 0., mat[2]],
-            affine_1: [mat[3], mat[4], 0., mat[5]],
+            color: color.to_lrgb(),
         }
     }
+}
+
+#[repr(C)]
+#[derive(Copy, Clone, Debug, Pod, Zeroable)]
+struct CameraUniform {
+    matrix: [[f32; 4]; 4],
+}
+
+impl CameraUniform {
+    fn new() -> Self {
+        Self {
+            matrix: [
+                [1., 0., 0., 0.],
+                [0., 1., 0., 0.],
+                [0., 0., 1., 0.],
+                [0., 0., 0., 1.],
+            ],
+        }
+    }
+
+    fn set(&mut self, mat: &Matrix4) {
+        self.matrix = mat.into();
+    }
+}
+
+fn camera_bind_group(
+    device: &wgpu::Device,
+    camera_buffer: &wgpu::Buffer,
+) -> wgpu::BindGroup {
+    device.create_bind_group(&wgpu::BindGroupDescriptor {
+        layout: &camera_bind_group_layout(device),
+        entries: &[
+            wgpu::BindGroupEntry {
+                binding: 0,
+                resource: camera_buffer.as_entire_binding(),
+            }
+        ],
+        label: Some("camera bind group"),
+    })
+}
+
+fn camera_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
+    device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+        entries: &[
+            wgpu::BindGroupLayoutEntry {
+                binding: 0,
+                visibility: wgpu::ShaderStages::VERTEX,
+                ty: wgpu::BindingType::Buffer {
+                    ty: wgpu::BufferBindingType::Uniform,
+                    has_dynamic_offset: false,
+                    min_binding_size: None,
+                },
+                count: None,
+            }
+        ],
+        label: Some("camera bind group layout"),
+    })
 }
 
 fn create_triangle3d_pipeline(
@@ -360,12 +440,13 @@ fn create_triangle3d_pipeline(
     let vertex_entry = "vs_triangle";
     let fragment_entry = "fs_triangle";
 
-    let vertex_layout = Triangle3dVertex::desc();
-    let style_layout = Triangle3dStyle::desc();
+    let vertex_layout = Vertex::desc();
+    let style_layout = Style::desc();
 
     let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
         label: None,
         bind_group_layouts: &[
+            &camera_bind_group_layout(device),
         ],
         push_constant_ranges: &[],
     });

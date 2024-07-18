@@ -1,7 +1,7 @@
 use essay_tensor::Tensor;
 
 use crate::{
-    Bounds, Canvas, Clip, FontStyle, FontTypeId, ImageId, Path, PathOpt, Point, TextStyle, TextureId
+    affine3d::Affine3d, matrix4::Matrix4, Bounds, Canvas, Clip, Color, FontStyle, FontTypeId, ImageId, Path, PathOpt, Point, TextStyle, TextureId
 };
 
 pub trait Renderer {
@@ -57,8 +57,9 @@ pub trait Renderer {
     fn draw_3d(
         &mut self,
         vertices: Tensor<f32>,  // Nx3 x,y in canvas coordinates
-        colors: Tensor<u32>,    // N in rgba
         triangles: Tensor<u32>, // Mx3 vertex indices
+        color: Color,
+        camera: &Matrix4,
         clip: &Clip,
     ) -> Result<(), RenderErr>;
 

@@ -1,21 +1,23 @@
+pub mod affine2d;
+pub mod affine3d;
 mod image;
 mod clip;
 mod instance;
 mod point;
 mod coord;
-pub mod affine;
 mod bounds;
 mod canvas;
 mod color;
 mod event;
 mod color_data;
 pub mod driver;
+pub mod matrix4;
 mod path;
 pub mod path_opt;
 pub mod path_style;
 mod text;
 
-pub use affine::Affine2d;
+pub use affine2d::Affine2d;
 
 pub use bounds::Bounds;
 

@@ -1,5 +1,5 @@
 use essay_graphics_api::{
-    driver::{RenderErr, Renderer}, Bounds, Canvas, Clip, FontStyle, FontTypeId, ImageId, Path, PathOpt, Point, TextStyle, TextureId
+    affine3d::Affine3d, driver::{RenderErr, Renderer}, matrix4::Matrix4, Bounds, Canvas, Clip, Color, FontStyle, FontTypeId, ImageId, Path, PathOpt, Point, TextStyle, TextureId
 };
 use essay_tensor::Tensor;
 
@@ -114,11 +114,12 @@ impl Renderer for PlotRenderer<'_> {
     fn draw_3d(
         &mut self,
         vertices: Tensor<f32>,  // Nx3 x,y in canvas coordinates
-        colors: Tensor<u32>,    // N in rgba
         triangles: Tensor<u32>, // Mx3 vertex indices
+        color: Color,
+        camera: &Matrix4,
         clip: &Clip,
     ) -> Result<(), RenderErr> {
-        self.figure.draw_3d(vertices, colors, triangles, clip)
+        self.figure.draw_3d(vertices, triangles, color, camera, clip)
     }
 
     fn request_redraw(

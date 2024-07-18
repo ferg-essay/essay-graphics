@@ -1,4 +1,4 @@
-use essay_graphics_api::{driver::{FigureApi, RenderErr}, Affine2d, Bounds, Canvas, CapStyle, Clip, Color, FontStyle, FontTypeId, HorizAlign, ImageId, JoinStyle, LineStyle, Path, PathCode, PathOpt, Point, TextStyle, TextureId, VertAlign};
+use essay_graphics_api::{affine3d::Affine3d, driver::{FigureApi, RenderErr}, matrix4::Matrix4, Affine2d, Bounds, Canvas, CapStyle, Clip, Color, FontStyle, FontTypeId, HorizAlign, ImageId, JoinStyle, LineStyle, Path, PathCode, PathOpt, Point, TextStyle, TextureId, VertAlign};
 use essay_tensor::Tensor;
 
 use crate::PlotRenderer;
@@ -598,38 +598,34 @@ impl PlotCanvas {
     pub fn draw_3d(
         &mut self,
         vertices: Tensor<f32>,  // Nx2 x,y in canvas coordinates
-        rgba: Tensor<u32>,    // N in rgba
         triangles: Tensor<u32>, // Mx3 vertex indices
+        color: Color,    // N in rgba
+        camera: &Matrix4,
         _clip: &Clip,
     ) -> Result<(), RenderErr> {
-        assert!(vertices.rank() == 3, 
+        assert!(vertices.rank() == 2, 
             "vertices must be 3d (rank3) shape={:?}",
             vertices.shape().as_slice());
-        assert!(vertices.cols() == 2, 
+        assert!(vertices.cols() == 3, 
             "vertices must be rows of 2 columns (x, y) shape={:?}",
             vertices.shape().as_slice());
-        assert!(rgba.rank() == 1,
-            "colors must be a 1D vector shape={:?}",
-            rgba.shape().as_slice());
-        assert!(vertices.rows() == rgba.cols(), 
-            "number of vertices and colors must match. vertices={:?} colors={:?}",
-            vertices.shape().as_slice(), rgba.shape().as_slice());
         assert!(triangles.cols() == 3, 
             "triangle indices must have 3 vertices (3 columns) shape={:?}",
             triangles.shape().as_slice());
 
         self.triangle3d_render.start_triangles();
 
-        for (xy, color) in vertices.iter_row().zip(rgba.iter()) {
-            self.triangle3d_render.draw_vertex(xy[0], xy[1], xy[2], *color);
+        for xy in vertices.iter_row() {
+            self.triangle3d_render.draw_vertex(xy[0], xy[1], xy[2]);
         }
 
         for tri in triangles.iter_row() {
             self.triangle3d_render.draw_triangle(tri[0], tri[1], tri[2]);
         }
 
-        self.triangle3d_render.draw_style(&self.to_gpu);
-
+        self.triangle3d_render.draw_style(color);
+        self.triangle3d_render.camera(camera);
+        
         Ok(())
     }
 
