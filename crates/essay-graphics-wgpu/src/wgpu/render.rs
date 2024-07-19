@@ -1,7 +1,7 @@
 use essay_graphics_api::{
     driver::{RenderErr, Renderer}, 
     form::{Form, FormId, Matrix4}, 
-    Bounds, Canvas, Clip, Color, FontStyle, FontTypeId, ImageId, Path, PathOpt, Point, TextStyle, TextureId
+    Bounds, Canvas, Clip, FontStyle, FontTypeId, ImageId, Path, PathOpt, Point, TextStyle, TextureId
 };
 use essay_tensor::Tensor;
 
@@ -56,7 +56,7 @@ impl<'a> PlotRenderer<'a> {
 
 impl Renderer for PlotRenderer<'_> {
     fn bounds(&self) -> &Bounds<Canvas> {
-        self.canvas.get_canvas().bounds()
+        self.canvas.bounds()
     }
 
     fn to_px(&self, size: f32) -> f32 {

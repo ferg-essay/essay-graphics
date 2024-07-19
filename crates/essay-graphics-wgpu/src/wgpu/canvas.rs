@@ -10,12 +10,13 @@ use essay_tensor::Tensor;
 use crate::PlotRenderer;
 
 use super::{
-    bezier::BezierRender, form3d::Form3dRender, image::ImageRender, shape2d::Shape2dRender, shape2d_texture::Shape2dTextureRender, text::TextRender, text_cache::FontId, texture_store::TextureCache, triangle2d::GridMesh2dRender, triangulate::triangulate2
+    bezier::BezierRender, form3d::Form3dRender, image::ImageRender, shape2d::Shape2dRender, shape2d_texture::Shape2dTextureRender, text::TextRender, text_cache::FontId, triangle2d::GridMesh2dRender, triangulate::triangulate2
 };
 
 
 pub struct PlotCanvas {
-    pub(crate) canvas: Canvas,
+    bounds: Bounds<Canvas>,
+    scale_factor: f32,
 
     pub(crate) image_render: ImageRender,
     pub(crate) triangle_render: GridMesh2dRender,
@@ -25,7 +26,7 @@ pub struct PlotCanvas {
     pub(crate) bezier_render: BezierRender,
     pub(crate) text_render: TextRender,
 
-    texture_store: TextureCache,
+    // texture_store: TextureCache,
 
     font_id_default: FontId,
 
@@ -39,11 +40,13 @@ impl PlotCanvas {
         device: &wgpu::Device,
         queue: &wgpu::Queue,
         format: wgpu::TextureFormat,
+        width: u32,
+        height: u32,
     ) -> Self {
     
         let image_render = ImageRender::new(device, format);
         let triangle_render = GridMesh2dRender::new(device, format);
-        let triangle3d_render = Form3dRender::new(device, format);
+        let triangle3d_render = Form3dRender::new(device, format, width, height);
         let shape2d_render = Shape2dRender::new(device, format);
         let shape2d_texture_render = Shape2dTextureRender::new(device, queue, format);
         let bezier_render = BezierRender::new(device, format);
@@ -51,10 +54,11 @@ impl PlotCanvas {
 
         let font_id_default = text_render.font("default");
 
-        let texture_store = TextureCache::new();
+        // let texture_store = TextureCache::new();
         
         Self {
-            canvas: Canvas::new((), 1.),
+            bounds: Bounds::from([width as f32, height as f32]),
+            scale_factor: 1.,
 
             image_render,
             shape2d_render,
@@ -65,7 +69,7 @@ impl PlotCanvas {
             bezier_render,
 
             font_id_default,
-            texture_store,
+            // texture_store,
 
             to_gpu: Affine2d::eye(),
 
@@ -92,15 +96,18 @@ impl PlotCanvas {
         self.form3d_render.clear();
     }
 
-    pub fn set_canvas_bounds(&mut self, width: u32, height: u32) {
-        self.canvas.set_bounds([width as f32, height as f32]);
+    pub fn resize(&mut self, device: &wgpu::Device, width: u32, height: u32) {
+        self.request_redraw(true);
+        self.bounds = Bounds::from([width as f32, height as f32]);
 
         let pos_gpu = Bounds::<Canvas>::new(
             Point(-1., -1.),
             Point(1., 1.)
         );
 
-        self.to_gpu = self.canvas.bounds().affine_to(&pos_gpu);
+        self.to_gpu = self.bounds.affine_to(&pos_gpu);
+
+        self.form3d_render.resize(device, width, height);
     }
 
     pub fn to_scissor(&self, clip: &Clip) -> Option<(u32, u32, u32, u32)> {
@@ -109,7 +116,7 @@ impl PlotCanvas {
             Clip::Bounds(p0, p1) => {
                 Some((
                     p0.0 as u32, 
-                    (self.canvas.height() - p1.1) as u32, 
+                    (self.bounds.height() - p1.1) as u32, 
                     (p1.0 - p0.0) as u32, 
                     (p1.1 - p0.1) as u32
                 ))
@@ -121,7 +128,7 @@ impl PlotCanvas {
         // traditional pt to px
         let pt_to_px = 4. / 3.;
 
-        self.canvas.set_scale_factor(scale_factor * pt_to_px);
+        self.scale_factor = scale_factor * pt_to_px;
     }
 
     fn fill_path(
@@ -362,14 +369,15 @@ impl PlotCanvas {
     }
 
     ///
-    /// Returns the boundary of the canvas, usually in pixels or points.
+    /// Returns the boundary of the canvas in pixels
     ///
-    pub fn get_canvas(&self) -> &Canvas {
-        &self.canvas
+    pub fn bounds(&self) -> &Bounds<Canvas> {
+        &self.bounds
     }
 
+    #[inline]
     pub fn to_px(&self, size: f32) -> f32 {
-        self.canvas.to_px(size)
+        self.scale_factor * size
     }
 
     pub fn draw_path(
@@ -562,7 +570,7 @@ impl PlotCanvas {
             font_id,
             size,
             xy, 
-            Point(self.canvas.width(), self.canvas.height()),
+            Point(self.bounds.width(), self.bounds.height()),
             color,
             angle,
             halign,
@@ -689,23 +697,21 @@ impl PlotCanvas {
     pub(crate) fn draw(
         &mut self,
         figure: &mut Box<dyn Drawable>,
-        bounds: (u32, u32),
-        scale_factor: f32,
         device: &wgpu::Device,
         queue: &wgpu::Queue,
         view: &wgpu::TextureView,
         // encoder: &mut wgpu::CommandEncoder,
     ) {
-        let (width, height) = bounds;
+        //let (width, height) = bounds;
 
         //self.clear();
 
-        self.set_canvas_bounds(width, height);
-        let pt_to_px_factor = 4. / 3.;
-        self.set_scale_factor(scale_factor * pt_to_px_factor);
+        //self.resize(device, width, height);
+        //let pt_to_px_factor = 4. / 3.;
+        //self.set_scale_factor(scale_factor * pt_to_px_factor);
         //let draw_bounds = self.canvas.bounds().clone();
 
-        let pos = self.canvas.bounds().clone();
+        let pos = self.bounds().clone();
         // let mut renderer = self.renderer(device, queue, view);
         // figure.update(&mut renderer, &pos);
         // renderer.flush_inner(&Clip::None);

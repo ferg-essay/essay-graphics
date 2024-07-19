@@ -1,5 +1,5 @@
 use bytemuck_derive::{Pod, Zeroable};
-use essay_graphics_api::{form::{Form, FormId, Matrix4}, Clip, Color, TextureId};
+use essay_graphics_api::{form::{Form, FormId, Matrix4}, Clip, TextureId};
 use essay_tensor::Tensor;
 use wgpu::util::DeviceExt;
 
@@ -21,6 +21,9 @@ pub struct Form3dRender {
     style_buffer: wgpu::Buffer,
     style_offset: usize,
 
+    texture_cache: TextureCache,
+    depth_buffer: DepthBuffer,
+
     camera: CameraUniform,
     camera_buffer: wgpu::Buffer,
 
@@ -30,8 +33,6 @@ pub struct Form3dRender {
     pipeline: wgpu::RenderPipeline,
     camera_bind_group: wgpu::BindGroup,
 
-    texture_cache: TextureCache,
-
     is_stale: bool,
     is_buffer_stale: bool,
 }
@@ -40,6 +41,8 @@ impl Form3dRender {
     pub(crate) fn new(
         device: &wgpu::Device, 
         format: wgpu::TextureFormat,
+        width: u32,
+        height: u32,
     ) -> Self {
         let len = 2048;
 
@@ -90,6 +93,8 @@ impl Form3dRender {
             }
         );
 
+        let depth_buffer = DepthBuffer::new(device, width, height);
+
         let pipeline = form3d_pipeline(
             device, 
             format,
@@ -116,6 +121,7 @@ impl Form3dRender {
             draw_items: Vec::new(),
 
             texture_cache: TextureCache::new(),
+            depth_buffer,
 
             camera,
             camera_bind_group: camera_bind_group(device, &camera_buffer),
@@ -126,6 +132,15 @@ impl Form3dRender {
             is_stale: false,
             is_buffer_stale: false,
         }
+    }
+
+    pub(crate) fn resize(
+        &mut self,
+        device: &wgpu::Device, 
+        width: u32,
+        height: u32,
+    ) {
+        self.depth_buffer.resize(device, width, height);
     }
 
     pub fn clear(&mut self) {
@@ -273,7 +288,14 @@ impl Form3dRender {
                     store: wgpu::StoreOp::Store,
                 }
             })],
-            depth_stencil_attachment: None,
+            depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
+                view: &self.depth_buffer.view,
+                depth_ops: Some(wgpu::Operations {
+                    load: wgpu::LoadOp::Clear(1.),
+                    store: wgpu::StoreOp::Store,
+                }),
+                stencil_ops: None,
+            }),
             timestamp_writes: None,
             occlusion_query_set: None,
         });
@@ -342,6 +364,7 @@ impl Form3dRender {
 
         rpass.set_pipeline(&self.pipeline);
 
+        // rpass.set_stencil_ref
         rpass.set_bind_group(1, &self.camera_bind_group, &[]);
 
         for draw_item in self.draw_items.drain(..) {
@@ -536,7 +559,13 @@ fn form3d_pipeline(
             ],
         }),
         primitive: wgpu::PrimitiveState::default(),
-        depth_stencil: None,
+        depth_stencil: Some(wgpu::DepthStencilState {
+            format: DepthBuffer::DEPTH_FORMAT,
+            depth_write_enabled: true,
+            depth_compare: wgpu::CompareFunction::Less,
+            stencil: wgpu::StencilState::default(),
+            bias: wgpu::DepthBiasState::default(),
+        }),
         multisample: wgpu::MultisampleState::default(),
         multiview: None,
     })
@@ -632,6 +661,73 @@ fn texture_bind_group(
                 }
             ],
             label: Some("draw3d texture bind group")
+        }
+    )
+}
+
+struct DepthBuffer {
+    texture: wgpu::Texture,
+    view: wgpu::TextureView,
+}
+
+impl DepthBuffer {
+    const DEPTH_FORMAT : wgpu::TextureFormat = wgpu::TextureFormat::Depth32Float;
+
+    fn new(
+        device: &wgpu::Device, 
+        width: u32,
+        height: u32,
+    ) -> Self {
+        let texture = depth_texture(device, width, height);
+        let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
+
+        Self {
+            texture,
+            view,
+        }
+    }
+
+    fn resize(&mut self, device: &wgpu::Device, width: u32, height: u32) {
+        self.texture = depth_texture(device, width, height);
+        self.view = self.texture.create_view(&wgpu::TextureViewDescriptor::default());
+    }
+}
+
+fn depth_texture(device: &wgpu::Device, width: u32, height: u32) -> wgpu::Texture {
+    let size = wgpu::Extent3d {
+        width,
+        height,
+        depth_or_array_layers: 1,
+    };
+
+    let desc = wgpu::TextureDescriptor {
+        label: None,
+        size,
+        mip_level_count: 1,
+        sample_count: 1,
+        dimension: wgpu::TextureDimension::D2,
+        format: DepthBuffer::DEPTH_FORMAT,
+        usage: wgpu::TextureUsages::RENDER_ATTACHMENT
+            | wgpu::TextureUsages::TEXTURE_BINDING,
+        view_formats: &[],
+    };
+
+    device.create_texture(&desc)
+}
+
+fn _depth_sampler(device: &wgpu::Device) -> wgpu::Sampler {
+    device.create_sampler(
+        &wgpu::SamplerDescriptor {
+            address_mode_u: wgpu::AddressMode::ClampToEdge,
+            address_mode_v: wgpu::AddressMode::ClampToEdge,
+            address_mode_w: wgpu::AddressMode::ClampToEdge,
+            mag_filter: wgpu::FilterMode::Linear,
+            min_filter: wgpu::FilterMode::Linear,
+            mipmap_filter: wgpu::FilterMode::Nearest,
+            compare: Some(wgpu::CompareFunction::LessEqual),
+            lod_min_clamp: 0.,
+            lod_max_clamp: 100.,
+            ..Default::default()
         }
     )
 }

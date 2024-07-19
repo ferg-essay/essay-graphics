@@ -182,9 +182,9 @@ impl Matrix4 {
         }
     }
 
-    pub fn matmul(&self, y: impl Into<Matrix4>) -> Self {
+    pub fn matmul(&self, y: &Matrix4) -> Self {
         Self {
-            mat: self.mat.matmul(&y.into().mat)
+            mat: self.mat.matmul(&y.mat)
         }
     }
 

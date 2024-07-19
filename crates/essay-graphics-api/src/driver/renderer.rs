@@ -1,7 +1,7 @@
 use essay_tensor::Tensor;
 
 use crate::{
-    form::{Form, FormId, Matrix4}, Bounds, Canvas, Clip, Color, FontStyle, FontTypeId, 
+    form::{Form, FormId, Matrix4}, Bounds, Canvas, Clip, FontStyle, FontTypeId, 
     ImageId, Path, PathOpt, Point, TextStyle, TextureId
 };
 

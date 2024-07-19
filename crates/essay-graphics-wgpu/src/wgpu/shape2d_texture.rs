@@ -70,7 +70,6 @@ impl Shape2dTextureRender {
         let pipeline = create_shape2d_pipeline(
             device, 
             format,
-            &textures,
         );
     
         Self {
@@ -541,7 +540,6 @@ impl IndexMut<(usize, usize)> for HatchBuilder {
 fn create_shape2d_pipeline(
     device: &wgpu::Device,
     format: wgpu::TextureFormat,
-    texture: &TextureCache,
 ) -> wgpu::RenderPipeline {
     let shader = device.create_shader_module(wgpu::include_wgsl!("shape2d_texture.wgsl"));
 

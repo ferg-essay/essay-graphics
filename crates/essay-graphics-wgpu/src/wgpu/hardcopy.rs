@@ -24,15 +24,17 @@ pub fn draw_hardcopy(
         &wgpu.device,
         &wgpu.queue,
         wgpu.texture.format(),
+        width,
+        height
     );
 
-    plot_canvas.set_canvas_bounds(width, height);
+    // plot_canvas.resize(width, height);
     plot_canvas.set_scale_factor(dpi / 100. * 4. / 3.);
 
     let view = wgpu.create_view();
     wgpu.clear_screen(&view.view);
 
-    let pos = plot_canvas.get_canvas().bounds().clone();
+    let pos = plot_canvas.bounds().clone();
 
     let mut plot_renderer = PlotRenderer::new(
         &mut plot_canvas, 

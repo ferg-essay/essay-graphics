@@ -1,6 +1,6 @@
 use std::ops::Index;
 
-use crate::{Color, TextureId};
+use crate::TextureId;
 
 pub struct Form {
     vertices: Vec<Vertex>,

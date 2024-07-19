@@ -2,7 +2,7 @@ use bytemuck_derive::{Zeroable, Pod};
 use essay_graphics_api::{Affine2d, Color, Point};
 use wgpu::util::DeviceExt;
 
-use super::{canvas::line_normal, texture_store::TextureCache};
+use super::canvas::line_normal;
 
 pub struct Shape2dRender {
     vertex_stride: usize,

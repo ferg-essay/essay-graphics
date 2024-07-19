@@ -13,28 +13,28 @@ fn main() {
         [-1., -1., 1.],
         [-1., 1., -1.],
         [-1., 1., 1.]
-    ], [0., 0.], [1., 0.1]);
+    ], 0.1);
 
     square(&mut form, [
         [1., -1., -1.],
         [1., -1., 1.],
         [1., 1., -1.],
         [1., 1., 1.]
-    ], [0., 0.3], [1., 0.4]);
+    ], 0.3);
 
     square(&mut form, [
         [-1., -1., -1.],
         [-1., -1., 1.],
         [1., -1., -1.],
         [1., -1., 1.]
-    ], [0., 0.6], [1., 0.7]);
+    ], 0.6);
 
     square(&mut form, [
         [-1., 1., -1.],
         [-1., 1., 1.],
         [1., 1., -1.],
         [1., 1., 1.]
-    ], [0., 0.8], [1., 1.]);
+    ], 0.8);
 
     figure.add_view((), 
         CubeView::new(form, texture_colors(&[
@@ -53,13 +53,14 @@ fn main() {
 fn square(
     form: &mut Form, 
     vertices: [[f32; 3]; 4],
-    uv0: [f32; 2],
-    uv1: [f32; 2],
+    //uv0: [f32; 2],
+    //uv1: [f32; 2],
+    v: f32,
 ) {
-    let x0 = uv0[0];
-    let x1 = uv1[0];
-    let y0 = uv0[1];
-    let y1 = uv1[1];
+    let x0 = 0.5;
+    let x1 = 0.5;
+    let y0 = v;
+    let y1 = v;
 
     let v0 = form.vertex(vertices[0], [x0, y0]);
     let v1 = form.vertex(vertices[1], [x0, y1]);
@@ -170,15 +171,15 @@ impl ViewTrait for CubeView {
 
 struct Camera {
     eye: [f32; 3],
-    yaw: Angle,
     matrix: Matrix4,
+    rot: Matrix4,
 }
 
 impl Camera {
     fn new(eye: [f32; 3]) -> Self {
         Self {
             eye: eye.into(),
-            yaw: Angle::Rad(0.),
+            rot: Matrix4::eye(),
             matrix: Matrix4::eye(),
         }
     }
@@ -196,14 +197,14 @@ impl Camera {
     }
 
     fn yaw(&mut self, yaw: impl Into<Angle>) {
-        self.yaw = Angle::Rad(self.yaw.to_radians() + yaw.into().to_radians());
+        self.rot = self.rot.rot_xz(yaw);
     }
 
     fn matrix(&self) -> Matrix4 {
         let mut camera = Matrix4::eye();
 
         camera = camera.translate(self.eye[0], self.eye[1], self.eye[2]);
-        camera = camera.rot_xz(self.yaw);
+        camera = self.rot.matmul(&camera);
 
         let fov = 45.0f32;
         camera = camera.projection(fov.to_radians(), 1., 0.1, 100.);

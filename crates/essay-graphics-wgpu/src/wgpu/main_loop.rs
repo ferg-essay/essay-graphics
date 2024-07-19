@@ -1,8 +1,11 @@
 use std::time::Instant;
 
-use essay_graphics_api::{driver::Drawable, Bounds, Canvas, CanvasEvent, Clip, Point};
+use essay_graphics_api::{driver::Drawable, Bounds, Canvas, CanvasEvent, Point};
 use winit::{
-    event::{ElementState, Event, MouseButton, WindowEvent }, event_loop::{ControlFlow, EventLoop}, keyboard::{Key, NamedKey}, window::{CursorIcon, Window}
+    event::{ElementState, Event, MouseButton, WindowEvent }, 
+    event_loop::{ControlFlow, EventLoop}, 
+    keyboard::{Key, NamedKey}, 
+    window::{CursorIcon, Window}
 };
 
 use crate::PlotCanvas;
@@ -137,6 +140,8 @@ fn run_event_loop(
         &device,
         &queue,
         config.format,
+        config.width,
+        config.height,
     );
 
     /*
@@ -340,8 +345,6 @@ fn run_event_loop(
                     main_renderer.render(|device, queue, view| {
                         canvas.draw(
                             &mut drawable,
-                            (config.width, config.height),
-                            window.scale_factor() as f32,
                             device, 
                             queue, 
                             view);
