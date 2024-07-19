@@ -1,6 +1,9 @@
 use bytemuck_derive::{Pod, Zeroable};
-use essay_graphics_api::{form::{Form, FormId, Matrix4}, Clip, Color};
+use essay_graphics_api::{form::{Form, FormId, Matrix4}, Clip, Color, TextureId};
+use essay_tensor::Tensor;
 use wgpu::util::DeviceExt;
+
+use super::texture_store::TextureCache;
 
 pub struct Form3dRender {
     vertex_stride: usize,
@@ -27,6 +30,8 @@ pub struct Form3dRender {
     pipeline: wgpu::RenderPipeline,
     camera_bind_group: wgpu::BindGroup,
 
+    texture_cache: TextureCache,
+
     is_stale: bool,
     is_buffer_stale: bool,
 }
@@ -41,6 +46,7 @@ impl Form3dRender {
         let mut vertex_vec = Vec::<Vertex>::new();
         vertex_vec.resize(len, Vertex { 
             position: [0., 0., 0.], 
+            tex_uv: [0., 0.],
         });
 
         let vertex_buffer = device.create_buffer_init(
@@ -64,7 +70,7 @@ impl Form3dRender {
 
         let mut style_vec = Vec::<Style>::new();
         style_vec.resize(len, Style { 
-            color: [0.0, 0.0, 0.0, 0.0], 
+            dummy: 0,
         });
 
         let style_buffer = device.create_buffer_init(
@@ -84,7 +90,7 @@ impl Form3dRender {
             }
         );
 
-        let pipeline = create_triangle3d_pipeline(
+        let pipeline = form3d_pipeline(
             device, 
             format,
         );
@@ -109,6 +115,8 @@ impl Form3dRender {
             form_items: Vec::new(),
             draw_items: Vec::new(),
 
+            texture_cache: TextureCache::new(),
+
             camera,
             camera_bind_group: camera_bind_group(device, &camera_buffer),
             camera_buffer,
@@ -124,9 +132,27 @@ impl Form3dRender {
         self.draw_items.drain(..);
     }
 
+    pub fn create_texture_rgba8(
+        &mut self, 
+        device: &wgpu::Device, 
+        queue: &wgpu::Queue, 
+        image: &Tensor<u8>
+    ) -> TextureId {
+        assert!(image.rank() == 3, "texture rank must be 3 shape={:?}", image.shape().as_slice());
+        assert!(image.cols() == 4, "texture cols 4 shape={:?}", image.shape().as_slice());
+
+        self.texture_cache.add_rgba_u8(
+            device, 
+            queue, 
+            image.dim(1) as u32, 
+            image.dim(0) as u32, 
+            image.as_slice()
+        )
+    }
+
     pub fn create_form(&mut self, form: &Form) -> FormId {
         let id = FormId(self.form_items.len());
-        println!("Form {:?}", id);
+
         let mut item = FormItem {
             v_start: self.vertex_offset,
             v_end: usize::MAX,
@@ -134,10 +160,11 @@ impl Form3dRender {
             i_end: usize::MAX,
             s_start: self.style_offset,
             s_end: usize::MAX,
+            texture: form.get_texture(),
         };
 
         for xy in form.vertices().iter() {
-            self.draw_vertex(xy[0], xy[1], xy[2]);
+            self.draw_vertex(xy.vertex().clone(), xy.tex_uv().clone());
         }
 
         for tri in form.triangles().iter() {
@@ -148,7 +175,7 @@ impl Form3dRender {
             );
         }
 
-        self.draw_style(form.get_color());
+        self.draw_style();
         
         item.v_end = self.vertex_offset;
         item.i_end = self.index_offset;
@@ -160,9 +187,10 @@ impl Form3dRender {
         id
     }
 
-    fn draw_vertex(&mut self, x: f32, y: f32, z: f32) {
+    fn draw_vertex(&mut self, pos: [f32; 3], tex_uv: [f32; 2]) {
         let vertex = Vertex { 
-            position: [x, y, z],
+            position: pos,
+            tex_uv,
         };
 
         let len = self.vertex_vec.len();
@@ -201,15 +229,14 @@ impl Form3dRender {
 
     fn draw_style(
         &mut self, 
-        color: Color,
     ) {
         let len = self.style_vec.len();
         if len <= self.style_offset + 2 {
-            self.style_vec.resize(len + 512, Style::new(Color::black()));
+            self.style_vec.resize(len + 512, Style::new());
             self.is_buffer_stale = true;
         }
 
-        self.style_vec[self.style_offset] = Style::new(color);
+        self.style_vec[self.style_offset] = Style::new();
         self.style_offset += 1;
     }
 
@@ -294,11 +321,13 @@ impl Form3dRender {
                 bytemuck::cast_slice(self.index_vec.as_slice())
             );
 
+            /*
             queue.write_buffer(
                 &mut self.style_buffer, 
                 0,
                 bytemuck::cast_slice(self.style_vec.as_slice())
             );
+            */
         }
 
         queue.write_buffer(
@@ -313,20 +342,24 @@ impl Form3dRender {
 
         rpass.set_pipeline(&self.pipeline);
 
-        rpass.set_bind_group(0, &self.camera_bind_group, &[]);
+        rpass.set_bind_group(1, &self.camera_bind_group, &[]);
 
         for draw_item in self.draw_items.drain(..) {
             let item = &self.form_items[draw_item.id.0];
+
+            rpass.set_bind_group(0, self.texture_cache.texture_bind_group(item.texture), &[]);
 
             if item.v_start < item.v_end && item.i_start < item.i_end {
                 let stride = self.vertex_stride;
                 rpass.set_vertex_buffer(0, self.vertex_buffer.slice(
                     (stride * item.v_start) as u64..(stride * item.v_end) as u64
                 ));
+                
                 let stride = self.style_stride;
                 rpass.set_vertex_buffer(1, self.style_buffer.slice(
                     (stride * item.s_start) as u64..(stride * item.s_end) as u64
                 ));
+                
                 let stride = self.index_stride;
                 rpass.set_index_buffer(self.index_buffer.slice(
                     (stride * item.i_start) as u64..(stride * item.i_end) as u64
@@ -352,6 +385,8 @@ struct FormItem {
 
     s_start: usize,
     s_end: usize,
+
+    texture: TextureId,
 }
 
 struct DrawItem {
@@ -370,15 +405,17 @@ impl DrawItem {
 #[derive(Copy, Clone, Debug, Pod, Zeroable)]
 struct Vertex {
     position: [f32; 3],
+    tex_uv: [f32; 2],
 }
 
 impl Vertex {
-    const ATTRS: [wgpu::VertexAttribute; 1] =
-        wgpu::vertex_attr_array![0 => Float32x3 ];
+    const ATTRS: [wgpu::VertexAttribute; 2] =
+        wgpu::vertex_attr_array![0 => Float32x3, 1 => Float32x2 ];
 
     fn empty() -> Self {
         Self {
             position: [0., 0., 0.],
+            tex_uv: [0., 0.],
         }
     }
 
@@ -395,13 +432,12 @@ impl Vertex {
 #[repr(C)]
 #[derive(Copy, Clone, Debug, Pod, Zeroable)]
 struct Style {
-    color: [f32; 4],
+    dummy: u32
 }
 
 impl Style {
     const ATTRS: [wgpu::VertexAttribute; 1] =
-        wgpu::vertex_attr_array![
-            1 => Float32x4, 
+        wgpu::vertex_attr_array![ 2 => Uint32
         ];
 
     pub(crate) fn desc() -> wgpu::VertexBufferLayout<'static> {
@@ -412,9 +448,9 @@ impl Style {
         }
     }
 
-    fn new(color: Color) -> Self {
+    fn new() -> Self {
         Self {
-            color: color.to_lrgb(),
+            dummy: 0,
         }
     }
 }
@@ -442,48 +478,18 @@ impl CameraUniform {
     }
 }
 
-fn camera_bind_group(
-    device: &wgpu::Device,
-    camera_buffer: &wgpu::Buffer,
-) -> wgpu::BindGroup {
-    device.create_bind_group(&wgpu::BindGroupDescriptor {
-        layout: &camera_bind_group_layout(device),
-        entries: &[
-            wgpu::BindGroupEntry {
-                binding: 0,
-                resource: camera_buffer.as_entire_binding(),
-            }
-        ],
-        label: Some("camera bind group"),
-    })
-}
+//
+// WGPU pipeline definition
+//
 
-fn camera_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
-    device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-        entries: &[
-            wgpu::BindGroupLayoutEntry {
-                binding: 0,
-                visibility: wgpu::ShaderStages::VERTEX,
-                ty: wgpu::BindingType::Buffer {
-                    ty: wgpu::BufferBindingType::Uniform,
-                    has_dynamic_offset: false,
-                    min_binding_size: None,
-                },
-                count: None,
-            }
-        ],
-        label: Some("camera bind group layout"),
-    })
-}
-
-fn create_triangle3d_pipeline(
+fn form3d_pipeline(
     device: &wgpu::Device,
     format: wgpu::TextureFormat,
 ) -> wgpu::RenderPipeline {
     let shader = device.create_shader_module(wgpu::include_wgsl!("form3d.wgsl"));
 
-    let vertex_entry = "vs_triangle";
-    let fragment_entry = "fs_triangle";
+    let vertex_entry = "vs_form3d";
+    let fragment_entry = "fs_form3d";
 
     let vertex_layout = Vertex::desc();
     let style_layout = Style::desc();
@@ -491,6 +497,7 @@ fn create_triangle3d_pipeline(
     let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
         label: None,
         bind_group_layouts: &[
+            &texture_bind_group_layout(device),
             &camera_bind_group_layout(device),
         ],
         push_constant_ranges: &[],
@@ -533,4 +540,98 @@ fn create_triangle3d_pipeline(
         multisample: wgpu::MultisampleState::default(),
         multiview: None,
     })
+}
+
+fn camera_bind_group(
+    device: &wgpu::Device,
+    camera_buffer: &wgpu::Buffer,
+) -> wgpu::BindGroup {
+    device.create_bind_group(&wgpu::BindGroupDescriptor {
+        layout: &camera_bind_group_layout(device),
+        entries: &[
+            wgpu::BindGroupEntry {
+                binding: 0,
+                resource: camera_buffer.as_entire_binding(),
+            }
+        ],
+        label: Some("camera bind group"),
+    })
+}
+
+fn camera_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
+    device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+        entries: &[
+            wgpu::BindGroupLayoutEntry {
+                binding: 0,
+                visibility: wgpu::ShaderStages::VERTEX,
+                ty: wgpu::BindingType::Buffer {
+                    ty: wgpu::BufferBindingType::Uniform,
+                    has_dynamic_offset: false,
+                    min_binding_size: None,
+                },
+                count: None,
+            }
+        ],
+        label: Some("camera bind group layout"),
+    })
+}
+
+fn texture_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
+    device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+        entries: &[
+            wgpu::BindGroupLayoutEntry {
+                binding: 0,
+                visibility: wgpu::ShaderStages::FRAGMENT,
+                ty: wgpu::BindingType::Texture {
+                    multisampled: false,
+                    view_dimension: wgpu::TextureViewDimension::D2,
+                    sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                },
+                count: None,
+            },
+            wgpu::BindGroupLayoutEntry {
+                binding: 1,
+                visibility: wgpu::ShaderStages::FRAGMENT,
+                ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+                count: None,
+            },
+        ],
+        label: Some("texture bind_group layout"),
+    })
+}
+
+fn texture_bind_group(
+    device: &wgpu::Device, 
+    layout: &wgpu::BindGroupLayout,
+    texture: &wgpu::Texture
+) -> wgpu::BindGroup {
+    let text_view = texture.create_view(&wgpu::TextureViewDescriptor::default());
+
+    // wgpu::AddressMode::ClampToEdge
+    let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
+        address_mode_u: wgpu::AddressMode::ClampToEdge,
+        address_mode_v: wgpu::AddressMode::ClampToEdge,
+        address_mode_w: wgpu::AddressMode::ClampToEdge,
+        mag_filter: wgpu::FilterMode::Linear,
+        min_filter: wgpu::FilterMode::Nearest,
+        mipmap_filter: wgpu::FilterMode::Nearest,
+        .. Default::default()
+    });
+
+    device.create_bind_group(
+        &wgpu::BindGroupDescriptor {
+            layout: &layout,
+            entries: &[
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: wgpu::BindingResource::TextureView(&text_view),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 1,
+                    resource: wgpu::BindingResource::Sampler(&sampler),
+                }
+            ],
+            label: Some("draw3d texture bind group")
+        }
+    )
 }

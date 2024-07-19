@@ -8,16 +8,16 @@ use super::{canvas::line_normal, texture_store::TextureCache};
 
 pub struct Shape2dTextureRender {
     vertex_stride: usize,
-    vertex_vec: Vec<Shape2dTextureVertex>,
+    vertex_vec: Vec<Vertex>,
     vertex_buffer: wgpu::Buffer,
     vertex_offset: usize,
 
     style_stride: usize,
-    style_vec: Vec<Shape2dStyle>,
+    style_vec: Vec<Style>,
     style_buffer: wgpu::Buffer,
     style_offset: usize,
 
-    shape_items: Vec<Shape2dItem>,
+    shape_items: Vec<Item>,
 
     is_stale: bool,
 
@@ -35,8 +35,8 @@ impl Shape2dTextureRender {
     ) -> Self {
         let len = 2048;
 
-        let mut vertex_vec = Vec::<Shape2dTextureVertex>::new();
-        vertex_vec.resize(len, Shape2dTextureVertex { 
+        let mut vertex_vec = Vec::<Vertex>::new();
+        vertex_vec.resize(len, Vertex { 
             position: [0.0, 0.0],
             texture_uv: [0., 0.],
          });
@@ -49,8 +49,8 @@ impl Shape2dTextureRender {
             }
         );
 
-        let mut style_vec = Vec::<Shape2dStyle>::new();
-        style_vec.resize(len, Shape2dStyle { 
+        let mut style_vec = Vec::<Style>::new();
+        style_vec.resize(len, Style { 
             affine_0: [0.0, 0.0, 0.0, 0.0], 
             affine_1: [0.0, 0.0, 0.0, 0.0], 
             color: [0.0, 0.0, 0.0, 0.0],
@@ -64,7 +64,7 @@ impl Shape2dTextureRender {
             }
         );
 
-        let mut textures = TextureCache::new(device, 512, 512);
+        let mut textures = TextureCache::new();
         let hatch_map = init_hatch(device, queue, &mut textures);
 
         let pipeline = create_shape2d_pipeline(
@@ -74,12 +74,12 @@ impl Shape2dTextureRender {
         );
     
         Self {
-            vertex_stride: std::mem::size_of::<Shape2dTextureVertex>(),
+            vertex_stride: std::mem::size_of::<Vertex>(),
             vertex_vec,
             vertex_buffer,
             vertex_offset: 0,
 
-            style_stride: std::mem::size_of::<Shape2dStyle>(),
+            style_stride: std::mem::size_of::<Style>(),
             style_vec,
             style_buffer,
             style_offset: 0,
@@ -111,7 +111,7 @@ impl Shape2dTextureRender {
     pub fn start_shape(&mut self, texture: TextureId, clip: Option<[f32; 4]>) {
         let start = self.vertex_offset;
 
-        self.shape_items.push(Shape2dItem {
+        self.shape_items.push(Item {
             v_start: start,
             v_end: usize::MAX,
             s_start: self.style_offset,
@@ -170,13 +170,13 @@ impl Shape2dTextureRender {
 
         if self.style_offset == self.style_vec.len() {
             self.is_stale = true;
-            self.style_vec.resize(self.style_vec.len() + 2048, Shape2dStyle::empty());
+            self.style_vec.resize(self.style_vec.len() + 2048, Style::empty());
         }
 
         let item = &mut self.shape_items[len - 1];
         item.v_end = end;
 
-        self.style_vec[self.style_offset] = Shape2dStyle::new(affine, color);
+        self.style_vec[self.style_offset] = Style::new(affine, color);
         self.style_offset += 1;
 
         item.s_end = self.style_offset;
@@ -194,12 +194,7 @@ impl Shape2dTextureRender {
             return;
         }
 
-        self.texture_cache.flush(queue);
-
-        if false {
-            self.texture_cache.bind_group();
-            self.texture_cache.layout();
-        }
+        // self.texture_cache.flush(queue);
 
         if self.is_stale {
             self.is_stale = false;
@@ -255,7 +250,7 @@ impl Shape2dTextureRender {
             rpass.set_scissor_rect(x, y, w, h);
         }
 
-        let items : Vec<Shape2dItem> = self.shape_items.drain(..).collect();
+        let items : Vec<Item> = self.shape_items.drain(..).collect();
         for item in items {
             if item.v_start < item.v_end && item.s_start < item.s_end {
                 if let Some([x, y, w, h]) = item.clip {
@@ -289,7 +284,7 @@ impl Shape2dTextureRender {
         //let x = x.round();
         //let y = y.round();
 
-        let vertex = Shape2dTextureVertex { 
+        let vertex = Vertex { 
             position: [x, y],
             texture_uv: [x, y],
         };
@@ -299,7 +294,7 @@ impl Shape2dTextureRender {
 
         if offset == len {
             self.is_stale = true;
-            self.vertex_vec.resize(len + 2048, Shape2dTextureVertex::empty());
+            self.vertex_vec.resize(len + 2048, Vertex::empty());
         }
 
 
@@ -311,7 +306,7 @@ impl Shape2dTextureRender {
         //let x = x.round();
         //let y = y.round();
 
-        let vertex = Shape2dTextureVertex { 
+        let vertex = Vertex { 
             position: [x, y],
             texture_uv: [u, v],
         };
@@ -321,7 +316,7 @@ impl Shape2dTextureRender {
 
         if offset == len {
             self.is_stale = true;
-            self.vertex_vec.resize(len + 2048, Shape2dTextureVertex::empty());
+            self.vertex_vec.resize(len + 2048, Vertex::empty());
         }
 
 
@@ -330,7 +325,7 @@ impl Shape2dTextureRender {
     }
 }
 
-pub struct Shape2dItem {
+pub struct Item {
     v_start: usize,
     v_end: usize,
 
@@ -343,24 +338,24 @@ pub struct Shape2dItem {
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug, Pod, Zeroable)]
-pub struct Shape2dTextureVertex {
+pub struct Vertex {
     position: [f32; 2],
     texture_uv: [f32; 2],
 }
 
-impl Shape2dTextureVertex {
+impl Vertex {
     const ATTRS: [wgpu::VertexAttribute; 2] =
         wgpu::vertex_attr_array![0 => Float32x2, 1 => Float32x2 ];
 
     pub(crate) fn desc() -> wgpu::VertexBufferLayout<'static> {
         wgpu::VertexBufferLayout {
-            array_stride: std::mem::size_of::<Shape2dTextureVertex>() as wgpu::BufferAddress,
+            array_stride: std::mem::size_of::<Vertex>() as wgpu::BufferAddress,
             step_mode: wgpu::VertexStepMode::Vertex,
             attributes: &Self::ATTRS,
         }
     }
 
-    fn empty() -> Shape2dTextureVertex {
+    fn empty() -> Vertex {
         Self {
             position: [0., 0.],
             texture_uv: [0., 0.],
@@ -370,13 +365,13 @@ impl Shape2dTextureVertex {
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug, Pod, Zeroable)]
-pub struct Shape2dStyle {
+pub struct Style {
     affine_0: [f32; 4],
     affine_1: [f32; 4],
     color: [f32; 4],
 }
 
-impl Shape2dStyle {
+impl Style {
     const ATTRS: [wgpu::VertexAttribute; 3] =
         wgpu::vertex_attr_array![
             2 => Float32x4, 
@@ -386,13 +381,13 @@ impl Shape2dStyle {
 
     pub(crate) fn desc() -> wgpu::VertexBufferLayout<'static> {
         wgpu::VertexBufferLayout {
-            array_stride: std::mem::size_of::<Shape2dStyle>() as wgpu::BufferAddress,
+            array_stride: std::mem::size_of::<Style>() as wgpu::BufferAddress,
             step_mode: wgpu::VertexStepMode::Instance,
             attributes: &Self::ATTRS,
         }
     }
 
-    pub fn empty() -> Shape2dStyle {
+    pub fn empty() -> Style {
         Self {
             affine_0: [0., 0., 0., 0.],
             affine_1: [0., 0., 0., 0.],
@@ -507,7 +502,7 @@ impl HatchBuilder {
         queue: &wgpu::Queue, 
         textures: &mut TextureCache
     ) -> TextureId {
-        textures.add(
+        textures.add_r_u8(
             device, 
             queue, 
             self.width as u32, 
@@ -553,13 +548,13 @@ fn create_shape2d_pipeline(
     let vertex_entry = "vs_shape_tex";
     let fragment_entry = "fs_shape_tex";
 
-    let vertex_layout = Shape2dTextureVertex::desc();
-    let style_layout = Shape2dStyle::desc();
+    let vertex_layout = Vertex::desc();
+    let style_layout = Style::desc();
 
     let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
         label: None,
         bind_group_layouts: &[
-            texture.layout(),
+            &texture_bind_group_layout(device),
         ],
         push_constant_ranges: &[],
     });
@@ -600,5 +595,29 @@ fn create_shape2d_pipeline(
         depth_stencil: None,
         multisample: wgpu::MultisampleState::default(),
         multiview: None,
+    })
+}
+
+fn texture_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
+    device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+        entries: &[
+            wgpu::BindGroupLayoutEntry {
+                binding: 0,
+                visibility: wgpu::ShaderStages::FRAGMENT,
+                ty: wgpu::BindingType::Texture {
+                    multisampled: false,
+                    view_dimension: wgpu::TextureViewDimension::D2,
+                    sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                },
+                count: None,
+            },
+            wgpu::BindGroupLayoutEntry {
+                binding: 1,
+                visibility: wgpu::ShaderStages::FRAGMENT,
+                ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+                count: None,
+            },
+        ],
+        label: Some("texture_bind_group_layout"),
     })
 }

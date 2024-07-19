@@ -8,32 +8,41 @@ fn main() {
 
     let mut form = Form::new();
     // let mut vertices = Vec::<[f32; 3]>::new();
-    form.vertex([-1., -1., -1.]);
-    form.vertex([-1., -1., 1.]);
-    form.vertex([-1., 1., -1.]);
-    form.vertex([-1., 1., 1.]);
-    form.vertex([1., -1., -1.]);
-    form.vertex([1., -1., 1.]);
-    form.vertex([1., 1., -1.]);
-    form.vertex([1., 1., 1.]);
+    square(&mut form, [
+        [-1., -1., -1.],
+        [-1., -1., 1.],
+        [-1., 1., -1.],
+        [-1., 1., 1.]
+    ], [0., 0.], [1., 0.1]);
 
-    // let mut triangles = Vec::<[u32; 3]>::new();
-    form.triangle([0, 1, 3]);
-    form.triangle([3, 2, 0]);
+    square(&mut form, [
+        [1., -1., -1.],
+        [1., -1., 1.],
+        [1., 1., -1.],
+        [1., 1., 1.]
+    ], [0., 0.3], [1., 0.4]);
 
-    form.triangle([4, 5, 7]);
-    form.triangle([7, 6, 4]);
+    square(&mut form, [
+        [-1., -1., -1.],
+        [-1., -1., 1.],
+        [1., -1., -1.],
+        [1., -1., 1.]
+    ], [0., 0.6], [1., 0.7]);
 
-    form.triangle([0, 2, 6]);
-    form.triangle([6, 4, 0]);
-
-    form.triangle([1, 3, 7]);
-    form.triangle([7, 5, 1]);
-
-    form.color(Color::from("teal"));
+    square(&mut form, [
+        [-1., 1., -1.],
+        [-1., 1., 1.],
+        [1., 1., -1.],
+        [1., 1., 1.]
+    ], [0., 0.8], [1., 1.]);
 
     figure.add_view((), 
-        CubeView::new(form)
+        CubeView::new(form, texture_colors(&[
+            Color::from("red"),
+            Color::from("blue"),
+            Color::from("orange"),
+            Color::from("teal"),
+        ]))
     );
 
     // println!("Path {:?} ", view.read(|t| t.path()));
@@ -41,9 +50,31 @@ fn main() {
     figure.show();
 }
 
+fn square(
+    form: &mut Form, 
+    vertices: [[f32; 3]; 4],
+    uv0: [f32; 2],
+    uv1: [f32; 2],
+) {
+    let x0 = uv0[0];
+    let x1 = uv1[0];
+    let y0 = uv0[1];
+    let y1 = uv1[1];
+
+    let v0 = form.vertex(vertices[0], [x0, y0]);
+    let v1 = form.vertex(vertices[1], [x0, y1]);
+    let v2 = form.vertex(vertices[2], [x1, y0]);
+    let v3 = form.vertex(vertices[3], [x1, y1]);
+
+    form.triangle([v0, v1, v3]);
+    form.triangle([v3, v2, v0]);
+
+}
+
 struct CubeView {
     form: Form,
     form_id: Option<FormId>,
+    texture: Tensor<u8>,
     
     camera: Camera,
 
@@ -52,16 +83,21 @@ struct CubeView {
 }
 
 impl CubeView {
-    fn new(form: Form) -> Self {
+    fn new(form: Form, texture: Tensor<u8>) -> Self {
         Self {
             form,
             form_id: None,
             camera: Camera::new([0., 0.2, -4.]),
+            texture,
             is_dirty: true,
         }
     }
 
     fn fill_model(&mut self, renderer: &mut dyn Renderer) {
+        let texture = renderer.create_texture_rgba8(&self.texture);
+
+        self.form.texture(texture);
+
         self.form_id = Some(renderer.create_form(&self.form));
     }
 
@@ -92,7 +128,6 @@ impl ViewTrait for CubeView {
     }
 
     fn event(&mut self, renderer: &mut dyn Renderer, event: &CanvasEvent) {
-        println!("Cube {:?}", event);
         match event {
             CanvasEvent::KeyPress(_, 'w') => {
                 self.camera.forward(0.1);
@@ -180,4 +215,17 @@ impl Camera {
 
         camera
     }
+}
+
+fn texture_colors(colors: &[Color]) -> Tensor<u8> {
+    let mut vec = Vec::<[u8; 4]>::new();
+
+    let size = 8;
+    for color in colors {
+        for _ in 0..size * size {
+            vec.push(color.to_rgba_vec());
+        }
+    }
+
+    Tensor::from(vec).reshape([colors.len() * size, size, 4])
 }

@@ -67,9 +67,14 @@ pub trait Renderer {
         colors: &Tensor<u8>, // [rows, cols, 4]
     ) -> ImageId;
 
-    fn create_texture(
+    fn create_texture_r8(
         &mut self,
         image: &Tensor<u8>, // [rows, cols, 4]
+    ) -> TextureId;
+
+    fn create_texture_rgba8(
+        &mut self,
+        texture: &Tensor<u8>, // [rows, cols, 4]
     ) -> TextureId;
 
     fn draw_image_ref(

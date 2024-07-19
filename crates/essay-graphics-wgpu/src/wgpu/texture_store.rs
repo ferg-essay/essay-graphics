@@ -2,40 +2,17 @@ use essay_graphics_api::TextureId;
 
 
 pub struct TextureCache {
-    texture: wgpu::Texture,
-    bind_group: wgpu::BindGroup,
-    layout: wgpu::BindGroupLayout,
-
-    store: TextureStore,
-
     texture_items: Vec<TextureItem>,
-
-    is_dirty: bool,
 }
 
 impl TextureCache {
-    pub fn new(device: &wgpu::Device, width: u32, height: u32) -> Self {
-        assert!(width % 256 == 0);
-
-        let texture = create_texture(device, width, height);
-        let layout = create_bind_group_layout(device);
-        let bind_group = create_bind_group(device, &layout, &texture);
-
-        let store = TextureStore::new(width, height);
-
+    pub fn new() -> Self {
         Self {
-            texture,
-            bind_group,
-            layout,
-
-            store,
             texture_items: Vec::new(),
-
-            is_dirty: true,
         }
     }
 
-    pub fn add(
+    pub fn add_r_u8(
         &mut self, 
         device: &wgpu::Device,
         queue: &wgpu::Queue,
@@ -47,39 +24,48 @@ impl TextureCache {
         
         let id = TextureId::new(self.texture_items.len());
         
-        let mut item = TextureItem::new(device, width, height);
+        let mut item = TextureItem::new(
+            device,             
+            wgpu::TextureFormat::R8Unorm,
+            width, 
+            height
+        );
 
-        item.write(queue, data);
+        item.write(queue, width, width, height, data);
 
         self.texture_items.push(item);
 
         id
     }
 
-    pub fn layout(&self) -> &wgpu::BindGroupLayout {
-        &self.layout
-    }
+    pub fn add_rgba_u8(
+        &mut self, 
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        width: u32, 
+        height: u32, 
+        data: &[u8]
+    ) -> TextureId {
+        assert!(width * height * 4 == data.len() as u32);
+        
+        let id = TextureId::new(self.texture_items.len());
+        
+        let mut item = TextureItem::new(
+            device, 
+            wgpu::TextureFormat::Rgba8Unorm,
+            width, 
+            height
+        );
 
-    pub fn bind_group(&self) -> &wgpu::BindGroup {
-        &self.bind_group
+        item.write(queue, width * 4, width, height, data);
+
+        self.texture_items.push(item);
+
+        id
     }
     
     pub(crate) fn texture_bind_group(&self, id: TextureId) -> &wgpu::BindGroup {
         &self.texture_items[id.index()].bind_group
-    }
-
-    pub fn flush(&mut self, queue: &wgpu::Queue) {
-        if self.is_dirty {
-            self.is_dirty = false;
-
-            write_texture(
-                queue, 
-                &self.texture, 
-                self.store.data.as_slice(), 
-                self.store.width as u32, 
-                self.store.height as u32,
-            );
-        }
     }
 }
 
@@ -90,8 +76,13 @@ struct TextureItem {
 }
 
 impl TextureItem {
-    fn new(device: &wgpu::Device, width: u32, height: u32) -> Self {
-        let texture = create_texture(device, width, height);
+    fn new(
+        device: &wgpu::Device, 
+        format: wgpu::TextureFormat,
+        width: u32, 
+        height: u32
+    ) -> Self {
+        let texture = create_texture(device, format, width, height);
         let layout = create_bind_group_layout(device);
         let bind_group = create_bind_group(device, &layout, &texture);
 
@@ -114,13 +105,14 @@ impl TextureItem {
         &self.bind_group
     }
 
-    fn write(&mut self, queue: &wgpu::Queue, data: &[u8]) {
+    fn write(&mut self, queue: &wgpu::Queue, bytes_per_row: u32, width: u32, height: u32, data: &[u8]) {
         write_texture(
             queue, 
             &self.texture, 
             data,
-            self.texture.width(),
-            self.texture.height(),
+            bytes_per_row,
+            width,
+            height,
         );
     }
 }
@@ -151,7 +143,7 @@ impl TextureStore {
     }
 }
 
-fn create_texture(device: &wgpu::Device, width: u32, height: u32) -> wgpu::Texture {
+fn create_texture_r_u8(device: &wgpu::Device, width: u32, height: u32) -> wgpu::Texture {
     device.create_texture(
         &wgpu::TextureDescriptor {
             size: texture_size(width, height),
@@ -162,6 +154,29 @@ fn create_texture(device: &wgpu::Device, width: u32, height: u32) -> wgpu::Textu
             usage: wgpu::TextureUsages::TEXTURE_BINDING 
                 | wgpu::TextureUsages::COPY_DST,
             label: Some("text_texture"),
+            view_formats: &[],
+        }
+    )
+}
+
+fn create_texture(
+    device: &wgpu::Device, 
+    format: wgpu::TextureFormat, 
+    width: u32, 
+    height: u32
+) -> wgpu::Texture {
+    // wgpu::TextureFormat::Rgba8Unorm,
+    //let format;
+    device.create_texture(
+        &wgpu::TextureDescriptor {
+            size: texture_size(width, height),
+            mip_level_count: 1,
+            sample_count: 1,
+            dimension: wgpu::TextureDimension::D2,
+            format: format,
+            usage: wgpu::TextureUsages::TEXTURE_BINDING 
+                | wgpu::TextureUsages::COPY_DST,
+            label: None,
             view_formats: &[],
         }
     )
@@ -208,8 +223,10 @@ fn create_bind_group(
 
     // wgpu::AddressMode::ClampToEdge
     let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
-        address_mode_u: wgpu::AddressMode::Repeat,
-        address_mode_v: wgpu::AddressMode::Repeat,
+        //address_mode_u: wgpu::AddressMode::Repeat,
+        //address_mode_v: wgpu::AddressMode::Repeat,
+        address_mode_u: wgpu::AddressMode::ClampToEdge,
+        address_mode_v: wgpu::AddressMode::ClampToEdge,
         address_mode_w: wgpu::AddressMode::ClampToEdge,
         mag_filter: wgpu::FilterMode::Linear,
         min_filter: wgpu::FilterMode::Nearest,
@@ -239,6 +256,7 @@ fn write_texture(
     queue: &wgpu::Queue, 
     texture: &wgpu::Texture, 
     data: &[u8], 
+    bytes_per_row: u32,
     width: u32, 
     height: u32) {
     //assert!(width % 256 == 0);
@@ -253,7 +271,7 @@ fn write_texture(
         &data,
         wgpu::ImageDataLayout {
             offset: 0,
-            bytes_per_row: Some(width),
+            bytes_per_row: Some(bytes_per_row),
             rows_per_image: Some(height),
         },
         texture_size(width, height),

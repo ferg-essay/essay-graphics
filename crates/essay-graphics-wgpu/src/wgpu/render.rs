@@ -154,11 +154,18 @@ impl Renderer for PlotRenderer<'_> {
         self.canvas.create_image(self.device, colors)
     }
 
-    fn create_texture(
+    fn create_texture_r8(
         &mut self,
         colors: &Tensor<u8>, // [rows, cols, 4]
     ) -> TextureId {
         self.canvas.create_texture(colors)
+    }
+
+    fn create_texture_rgba8(
+        &mut self,
+        colors: &Tensor<u8>, // [rows, cols, 4]
+    ) -> TextureId {
+        self.canvas.create_texture_rgba8(self.device, self.queue.unwrap(), colors)
     }
 
     fn draw_image_ref(

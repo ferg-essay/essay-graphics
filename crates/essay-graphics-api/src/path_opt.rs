@@ -95,6 +95,11 @@ impl TextureId {
     pub fn index(&self) -> usize {
         self.0
     }
+    
+    #[inline]
+    pub fn none() -> TextureId {
+        TextureId(0)
+    }
 }
 
 pub struct Stack<'a> {

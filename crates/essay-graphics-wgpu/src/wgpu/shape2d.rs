@@ -19,7 +19,7 @@ pub struct Shape2dRender {
 
     is_stale: bool,
 
-    texture_cache: TextureCache,
+    // texture_cache: TextureCache,
     pipeline: wgpu::RenderPipeline,
 }
 
@@ -76,7 +76,7 @@ impl Shape2dRender {
             is_stale: false,
 
             shape_items: Vec::new(),
-            texture_cache: TextureCache::new(device, 512, 512),
+            // texture_cache: TextureCache::new(),
             pipeline,
         }
     }
@@ -166,12 +166,7 @@ impl Shape2dRender {
             return;
         }
 
-        self.texture_cache.flush(queue);
-
-        if false {
-            self.texture_cache.bind_group();
-            self.texture_cache.layout();
-        }
+        // self.texture_cache.flush(queue);
 
         if self.is_stale {
             self.is_stale = false;

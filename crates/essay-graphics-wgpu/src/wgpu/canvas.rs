@@ -10,12 +10,7 @@ use essay_tensor::Tensor;
 use crate::PlotRenderer;
 
 use super::{
-    bezier::BezierRender, 
-    image::ImageRender, 
-    shape2d::Shape2dRender, 
-    shape2d_texture::Shape2dTextureRender, text::TextRender, text_cache::FontId, triangle2d::GridMesh2dRender, 
-    form3d::Form3dRender, 
-    triangulate::triangulate2
+    bezier::BezierRender, form3d::Form3dRender, image::ImageRender, shape2d::Shape2dRender, shape2d_texture::Shape2dTextureRender, text::TextRender, text_cache::FontId, texture_store::TextureCache, triangle2d::GridMesh2dRender, triangulate::triangulate2
 };
 
 
@@ -29,6 +24,8 @@ pub struct PlotCanvas {
     pub(crate) shape2d_texture_render: Shape2dTextureRender,
     pub(crate) bezier_render: BezierRender,
     pub(crate) text_render: TextRender,
+
+    texture_store: TextureCache,
 
     font_id_default: FontId,
 
@@ -53,6 +50,8 @@ impl PlotCanvas {
         let mut text_render = TextRender::new(device, format, 512, 512);
 
         let font_id_default = text_render.font("default");
+
+        let texture_store = TextureCache::new();
         
         Self {
             canvas: Canvas::new((), 1.),
@@ -66,6 +65,7 @@ impl PlotCanvas {
             bezier_render,
 
             font_id_default,
+            texture_store,
 
             to_gpu: Affine2d::eye(),
 
@@ -656,6 +656,22 @@ impl PlotCanvas {
 
         //self.shape2d_render.add_texture(image.rows(), image.cols(), image.as_slice())
         todo!();
+    }
+
+    pub fn create_texture_rgba8(
+        &mut self, 
+        device: &wgpu::Device, 
+        queue: &wgpu::Queue, 
+        image: &Tensor<u8>
+    ) -> TextureId {
+        assert!(image.rank() == 3, "texture rank must be 3 shape={:?}", image.shape().as_slice());
+        assert!(image.cols() == 4, "texture cols 4 shape={:?}", image.shape().as_slice());
+
+        self.form3d_render.create_texture_rgba8(
+            device, 
+            queue, 
+            image
+        )
     }
 
     pub fn draw_image_ref(
