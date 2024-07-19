@@ -117,48 +117,6 @@ impl TextureItem {
     }
 }
 
-struct TextureStore {
-    width: usize,
-    height: usize,
-
-    data: Vec<u8>,
-
-    _tail: usize,
-}
-
-impl TextureStore {
-    fn new(width: u32, height: u32) -> Self {
-        assert!(width > 0 && width % 256 == 0);
-        assert!(height > 0);
-
-        let mut data = Vec::new();
-        data.resize((width * height) as usize, 0);
-
-        Self {
-            width: width as usize,
-            height: height as usize,
-            data,
-            _tail: 0,
-        }
-    }
-}
-
-fn create_texture_r_u8(device: &wgpu::Device, width: u32, height: u32) -> wgpu::Texture {
-    device.create_texture(
-        &wgpu::TextureDescriptor {
-            size: texture_size(width, height),
-            mip_level_count: 1,
-            sample_count: 1,
-            dimension: wgpu::TextureDimension::D2,
-            format: wgpu::TextureFormat::R8Unorm,
-            usage: wgpu::TextureUsages::TEXTURE_BINDING 
-                | wgpu::TextureUsages::COPY_DST,
-            label: Some("text_texture"),
-            view_formats: &[],
-        }
-    )
-}
-
 fn create_texture(
     device: &wgpu::Device, 
     format: wgpu::TextureFormat, 

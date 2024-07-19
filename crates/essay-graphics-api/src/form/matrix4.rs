@@ -2,7 +2,7 @@ use core::fmt;
 
 use essay_tensor::{prelude::*, tensor::TensorUninit};
 
-use crate::{Affine2d, Angle};
+use crate::{Affine2d, Angle, Bounds, Coord};
 
 #[derive(Clone)]
 pub struct Matrix4 {
@@ -144,8 +144,9 @@ impl Matrix4 {
     }
 
     #[inline]
-    pub fn projection(&self, fov: f32, aspect: f32, near: f32, far: f32) -> Self {
-        let uh = (0.5 * fov).tan().recip();
+    pub fn projection(&self, fov: impl Into<Angle>, aspect: f32, near: f32, far: f32) -> Self {
+        let fov = fov.into();
+        let uh = (0.5 * fov.to_radians_arc()).tan().recip();
         let uw = uh / aspect;
         let f_depth = far / (far - near);
         let fn_depth = far * near / (far - near);
@@ -181,6 +182,51 @@ impl Matrix4 {
             mat: project.matmul(&self.mat)
         }
     }
+
+    pub fn to_bounds<N, M>(box_from: &Bounds<N>, box_to: &Bounds<M>) -> Matrix4
+    where
+        N: Coord, M: Coord
+    {
+        let a_x0 = box_from.xmin();
+        let a_y0 = box_from.ymin();
+
+        let epsilon = f32::EPSILON;
+        let a_width = box_from.width().max(epsilon);
+        let a_height = box_from.height().max(epsilon);
+
+        let b_x0 = box_to.xmin();
+        let b_y0 = box_to.ymin();
+
+        let b_width = box_to.width();
+        let b_height = box_to.height();
+
+        Self::eye()
+            .translate(- a_x0, - a_y0, 0.)
+            .scale(b_width / a_width, b_height / a_height, 1.)
+            .translate(b_x0, b_y0, 0.)
+    }
+
+    pub fn view_to_canvas_unit<N>(pos: &Bounds<N>, canvas: &Bounds<N>) -> Matrix4
+    where
+        N: Coord
+    {
+        let a_x0 = pos.xmin();
+        let a_y0 = pos.ymin();
+
+        let epsilon = f32::EPSILON;
+        let a_width = pos.width().max(epsilon);
+        let a_height = pos.height().max(epsilon);
+
+        let b_x0 = canvas.xmin();
+        let b_y0 = canvas.ymin();
+
+        let b_width = canvas.width();
+        let b_height = canvas.height();
+
+        Self::eye()
+            .scale(a_width / b_width, a_height / b_height, 1.)
+            .translate((a_x0 - b_x0) / b_width, -(a_y0 - b_y0) / b_height, 0.)
+        }
 
     pub fn matmul(&self, y: &Matrix4) -> Self {
         Self {

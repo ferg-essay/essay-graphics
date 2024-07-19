@@ -1,4 +1,4 @@
-use std::f32::consts::TAU;
+use std::f32::consts::{FRAC_PI_2, TAU};
 
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -81,6 +81,15 @@ impl Angle {
     }
 
     #[inline]
+    pub fn to_radians_arc(&self) -> f32 {
+        match self {
+            Angle::Rad(rad) => (*rad + TAU) % TAU,
+            Angle::Deg(deg) => (deg.to_radians() + TAU) % TAU,
+            Angle::Unit(unit) => ((unit + 1.) * 360.).to_radians() % TAU,
+        }
+    }
+
+    #[inline]
     pub fn to_degrees(&self) -> f32 {
         match self {
             Angle::Rad(rad) => (rad.to_degrees() + 360.) % 360.,
@@ -112,5 +121,63 @@ impl Angle {
 impl From<f32> for Angle {
     fn from(value: f32) -> Self {
         Angle::Rad(value)
+    }
+}
+
+///
+/// Heading represents an angular direction
+///
+#[derive(Clone, Copy, Debug)]
+pub enum Heading {
+    /// Heading in counter-clockwise radians, where 0 is East
+    Rad(f32),
+    /// Heading in clockwise degrees, where 0 is North
+    Deg(f32),
+    /// Heading in clockwise unit coordinates, where 0 is North
+    Unit(f32),
+}
+
+impl Heading {
+    #[inline]
+    pub fn to_radians(&self) -> f32 {
+        match self {
+            Heading::Rad(rad) => (*rad + TAU) % TAU,
+            Heading::Deg(deg) => (TAU + FRAC_PI_2 - deg.to_radians()) % TAU,
+            Heading::Unit(unit) => (TAU + FRAC_PI_2 - unit * TAU) % TAU,
+        }
+    }
+
+    #[inline]
+    pub fn to_degrees(&self) -> f32 {
+        match self {
+            Heading::Rad(rad) => (360. + 90. - rad.to_degrees()) % 360.,
+            Heading::Deg(deg) => (*deg + 360.) % 360.,
+            Heading::Unit(unit) => (unit * 360. + 360.) % 360.,
+        }
+    }
+
+    #[inline]
+    pub fn to_unit(&self) -> f32 {
+        match self {
+            Heading::Rad(rad) => (1.25 - rad.to_degrees() / 360.) % 1.,
+            Heading::Deg(deg) => (deg / 360. + 1.) % 1.,
+            Heading::Unit(unit) => (*unit + 1.) % 1.,
+        }
+    }
+
+    #[inline]
+    pub fn cos(&self) -> f32 {
+        self.to_radians().cos()
+    }
+
+    #[inline]
+    pub fn sin(&self) -> f32 {
+        self.to_radians().sin()
+    }
+}
+
+impl From<f32> for Heading {
+    fn from(value: f32) -> Self {
+        Heading::Rad(value)
     }
 }

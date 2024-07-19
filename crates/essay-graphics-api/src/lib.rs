@@ -41,7 +41,7 @@ pub use image::{
 };
 
 pub use point::{
-    Point, Angle,
+    Point, Angle, Heading,
 };
 
 pub use path_opt::{

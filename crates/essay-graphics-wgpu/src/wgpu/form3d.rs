@@ -255,8 +255,8 @@ impl Form3dRender {
         self.style_offset += 1;
     }
 
-    pub fn draw_form(&mut self, form: FormId) {
-        self.draw_items.push(DrawItem::new(form));
+    pub fn draw_form(&mut self, form: FormId, clip: &Clip) {
+        self.draw_items.push(DrawItem::new(form, clip.clone()));
     }
 
     pub fn camera(
@@ -272,7 +272,6 @@ impl Form3dRender {
         queue: &wgpu::Queue, 
         view: &wgpu::TextureView,
         encoder: &mut wgpu::CommandEncoder,
-        clip: &Clip,
     ) {
         if self.draw_items.len() == 0 {
             return;
@@ -358,10 +357,6 @@ impl Form3dRender {
             bytemuck::cast_slice(&[self.camera])
         );
 
-        if let Clip::Bounds(p0, p1) = clip {
-            rpass.set_scissor_rect(p0.0 as u32, p0.1 as u32, (p1.0 - p0.0) as u32, (p1.1 - p0.1) as u32);
-        }
-
         rpass.set_pipeline(&self.pipeline);
 
         // rpass.set_stencil_ref
@@ -370,6 +365,12 @@ impl Form3dRender {
         for draw_item in self.draw_items.drain(..) {
             let item = &self.form_items[draw_item.id.0];
 
+            if let Clip::Bounds(p0, p1) = draw_item.clip {
+                rpass.set_scissor_rect(p0.0 as u32, p0.1 as u32, (p1.0 - p0.0) as u32, (p1.1 - p0.1) as u32);
+            } else {
+                rpass.set_scissor_rect(0, u32::MAX, 0, u32::MAX);
+            }
+    
             rpass.set_bind_group(0, self.texture_cache.texture_bind_group(item.texture), &[]);
 
             if item.v_start < item.v_end && item.i_start < item.i_end {
@@ -414,12 +415,14 @@ struct FormItem {
 
 struct DrawItem {
     id: FormId,
+    clip: Clip,
 }
 
 impl DrawItem {
-    fn new(id: FormId) -> Self {
+    fn new(id: FormId, clip: Clip) -> Self {
         Self {
-            id
+            id,
+            clip,
         }
     }
 }
@@ -627,42 +630,6 @@ fn texture_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
         ],
         label: Some("texture bind_group layout"),
     })
-}
-
-fn texture_bind_group(
-    device: &wgpu::Device, 
-    layout: &wgpu::BindGroupLayout,
-    texture: &wgpu::Texture
-) -> wgpu::BindGroup {
-    let text_view = texture.create_view(&wgpu::TextureViewDescriptor::default());
-
-    // wgpu::AddressMode::ClampToEdge
-    let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
-        address_mode_u: wgpu::AddressMode::ClampToEdge,
-        address_mode_v: wgpu::AddressMode::ClampToEdge,
-        address_mode_w: wgpu::AddressMode::ClampToEdge,
-        mag_filter: wgpu::FilterMode::Linear,
-        min_filter: wgpu::FilterMode::Nearest,
-        mipmap_filter: wgpu::FilterMode::Nearest,
-        .. Default::default()
-    });
-
-    device.create_bind_group(
-        &wgpu::BindGroupDescriptor {
-            layout: &layout,
-            entries: &[
-                wgpu::BindGroupEntry {
-                    binding: 0,
-                    resource: wgpu::BindingResource::TextureView(&text_view),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 1,
-                    resource: wgpu::BindingResource::Sampler(&sampler),
-                }
-            ],
-            label: Some("draw3d texture bind group")
-        }
-    )
 }
 
 struct DepthBuffer {

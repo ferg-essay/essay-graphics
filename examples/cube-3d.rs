@@ -102,8 +102,12 @@ impl CubeView {
         self.form_id = Some(renderer.create_form(&self.form));
     }
 
-    fn camera(&self, _renderer: &mut dyn Renderer, _pos: &Bounds<Canvas>) -> Matrix4 {
-        self.camera.matrix()
+    fn camera(&self, renderer: &mut dyn Renderer, pos: &Bounds<Canvas>) -> Matrix4 {
+        let matrix = self.camera.matrix();
+        let bounds = renderer.bounds();
+        let to = Matrix4::view_to_canvas_unit(pos, bounds);
+
+        to.matmul(&matrix)
     }
 }
 
@@ -117,13 +121,17 @@ impl ViewTrait for CubeView {
             self.fill_model(renderer);
         }
 
-        let camera = self.camera(renderer, pos);
-
         if let Some(id) = self.form_id {
+            let pos = Bounds::<Canvas>::new(
+                (0.5 * pos.xmax(), 0.5 * pos.ymax()),
+                (pos.xmax(), pos.ymax())
+            );
+            let camera = self.camera(renderer, &pos);
+
             renderer.draw_form(
                 id,
                 &camera,
-                &Clip::None
+                &Clip::Bounds(pos.p0(), pos.p1())
             ).unwrap();
         }
     }
@@ -171,7 +179,6 @@ impl ViewTrait for CubeView {
 
 struct Camera {
     eye: [f32; 3],
-    matrix: Matrix4,
     rot: Matrix4,
 }
 
@@ -180,7 +187,6 @@ impl Camera {
         Self {
             eye: eye.into(),
             rot: Matrix4::eye(),
-            matrix: Matrix4::eye(),
         }
     }
 
@@ -206,7 +212,8 @@ impl Camera {
         camera = camera.translate(self.eye[0], self.eye[1], self.eye[2]);
         camera = self.rot.matmul(&camera);
 
-        let fov = 45.0f32;
+        //let fov = 45.0f32;
+        let fov = 150.0f32;
         camera = camera.projection(fov.to_radians(), 1., 0.1, 100.);
 
     

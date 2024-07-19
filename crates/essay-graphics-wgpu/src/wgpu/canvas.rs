@@ -629,10 +629,10 @@ impl PlotCanvas {
         &mut self,
         form: FormId,
         camera: &Matrix4,
-        _clip: &Clip,
+        clip: &Clip,
     ) -> Result<(), RenderErr> {
         self.form3d_render.camera(camera);
-        self.form3d_render.draw_form(form);
+        self.form3d_render.draw_form(form, clip);
         
         Ok(())
     }

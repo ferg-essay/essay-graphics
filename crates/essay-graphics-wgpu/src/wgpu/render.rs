@@ -45,7 +45,7 @@ impl<'a> PlotRenderer<'a> {
                 self.canvas.shape2d_texture_render.flush(self.device, queue, view, &mut encoder, scissor);
                 self.canvas.text_render.flush(queue, view, &mut encoder);
 
-                self.canvas.form3d_render.flush(self.device, queue, view, &mut encoder, clip);
+                self.canvas.form3d_render.flush(self.device, queue, view, &mut encoder);
         
                 queue.submit(Some(encoder.finish()));
             }
