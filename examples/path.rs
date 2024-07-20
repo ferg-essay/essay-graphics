@@ -48,7 +48,6 @@ impl ViewTrait for PathView {
 
     fn draw(&mut self, renderer: &mut dyn Renderer, _pos: &Bounds<Canvas>) {
         let style = PathStyleBase::new();
-
         renderer.draw_path(&self.path, &style, &Clip::None).unwrap();
     }
 }

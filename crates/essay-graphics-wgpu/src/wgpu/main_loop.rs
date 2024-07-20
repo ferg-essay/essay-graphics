@@ -147,7 +147,7 @@ fn run_event_loop(
     event_loop.run(move |event, window_target| {
         let _ = (&instance, &adapter, &drawable);
 
-        let mut renderer = PlotRenderer::new(&mut canvas, &device, Some(&queue), None);
+        // let mut renderer = PlotRenderer::new(&mut canvas, &device, Some(&queue), None);
 
         window_target.set_control_flow(ControlFlow::Wait);
         match event {
@@ -161,8 +161,10 @@ fn run_event_loop(
                 // figure_renderer.set_canvas_bounds(config.width, config.height);
                 let bounds = Bounds::<Canvas>::from([size.width as f32, size.height as f32]);
                 // drawable.update(&mut renderer, &bounds);
-                drawable.event(&mut renderer, &CanvasEvent::Resize(bounds));
+                canvas.resize(&device, size.width, size.height);
                 canvas.request_redraw(true);
+                let mut renderer = PlotRenderer::new(&mut canvas, &device, Some(&queue), None);
+                drawable.event(&mut renderer, &CanvasEvent::Resize(bounds));
             }
             Event::WindowEvent {
                 event: WindowEvent::MouseInput {
@@ -172,6 +174,7 @@ fn run_event_loop(
                 },
                 ..
             } => {
+                let mut renderer = PlotRenderer::new(&mut canvas, &device, Some(&queue), None);
                 match button {
                     MouseButton::Left => {
                         mouse.left = state;
@@ -242,6 +245,7 @@ fn run_event_loop(
                 ..
             } => {
                 cursor.position = Point(position.x as f32, config.height as f32 - position.y as f32);
+                let mut renderer = PlotRenderer::new(&mut canvas, &device, Some(&queue), None);
 
                 if mouse.left == ElementState::Pressed 
                     && pan_min <= mouse.left_press_start.dist(&cursor.position) {
@@ -268,6 +272,7 @@ fn run_event_loop(
                 event: WindowEvent::KeyboardInput { event, .. },
                 ..
             } => {
+                let mut renderer = PlotRenderer::new(&mut canvas, &device, Some(&queue), None);
                 if event.state == ElementState::Pressed {
                     let pos = Point(0., 0.);
 
