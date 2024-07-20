@@ -161,7 +161,9 @@ fn run_event_loop(
                 // figure_renderer.set_canvas_bounds(config.width, config.height);
                 let bounds = Bounds::<Canvas>::from([size.width as f32, size.height as f32]);
                 // drawable.update(&mut renderer, &bounds);
+                canvas.set_scale_factor(window.scale_factor() as f32);
                 canvas.resize(&device, size.width, size.height);
+                // canvas.set_scale_factor()
                 canvas.request_redraw(true);
                 let mut renderer = PlotRenderer::new(&mut canvas, &device, Some(&queue), None);
                 drawable.event(&mut renderer, &CanvasEvent::Resize(bounds));
