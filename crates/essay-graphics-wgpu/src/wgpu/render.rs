@@ -59,6 +59,10 @@ impl Renderer for PlotRenderer<'_> {
         self.canvas.bounds()
     }
 
+    fn scale_factor(&self) -> f32 {
+        self.canvas.scale_factor()
+    }
+
     fn to_px(&self, size: f32) -> f32 {
         self.canvas.to_px(size)
     }

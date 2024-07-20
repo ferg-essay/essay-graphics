@@ -376,6 +376,11 @@ impl PlotCanvas {
     }
 
     #[inline]
+    pub fn scale_factor(&self) -> f32 {
+        self.scale_factor
+    }
+
+    #[inline]
     pub fn to_px(&self, size: f32) -> f32 {
         self.scale_factor * size
     }

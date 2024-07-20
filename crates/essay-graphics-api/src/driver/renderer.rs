@@ -11,8 +11,10 @@ pub trait Renderer {
     ///
     fn bounds(&self) -> &Bounds<Canvas>;
 
+    fn scale_factor(&self) -> f32;
+
     fn to_px(&self, size: f32) -> f32 {
-        size
+        size * self.scale_factor()
     }
 
     fn draw_path(
