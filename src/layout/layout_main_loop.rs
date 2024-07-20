@@ -54,12 +54,15 @@ impl LayoutMainLoop {
     }
 
     pub fn save(&mut self, path: impl AsRef<std::path::Path>, dpi: f32) {
+        todo!();
+        /*
         crate::wgpu::draw_hardcopy(
             self.get_width() * dpi,
             self.get_height() * dpi,
             dpi,
             &mut self.layout, 
             path
-        );    
+        );
+        */    
     }
 }

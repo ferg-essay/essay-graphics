@@ -21,4 +21,6 @@ pub use canvas::PlotCanvas;
 
 pub use render::PlotRenderer;
 
-pub use hardcopy::draw_hardcopy;
+pub use main_loop::WgpuMainLoop;
+
+pub use hardcopy::WgpuHardcopy;

@@ -1,6 +1,6 @@
 use std::time::Instant;
 
-use essay_graphics_api::{driver::Drawable, Bounds, Canvas, CanvasEvent, Point};
+use essay_graphics_api::{driver::{DeviceErr, Drawable}, Bounds, Canvas, CanvasEvent, Point};
 use winit::{
     event::{ElementState, Event, MouseButton, WindowEvent }, 
     event_loop::{ControlFlow, EventLoop}, 
@@ -12,10 +12,42 @@ use crate::PlotCanvas;
 
 use super::render::PlotRenderer;
 
-async fn init_wgpu_args(window: &Window) -> EventLoopArgs {
-    window.set_title("Essay Plot");
-    window.set_cursor_icon(CursorIcon::Default);
+pub struct WgpuMainLoop {
+    title: Option<String>,
+}
 
+impl WgpuMainLoop {
+    pub fn new() -> Self {
+        Self {
+            title: None,
+        }
+    }
+
+    pub fn set_title(&mut self, title: &str) -> &mut Self {
+        self.title = Some(String::from(title));
+
+        self
+    }
+
+    pub fn main_loop(&mut self, drawable: Box<dyn Drawable>) -> Result<(), DeviceErr> {
+        let event_loop = EventLoop::new().unwrap();
+        let window = winit::window::Window::new(&event_loop).unwrap();
+
+        if let Some(title) = &self.title {
+            window.set_title(title);
+        }
+
+        window.set_cursor_icon(CursorIcon::Default);
+
+        let wgpu_device = pollster::block_on(init_wgpu_device(&window));
+    
+        run_event_loop(event_loop, window, wgpu_device, drawable);
+
+        Ok(())
+    }
+}
+
+async fn init_wgpu_device(window: &Window) -> MainLoopDevice {
     let size = window.inner_size();
 
     let instance = wgpu::Instance::default();
@@ -53,24 +85,23 @@ async fn init_wgpu_args(window: &Window) -> EventLoopArgs {
         width: size.width,
         height: size.height,
         present_mode: wgpu::PresentMode::Fifo,
-        //present_mode: wgpu::PresentMode::AutoVsync,
         alpha_mode: swapchain_capabilities.alpha_modes[0],
         view_formats: vec![],
     };
 
     surface.configure(&device, &config);
 
-    EventLoopArgs {
+    MainLoopDevice {
+        device,
+        queue,
         instance,
         adapter,
-        device,
-        config,
         surface,
-        queue,
+        config,
     }
 }
 
-struct EventLoopArgs {
+struct MainLoopDevice {
     instance: wgpu::Instance,
     adapter: wgpu::Adapter,
     device: wgpu::Device,
@@ -79,51 +110,13 @@ struct EventLoopArgs {
     surface: wgpu::Surface,
 }
 
-struct MouseState {
-    left: ElementState,
-    left_press_start: Point,
-    left_press_last: Point,
-    left_press_time: Instant,
-
-    right: ElementState,
-    right_press_start: Point,
-    right_press_time: Instant,
-}
-
-impl MouseState {
-    fn new() -> Self {
-        Self {
-            left: ElementState::Released,
-            left_press_start: Point(0., 0.),
-            left_press_last: Point(0., 0.),
-            left_press_time: Instant::now(),
-
-            right: ElementState::Released,
-            right_press_start: Point(0., 0.),
-            right_press_time: Instant::now(),
-        }
-    }
-}
-
-struct CursorState {
-    position: Point,
-}
-
-impl CursorState {
-    fn new() -> Self {
-        Self {
-            position: Point(0., 0.),
-        }
-    }
-}
-
 fn run_event_loop(
     event_loop: EventLoop<()>, 
     window: Window, 
-    args: EventLoopArgs,
+    args: MainLoopDevice,
     drawable: Box<dyn Drawable>,
 ) {
-    let EventLoopArgs {
+    let MainLoopDevice {
         instance,
         adapter,
         mut config,
@@ -134,8 +127,6 @@ fn run_event_loop(
 
     let mut drawable = drawable;
 
-    //let mut staging_belt = wgpu::util::StagingBelt::new(1024);
-
     let mut canvas = PlotCanvas::new(
         &device,
         &queue,
@@ -144,18 +135,10 @@ fn run_event_loop(
         config.height,
     );
 
-    /*
-    let bounds = canvas.get_canvas().bounds().clone();
-    let mut draw_renderer = PlotRenderer::new(&mut canvas, &device, Some(&queue), None);
-    // drawable.update(&mut draw_renderer, &bounds);
-    drawable.event(&mut draw_renderer, &CanvasEvent::Resize(bounds));
-    draw_renderer.flush_inner(&Clip::None);
-    */
-
     let pan_min = 20.;
     let zoom_min = 20.;
 
-    // TODO: is double clicking no longer recommended?
+    // TODO: is double clicking not recommended?
     let dbl_click = 500; // time in millis
 
     let mut cursor = CursorState::new();
@@ -163,12 +146,6 @@ fn run_event_loop(
 
     event_loop.run(move |event, window_target| {
         let _ = (&instance, &adapter, &drawable);
-
-        let mut main_renderer = MainRenderer::new(
-            &surface,
-            &device,
-            &queue,
-        );
 
         let mut renderer = PlotRenderer::new(&mut canvas, &device, Some(&queue), None);
 
@@ -342,108 +319,95 @@ fn run_event_loop(
             Event::AboutToWait => {
                 if canvas.is_request_redraw() {
                     canvas.request_redraw(false);
-                    main_renderer.render(|device, queue, view| {
-                        canvas.draw(
-                            &mut drawable,
-                            device, 
-                            queue, 
-                            view);
-                    });
+
+                    main_render(&device, &queue, &surface, &mut canvas, &mut drawable);
                 }
             }
             _ => {}
         }
-
-}).unwrap();
+    }).unwrap();
 }
 
-struct MainRenderer<'a> {
-    surface: &'a wgpu::Surface,
-    device: &'a wgpu::Device,
-    queue: &'a wgpu::Queue,
+struct MouseState {
+    left: ElementState,
+    left_press_start: Point,
+    left_press_last: Point,
+    left_press_time: Instant,
+
+    right: ElementState,
+    right_press_start: Point,
+    right_press_time: Instant,
 }
 
-impl<'a> MainRenderer<'a> {
-    pub(crate) fn new(
-        surface: &'a wgpu::Surface,
-        device: &'a wgpu::Device,
-        queue: &'a wgpu::Queue,
-    ) -> Self {
+impl MouseState {
+    fn new() -> Self {
         Self {
-            surface,
-            device,
-            queue,
+            left: ElementState::Released,
+            left_press_start: Point(0., 0.),
+            left_press_last: Point(0., 0.),
+            left_press_time: Instant::now(),
+
+            right: ElementState::Released,
+            right_press_start: Point(0., 0.),
+            right_press_time: Instant::now(),
         }
-    }
-
-    pub(crate) fn render(
-        &mut self, 
-        view_renderer: impl FnOnce(
-            &wgpu::Device,
-            &wgpu::Queue, 
-            &wgpu::TextureView, 
-            // &mut wgpu::CommandEncoder
-        )
-    ) {
-        let frame = self.surface
-            .get_current_texture()
-            .expect("Failed to get next swap chain texture");
-
-        let view = frame
-            .texture
-            .create_view(&wgpu::TextureViewDescriptor::default());
-
-        // self.vertex_buffer.clear();
-        //path_render(self.vertex_buffer);
-
-        let mut encoder =
-            self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
-
-        {
-            // clip 
-            // rpass.set_viewport(0., 0., 1., 1., 0.0, 1.0);
-            
-            let _ = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                label: None,
-                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                    view: &view,
-                    resolve_target: None,
-                    ops: wgpu::Operations {
-                        load: wgpu::LoadOp::Clear(wgpu::Color {
-                            r: 1.0,
-                            g: 1.0,
-                            b: 1.0,
-                            a: 1.0,
-                        }),
-                        store: wgpu::StoreOp::Store,
-                    }
-                })],
-                depth_stencil_attachment: None,
-                timestamp_writes: None,
-                occlusion_query_set: None,
-            });
-        }
-
-        self.queue.submit(Some(encoder.finish()));
-
-        //view_renderer(&self.device, &self.queue, &view, &mut encoder);
-        view_renderer(&self.device, &self.queue, &view);
-
-        //self.staging_belt.finish();
-
-        frame.present();
-        //self.staging_belt.recall();
     }
 }
 
-pub(crate) fn main_loop(figure: Box<dyn Drawable>) {
-    let event_loop = EventLoop::new().unwrap();
-    
-    //EventLoopWindowTarget::from(&event_loop);
-    let window = winit::window::Window::new(&event_loop).unwrap();
+struct CursorState {
+    position: Point,
+}
 
-    env_logger::init();
-    let wgpu_args = pollster::block_on(init_wgpu_args(&window));
+impl CursorState {
+    fn new() -> Self {
+        Self {
+            position: Point(0., 0.),
+        }
+    }
+}
 
-    run_event_loop(event_loop, window, wgpu_args, figure);
+fn main_render(
+    device: &wgpu::Device,
+    queue: &wgpu::Queue, 
+    surface: &wgpu::Surface,
+    canvas: &mut PlotCanvas,
+    drawable: &mut Box<dyn Drawable>
+) {
+    let frame = surface.get_current_texture()
+        .expect("Failed to get next swap chain texture");
+
+    let view = frame
+        .texture
+        .create_view(&wgpu::TextureViewDescriptor::default());
+
+    let mut encoder =
+        device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
+
+    {
+        let _ = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+            label: None,
+            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                view: &view,
+                resolve_target: None,
+                ops: wgpu::Operations {
+                    load: wgpu::LoadOp::Clear(wgpu::Color {
+                        r: 1.0,
+                        g: 1.0,
+                        b: 1.0,
+                        a: 1.0,
+                    }),
+                    store: wgpu::StoreOp::Store,
+                }
+            })],
+            depth_stencil_attachment: None,
+            timestamp_writes: None,
+            occlusion_query_set: None,
+        });
+    }
+
+    queue.submit(Some(encoder.finish()));
+
+    canvas.draw(drawable, device, queue, &view);
+
+    frame.present();
 }

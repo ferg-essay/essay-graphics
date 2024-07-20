@@ -1,6 +1,7 @@
 mod wgpu;
 
 pub use crate::wgpu::{
-    WgpuBackend, PlotCanvas, PlotRenderer,
-    draw_hardcopy,
+    WgpuBackend, WgpuMainLoop, PlotCanvas, PlotRenderer,
+    WgpuHardcopy,
+    // draw_hardcopy,
 };

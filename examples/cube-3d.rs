@@ -1,10 +1,11 @@
 use driver::Renderer;
-use essay_graphics::{layout::{LayoutMainLoop, ViewTrait}, prelude::*};
+use essay_graphics::{layout::{Layout, LayoutMainLoop, ViewTrait}, prelude::*};
+use essay_graphics_wgpu::WgpuMainLoop;
 use essay_tensor::Tensor;
 use form::{Form, FormId, Matrix4};
 
 fn main() { 
-    let mut figure = LayoutMainLoop::new();
+    let mut layout = Layout::new();
 
     let mut form = Form::new();
     // let mut vertices = Vec::<[f32; 3]>::new();
@@ -36,7 +37,7 @@ fn main() {
         [1., 1., 1.]
     ], 0.8);
 
-    figure.add_view((), 
+    layout.add_view((), 
         CubeView::new(form, texture_colors(&[
             Color::from("red"),
             Color::from("blue"),
@@ -45,9 +46,9 @@ fn main() {
         ]))
     );
 
+    WgpuMainLoop::new().main_loop(Box::new(layout)).unwrap();
     // println!("Path {:?} ", view.read(|t| t.path()));
-
-    figure.show();
+    //figure.show();
 }
 
 fn square(
@@ -85,10 +86,13 @@ struct CubeView {
 
 impl CubeView {
     fn new(form: Form, texture: Tensor<u8>) -> Self {
+        let mut camera = Camera::new();
+        camera.translate(0., 0.2, -2.);
+
         Self {
             form,
             form_id: None,
-            camera: Camera::new([0., 0.2, -4.]),
+            camera: camera,
             texture,
             is_dirty: true,
         }
@@ -180,40 +184,53 @@ impl ViewTrait for CubeView {
 struct Camera {
     eye: [f32; 3],
     rot: Matrix4,
+    mat: Matrix4,
 }
 
 impl Camera {
-    fn new(eye: [f32; 3]) -> Self {
+    fn new() -> Self {
         Self {
-            eye: eye.into(),
+            eye: [0., 0., 0.],
             rot: Matrix4::eye(),
+            mat: Matrix4::eye(),
         }
     }
 
     fn forward(&mut self, delta: f32) {
         self.eye = [self.eye[0], self.eye[1], self.eye[2] + delta];
+        self.mat = self.mat.translate(0., 0., delta)
+    }
+
+    fn translate(&mut self, x: f32, y: f32, z: f32) {
+        self.eye = [self.eye[0] + x, self.eye[1] + y, self.eye[2] + z];
+        self.mat = self.mat.translate(x, y, z);
     }
 
     fn right(&mut self, delta: f32) {
         self.eye = [self.eye[0] - delta, self.eye[1], self.eye[2]];
+        self.mat = self.mat.translate(-delta, 0., 0.)
     }
 
     fn up(&mut self, delta: f32) {
         self.eye = [self.eye[0], self.eye[1] - delta, self.eye[2]];
+        self.mat = self.mat.translate(0., -delta, 0.)
     }
 
     fn yaw(&mut self, yaw: impl Into<Angle>) {
+        let yaw = yaw.into();
         self.rot = self.rot.rot_xz(yaw);
+        self.mat = self.mat.rot_xz(yaw);
     }
 
     fn matrix(&self) -> Matrix4 {
         let mut camera = Matrix4::eye();
 
-        camera = camera.translate(self.eye[0], self.eye[1], self.eye[2]);
-        camera = self.rot.matmul(&camera);
+        //camera = camera.translate(self.eye[0], self.eye[1], self.eye[2]);
+        //camera = self.rot.matmul(&camera);
+        camera = self.mat.matmul(&camera);
 
         //let fov = 45.0f32;
-        let fov = 150.0f32;
+        let fov = 120.0f32;
         camera = camera.projection(fov.to_radians(), 1., 0.1, 100.);
 
     
