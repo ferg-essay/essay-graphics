@@ -1,4 +1,4 @@
-mod wgpu;
+pub mod wgpu;
 
 pub use crate::wgpu::{
     WgpuBackend, WgpuMainLoop, PlotCanvas, PlotRenderer,

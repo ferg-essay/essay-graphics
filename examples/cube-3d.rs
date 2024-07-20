@@ -1,8 +1,9 @@
 use driver::Renderer;
 use essay_graphics::{layout::{Layout, LayoutMainLoop, ViewTrait}, prelude::*};
-use essay_graphics_wgpu::WgpuMainLoop;
+use essay_graphics_wgpu::{WgpuHardcopy, WgpuMainLoop};
 use essay_tensor::Tensor;
 use form::{Form, FormId, Matrix4};
+use image::{GenericImageView, Pixels};
 
 fn main() { 
     let mut layout = Layout::new();
@@ -46,9 +47,25 @@ fn main() {
         ]))
     );
 
-    WgpuMainLoop::new().main_loop(Box::new(layout)).unwrap();
-    // println!("Path {:?} ", view.read(|t| t.path()));
-    //figure.show();
+    // WgpuMainLoop::new().main_loop(Box::new(layout)).unwrap();
+
+    let mut hardcopy = WgpuHardcopy::new(16, 16);
+    let camera = Camera::new();
+
+    let id = hardcopy.add_surface();
+    hardcopy.draw(id, &mut layout);
+
+    let vec = hardcopy.read_into(id, |buf| {
+        let mut vec = Vec::<[u8; 4]>::new();
+
+        for p in buf.pixels() {
+            vec.push(p.0);
+        }
+
+        Tensor::from(vec).reshape([16, 16, 4])
+    });
+
+    println!("Vec {:?}", vec);
 }
 
 fn square(
@@ -126,10 +143,10 @@ impl ViewTrait for CubeView {
         }
 
         if let Some(id) = self.form_id {
-            let pos = Bounds::<Canvas>::new(
-                (0.5 * pos.xmax(), 0.5 * pos.ymax()),
-                (pos.xmax(), pos.ymax())
-            );
+            //let pos = Bounds::<Canvas>::new(
+            //    (0.5 * pos.xmax(), 0.5 * pos.ymax()),
+            //    (pos.xmax(), pos.ymax())
+            //);
             let camera = self.camera(renderer, &pos);
 
             renderer.draw_form(

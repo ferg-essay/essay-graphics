@@ -1,7 +1,7 @@
-use std::{fs::File, io::BufWriter};
+use std::{fs::File, io::BufWriter, ops::Deref};
 
 use essay_graphics_api::{driver::Drawable, CanvasEvent, Clip};
-use wgpu::TextureView;
+use wgpu::BufferView;
 use image::{ImageBuffer, Rgba};
 
 use crate::{PlotCanvas, PlotRenderer};
@@ -14,6 +14,8 @@ pub struct WgpuHardcopy {
 
     texture_format: wgpu::TextureFormat,
     texture_size: wgpu::Extent3d,
+    bytes_per_row: u32,
+    is_short_row: bool,
     textures: Vec<wgpu::Texture>,
     buffers: Vec<wgpu::Buffer>,
 }
@@ -30,6 +32,11 @@ impl WgpuHardcopy {
             depth_or_array_layers: 1,
         };
 
+        let u32_size = std::mem::size_of::<u32>() as u32;
+        let bytes_per_row = u32_size * width;
+        let is_short_row = bytes_per_row % 256 != 0;
+        let bytes_per_row = bytes_per_row + (256 - bytes_per_row) % 256;
+
         let canvas = PlotCanvas::new(
             &device,
             &queue,
@@ -44,6 +51,8 @@ impl WgpuHardcopy {
             canvas,
             texture_format,
             texture_size,
+            bytes_per_row,
+            is_short_row,
 
             textures: Vec::new(),
             buffers: Vec::new(),
@@ -56,7 +65,7 @@ impl WgpuHardcopy {
             mip_level_count: 1,
             sample_count: 1,
             dimension: wgpu::TextureDimension::D2,
-            format: wgpu::TextureFormat::Rgba8UnormSrgb,
+            format: self.texture_format,
             usage: wgpu::TextureUsages::COPY_SRC
                 | wgpu::TextureUsages::RENDER_ATTACHMENT,
             view_formats: &[self.texture_format],
@@ -69,8 +78,7 @@ impl WgpuHardcopy {
 
         self.textures.push(texture);
 
-        let u32_size = std::mem::size_of::<u32>() as u32;
-        let o_size = (u32_size * self.texture_size.width * self.texture_size.height) as wgpu::BufferAddress;
+        let o_size = (self.bytes_per_row * self.texture_size.height) as wgpu::BufferAddress;
 
         let o_desc = wgpu::BufferDescriptor {
             size: o_size,
@@ -111,25 +119,45 @@ impl WgpuHardcopy {
         // view.flush();
     }
 
-    pub fn read_buffer(&mut self, id: SurfaceId) -> ImageBuffer<Rgba<u8>, wgpu::BufferView> {
-        pollster::block_on(self.read_buffer_async(id))
-    }
+    //pub fn read_buffer(&mut self, id: SurfaceId) -> ImageBuffer<Rgba<u8>, wgpu::BufferView> {
+    //    pollster::block_on(self.read_buffer_async(id))
+    //}
 
-    pub fn read_into<R>(&mut self, id: SurfaceId, fun: impl FnOnce(ImageBuffer<Rgba<u8>, wgpu::BufferView>) -> R) -> R {
+    pub fn read_into<R>(&mut self, id: SurfaceId, fun: impl FnOnce(ImageBuffer::<Rgba<u8>, &[u8]>) -> R) -> R {
         pollster::block_on(self.read_into_async(id, fun))
     }
 
     pub async fn read_into_async<R>(
         &mut self, 
         id: SurfaceId, 
-        fun: impl FnOnce(ImageBuffer<Rgba<u8>, wgpu::BufferView>) -> R
+        fun: impl FnOnce(ImageBuffer::<Rgba<u8>, &[u8]>) -> R
     ) -> R {
-        fun(self.read_buffer_async(id).await)
+        let is_short_row = self.is_short_row;
+        let bytes_per_row = self.bytes_per_row;
+        let width = self.texture_size.width;
+        let height = self.texture_size.height;
+
+        let buffer = self.read_buffer_async(id).await;
+
+        if is_short_row {
+            let u32_size = std::mem::size_of::<u32>() as u32;
+            let vec = short_buffer(
+                buffer.deref(), 
+                bytes_per_row as usize, 
+                (u32_size * width) as usize,
+                height as usize
+            );
+
+            fun(ImageBuffer::from_raw(width, height, vec.deref()).unwrap())
+        } else {
+            fun(ImageBuffer::from_raw(width, height, buffer.deref()).unwrap())
+        }
+
     }
 
-    pub async fn read_buffer_async(&mut self, id: SurfaceId) -> ImageBuffer<Rgba<u8>, wgpu::BufferView> {
-        let u32_size = std::mem::size_of::<u32>() as u32;
+    pub async fn read_buffer_async(&mut self, id: SurfaceId) -> BufferView {
         /*
+        let u32_size = std::mem::size_of::<u32>() as u32;
         let o_size = (u32_size * self.texture_size.width * self.texture_size.height) as wgpu::BufferAddress;
 
         let o_desc = wgpu::BufferDescriptor {
@@ -150,7 +178,7 @@ impl WgpuHardcopy {
         encoder.copy_texture_to_buffer(
             wgpu::ImageCopyTexture {
                 aspect: wgpu::TextureAspect::All,
-                texture: &self.textures[0],
+                texture: &self.textures[id.0],
                 mip_level: 0,
                 origin: wgpu::Origin3d::ZERO,
             },
@@ -158,7 +186,7 @@ impl WgpuHardcopy {
                 buffer: &o_buffer,
                 layout: wgpu::ImageDataLayout {
                     offset: 0,
-                    bytes_per_row: Some(u32_size * self.texture_size.width),
+                    bytes_per_row: Some(self.bytes_per_row),
                     rows_per_image: Some(self.texture_size.height),
                 }
             },
@@ -178,22 +206,17 @@ impl WgpuHardcopy {
             self.device.poll(wgpu::Maintain::Wait);
             rx.receive().await.unwrap().unwrap();
 
-            let data = buffer_slice.get_mapped_range();
-
-            ImageBuffer::<Rgba<u8>, _>::from_raw(
-                self.texture_size.width, 
-                self.texture_size.height, 
-                data
-            ).unwrap()
+            buffer_slice.get_mapped_range()
         }
     }
 
     pub fn save(
         &mut self, 
-        id: SurfaceId,
-        path: impl AsRef<std::path::Path>,
-        dpi: usize,
+        _id: SurfaceId,
+        _path: impl AsRef<std::path::Path>,
+        _dpi: usize,
     ) {
+        /*
         save_png(
             path, 
             self.texture_size.width, 
@@ -201,11 +224,12 @@ impl WgpuHardcopy {
             dpi,
             &self.read_buffer(id),
         );
+        */
 
         // pollster::block_on(self.extract_buffer(path, dpi));
     }
 
-    async fn extract_buffer(
+    async fn _extract_buffer(
         &mut self,
         path: impl AsRef<std::path::Path>,
         dpi: usize
@@ -267,7 +291,7 @@ impl WgpuHardcopy {
             ).unwrap();
 
             if true {
-                save_png(path, self.texture_size.width, self.texture_size.height, dpi, &buffer);
+                _save_png(path, self.texture_size.width, self.texture_size.height, dpi, &buffer);
             } else {
                 buffer.save(path).unwrap()
             }
@@ -315,6 +339,20 @@ impl WgpuHardcopy {
 
         self.queue.submit(Some(encoder.finish()));
     }
+}
+
+fn short_buffer(buffer: &[u8], row_size: usize, width: usize, height: usize) -> Vec<u8> {
+    let mut vec = Vec::<u8>::new();
+    vec.resize(width * height, 0);
+
+    let mut row = 0;
+    for chunk in vec.chunks_mut(width) {
+        chunk.copy_from_slice(&buffer[row..row + width]);
+
+        row += row_size;
+    }
+
+    vec
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -386,7 +424,7 @@ pub fn draw_hardcopy(
 }
     */
 
-fn save_png(
+fn _save_png(
     path: impl AsRef<std::path::Path>, 
     width: u32, 
     height: u32, 
