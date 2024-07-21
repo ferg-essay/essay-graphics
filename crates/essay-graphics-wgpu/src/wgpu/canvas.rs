@@ -124,11 +124,28 @@ impl PlotCanvas {
         }
     }
 
+    ///
+    /// Returns the boundary of the canvas in pixels
+    ///
+    pub fn bounds(&self) -> &Bounds<Canvas> {
+        &self.bounds
+    }
+
     pub fn set_scale_factor(&mut self, scale_factor: f32) {
         // traditional pt to px
         let pt_to_px = 4. / 3.;
 
         self.scale_factor = scale_factor * pt_to_px;
+    }
+
+    #[inline]
+    pub fn scale_factor(&self) -> f32 {
+        self.scale_factor
+    }
+
+    #[inline]
+    pub fn to_px(&self, size: f32) -> f32 {
+        self.scale_factor * size
     }
 
     fn fill_path(
@@ -200,6 +217,7 @@ impl PlotCanvas {
             Some(capstyle) => capstyle.clone(),
             None => CapStyle::Butt,
         };
+        
         let lw2 = self.to_px(0.5 * linewidth); // / self.canvas.width();
         let lw2 = lw2.max(0.5);
         
@@ -366,23 +384,6 @@ impl PlotCanvas {
                 panic!(); // Butt has early exit
             }
         }
-    }
-
-    ///
-    /// Returns the boundary of the canvas in pixels
-    ///
-    pub fn bounds(&self) -> &Bounds<Canvas> {
-        &self.bounds
-    }
-
-    #[inline]
-    pub fn scale_factor(&self) -> f32 {
-        self.scale_factor
-    }
-
-    #[inline]
-    pub fn to_px(&self, size: f32) -> f32 {
-        self.scale_factor * size
     }
 
     pub fn draw_path(

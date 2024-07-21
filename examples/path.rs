@@ -1,5 +1,7 @@
-use driver::Renderer;
-use essay_graphics::{layout::{LayoutMainLoop, ViewTrait}, prelude::*};
+use driver::{Drawable, Renderer};
+use essay_graphics::prelude::*;
+use essay_graphics::layout::LayoutMainLoop;
+use essay_graphics_api::Coord;
 
 fn main() { 
     let mut figure = LayoutMainLoop::new();
@@ -37,7 +39,7 @@ impl PathView {
     }
 }
 
-impl ViewTrait for PathView {
+impl Drawable for PathView {
     fn event(&mut self, _renderer: &mut dyn Renderer, event: &CanvasEvent) {
         if let CanvasEvent::Resize(pos) = event {
             let to_canvas = Bounds::<Data>::new((0., 0.), (1., 1.)).affine_to(pos);

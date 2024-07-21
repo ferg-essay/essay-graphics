@@ -1,11 +1,11 @@
 use essay_graphics_wgpu::WgpuBackend;
 
 use essay_graphics_api::{
-    driver::Backend,
+    driver::{Backend, Drawable},
     Bounds,
 };
 
-use super::{layout::Grid, Layout, ViewHandle, ViewTrait};
+use super::{Layout, View};
 
 pub struct LayoutMainLoop {
     backend: Box<dyn Backend>,
@@ -26,11 +26,11 @@ impl LayoutMainLoop {
         }
     }
 
-    pub fn add_view<T: ViewTrait + 'static>(
+    pub fn add_view<T: Drawable + Send + 'static>(
         &mut self, 
-        pos: impl Into<Bounds<Grid>>, 
+        pos: impl Into<Bounds<Layout>>, 
         view: T
-    ) -> ViewHandle<T> {
+    ) -> View<T> {
         self.layout.add_view(pos, view)
     }
 

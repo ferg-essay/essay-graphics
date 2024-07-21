@@ -13,7 +13,7 @@ pub struct Bounds<M: Coord> {
     p0: Point,
     p1: Point,
 
-    marker: PhantomData<M>,
+    marker: PhantomData<fn(M)>,
 }
 
 impl<M: Coord> Bounds<M> {

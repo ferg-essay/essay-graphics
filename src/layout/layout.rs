@@ -10,21 +10,19 @@ impl Layout {
     pub fn new() -> Layout {
         Layout(Arc::new(Mutex::new(LayoutInner::new())))
     }
-}
 
-impl Layout {
     #[inline]
-    pub fn bounds(&self) -> Bounds<Grid> {
+    pub fn bounds(&self) -> Bounds<Layout> {
         self.0.lock().unwrap().grid_bounds().clone()
     }
 
     #[inline]
-    pub fn add_view<V: ViewTrait + 'static>(
+    pub fn add_view<T: Drawable + Send + 'static>(
         &mut self, 
-        pos: impl Into<Bounds<Grid>>,
-        view: V, 
-    ) -> ViewHandle<V> {
-        let mut pos : Bounds<Grid> = pos.into();
+        pos: impl Into<Bounds<Layout>>,
+        view: T, 
+    ) -> View<T> {
+        let mut pos = pos.into();
 
         if pos.is_zero() || pos.is_none() {
             let layout = self.bounds();
@@ -36,7 +34,7 @@ impl Layout {
 
         let id = self.0.lock().unwrap().add_view(pos, view);
 
-        ViewHandle::new(id, self.clone())
+        View::new(id, self.clone())
     }
 
     #[inline]
@@ -45,22 +43,17 @@ impl Layout {
     }
 
     #[inline]
-    fn read<T: ViewTrait + 'static, R>(&self, id: ViewId, fun: impl FnOnce(&T) -> R) -> R {
+    fn read<T: 'static, R>(&self, id: ViewId, fun: impl FnOnce(&T) -> R) -> R {
         self.0.lock().unwrap().views[id.0].read(fun)
     }
 
     #[inline]
-    fn write<T: ViewTrait + 'static, R>(&self, id: ViewId, fun: impl FnOnce(&mut T) -> R) -> R {
+    fn write<T: 'static, R>(&self, id: ViewId, fun: impl FnOnce(&mut T) -> R) -> R {
         self.0.lock().unwrap().views[id.0].write(fun)
     }
 }
 
 impl Drawable for Layout {
-    //#[inline]
-    //fn update(&mut self, renderer: &mut dyn Renderer, pos: &Bounds<Canvas>) {
-    //    self.0.lock().unwrap().layout(renderer, pos);
-    //}
-
     #[inline]
     fn draw(&mut self, renderer: &mut dyn Renderer, pos: &Bounds<Canvas>) {
         self.0.lock().unwrap().draw(renderer, pos);
@@ -72,11 +65,10 @@ impl Drawable for Layout {
     }
 }
 
-pub struct Grid;
-impl Coord for Grid {}
+impl Coord for Layout {}
 
 struct LayoutInner {
-    views: Vec<ViewBox>,
+    views: Vec<ViewItem>,
 }
 
 impl LayoutInner {
@@ -88,8 +80,8 @@ impl LayoutInner {
 
     fn add_view(
         &mut self, 
-        pos: impl Into<Bounds<Grid>>,
-        view: impl ViewTrait + 'static
+        pos: impl Into<Bounds<Layout>>,
+        view: impl Drawable + Send + 'static
     ) -> ViewId {
         let pos = pos.into();
 
@@ -104,7 +96,7 @@ impl LayoutInner {
 
         let id = ViewId(self.views.len());
 
-        self.views.push(ViewBox::new(pos, view));
+        self.views.push(ViewItem::new(pos, view));
 
         id
     }
@@ -149,7 +141,7 @@ impl LayoutInner {
         }
     }
 
-    fn grid_bounds(&self) -> Bounds<Grid> {
+    fn grid_bounds(&self) -> Bounds<Layout> {
         let mut bounds = Bounds::zero();
 
         for item in &self.views {
@@ -187,22 +179,22 @@ impl LayoutInner {
     }
 }
 
-struct ViewBox {
-    pos_grid: Bounds<Grid>,
+struct ViewItem {
+    pos_grid: Bounds<Layout>,
     pos_canvas: Bounds<Canvas>,
 
-    ptr: Box<dyn Any>,
-    handle: Box<dyn ViewHandleTrait>,
+    ptr: Box<dyn Any + Send>,
+    handle: Box<dyn DrawableHandle>,
 }
 
-impl ViewBox {
-    fn new<T: ViewTrait + 'static>(pos: Bounds<Grid>, view: T) -> Self {
+impl ViewItem {
+    fn new<T: Drawable + Send + 'static>(pos: Bounds<Layout>, view: T) -> Self {
         Self {
             pos_grid: pos.into(),
             pos_canvas: Bounds::unit(),
 
             ptr: Box::new(view),
-            handle: Box::new(ViewTraitHandle::<T>::new()),
+            handle: Box::new(ViewDrawableHandle::<T>::new()),
         }
     }
 
@@ -210,13 +202,6 @@ impl ViewBox {
     fn pos(&self) -> &Bounds<Canvas> {
         &self.pos_canvas
     }
-
-    // #[inline]
-    //fn update(&mut self, renderer: &mut dyn Renderer, pos: &Bounds<Canvas>) {
-    //    self.pos_canvas = pos.clone();
-    //
-    //    self.handle.update(self.ptr.as_mut(), renderer, pos);
-    //}
 
     #[inline]
     fn draw(&mut self, renderer: &mut dyn Renderer, pos: &Bounds<Canvas>) {
@@ -228,20 +213,27 @@ impl ViewBox {
         self.handle.event(self.ptr.as_mut(), renderer, event);
     }
 
+    #[inline]
     fn read<T: 'static, R>(&self, fun: impl FnOnce(&T) -> R) -> R {
         fun(self.ptr.downcast_ref::<T>().unwrap())
     }
 
+    #[inline]
     fn write<T: 'static, R>(&mut self, fun: impl FnOnce(&mut T) -> R) -> R {
         fun(self.ptr.downcast_mut::<T>().unwrap())
     }
 }
 
-struct ViewTraitHandle<V: ViewTrait> {
-    marker: PhantomData<V>,
+trait DrawableHandle: Send {
+    fn draw(&mut self, any: &mut dyn Any, renderer: &mut dyn Renderer, pos: &Bounds<Canvas>);
+    fn event(&mut self, any: &mut dyn Any, renderer: &mut dyn Renderer, event: &CanvasEvent);
 }
 
-impl<V: ViewTrait> ViewTraitHandle<V> {
+struct ViewDrawableHandle<T: Drawable> {
+    marker: PhantomData<fn(T)>,
+}
+
+impl<T: Drawable> ViewDrawableHandle<T> {
     fn new() -> Self {
         Self {
             marker: PhantomData::default(),
@@ -249,21 +241,13 @@ impl<V: ViewTrait> ViewTraitHandle<V> {
     }
 }
 
-trait ViewHandleTrait {
-    //fn update(&mut self, any: &mut dyn Any, renderer: &mut dyn Renderer, pos: &Bounds<Canvas>);
-    fn draw(&mut self, any: &mut dyn Any, renderer: &mut dyn Renderer, pos: &Bounds<Canvas>);
-    fn event(&mut self, any: &mut dyn Any, renderer: &mut dyn Renderer, event: &CanvasEvent);
-}
-
-impl<V: ViewTrait + 'static> ViewHandleTrait for ViewTraitHandle<V> {
-    //fn update(&mut self, any: &mut dyn Any, renderer: &mut dyn Renderer, pos: &Bounds<Canvas>) {
-    //    any.downcast_mut::<V>().unwrap().update_pos(renderer, pos)
-    //}
-
+impl<V: Drawable + 'static> DrawableHandle for ViewDrawableHandle<V> {
+    #[inline]
     fn draw(&mut self, any: &mut dyn Any, renderer: &mut dyn Renderer, pos: &Bounds<Canvas>) {
         any.downcast_mut::<V>().unwrap().draw(renderer, pos)
     }
 
+    #[inline]
     fn event(&mut self, any: &mut dyn Any, renderer: &mut dyn Renderer, event: &CanvasEvent) {
         any.downcast_mut::<V>().unwrap().event(renderer, event)
     }
@@ -278,15 +262,15 @@ impl ViewId {
     }
 }
 
-pub struct ViewHandle<T: ViewTrait> {
+pub struct View<T> {
     id: ViewId,
 
     layout: Layout,
 
-    marker: PhantomData<T>,
+    marker: PhantomData<fn(T)>,
 }
 
-impl<T: ViewTrait> Clone for ViewHandle<T> {
+impl<T: 'static> Clone for View<T> {
     fn clone(&self) -> Self {
         Self { 
             id: self.id.clone(), 
@@ -296,7 +280,7 @@ impl<T: ViewTrait> Clone for ViewHandle<T> {
     }
 }
 
-impl<T: ViewTrait + 'static> ViewHandle<T> {
+impl<T: 'static> View<T> {
     fn new(id: ViewId, layout: Layout) -> Self {
         let frame = Self {
             id,
@@ -323,7 +307,7 @@ impl<T: ViewTrait + 'static> ViewHandle<T> {
     }
 }
 
-impl<T: ViewTrait> fmt::Debug for ViewHandle<T> {
+impl<T: Send> fmt::Debug for View<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let pos = self.layout.pos(self.id);
 
@@ -337,15 +321,8 @@ impl<T: ViewTrait> fmt::Debug for ViewHandle<T> {
     }
 }
 
-pub trait ViewTrait { // }: Send + Sync {
-    ///
-    /// Update the view position. The position will be the same as any
-    /// subsequent draw.
-    /// 
-    //#[allow(unused_variables)]
-    //fn update_pos(&mut self, renderer: &mut dyn Renderer, pos: &Bounds<Canvas>) {
-    //}
-
+/*
+pub trait ViewDrawable: Send {
     ///
     /// Draws the view in the renderer.
     /// 
@@ -357,3 +334,4 @@ pub trait ViewTrait { // }: Send + Sync {
     fn event(&mut self, renderer: &mut dyn Renderer, event: &CanvasEvent) {
     }
 }
+    */

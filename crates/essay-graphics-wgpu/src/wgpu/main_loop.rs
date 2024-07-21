@@ -135,6 +135,8 @@ fn run_event_loop(
         config.height,
     );
 
+    canvas.set_scale_factor(window.scale_factor() as f32);
+
     let pan_min = 20.;
     let zoom_min = 20.;
 

@@ -1,6 +1,6 @@
-use driver::Renderer;
-use essay_graphics::{layout::{Layout, ViewTrait}, prelude::*};
-use essay_graphics_wgpu::WgpuHardcopy;
+use driver::{Drawable, Renderer};
+use essay_graphics::{layout::Layout, prelude::*};
+use essay_graphics_wgpu::{WgpuHardcopy, WgpuMainLoop};
 use essay_tensor::Tensor;
 use form::{Form, FormId, Matrix4};
 use image::Pixel;
@@ -47,25 +47,27 @@ fn main() {
         ]))
     );
 
-    // WgpuMainLoop::new().main_loop(Box::new(layout)).unwrap();
+    if true {
+        WgpuMainLoop::new().main_loop(Box::new(layout)).unwrap();
+    } else {
+        let mut hardcopy = WgpuHardcopy::new(16, 16);
+        //let camera = Camera::new();
 
-    let mut hardcopy = WgpuHardcopy::new(16, 16);
-    //let camera = Camera::new();
+        let id = hardcopy.add_surface();
+        hardcopy.draw(id, &mut layout);
 
-    let id = hardcopy.add_surface();
-    hardcopy.draw(id, &mut layout);
+        let vec = hardcopy.read_into(id, |buf| {
+            let mut vec = Vec::<u8>::new();
 
-    let vec = hardcopy.read_into(id, |buf| {
-        let mut vec = Vec::<u8>::new();
+            for p in buf.pixels() {
+                vec.push(p.to_luma().0[0]);
+            }
 
-        for p in buf.pixels() {
-            vec.push(p.to_luma().0[0]);
-        }
+            Tensor::from(vec).reshape([16, 16])
+        });
 
-        Tensor::from(vec).reshape([16, 16])
-    });
-
-    println!("Vec {:?}", vec);
+        println!("Vec {:?}", vec);
+    }
 }
 
 fn square(
@@ -132,7 +134,7 @@ impl CubeView {
     }
 }
 
-impl ViewTrait for CubeView {
+impl Drawable for CubeView {
     // fn update_pos(&mut self, renderer: &mut dyn Renderer, pos: &Bounds<Canvas>) {
     // }
 
