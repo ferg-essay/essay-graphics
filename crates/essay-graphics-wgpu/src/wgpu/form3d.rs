@@ -368,7 +368,7 @@ impl Form3dRender {
             if let Clip::Bounds(p0, p1) = draw_item.clip {
                 rpass.set_scissor_rect(p0.0 as u32, p0.1 as u32, (p1.0 - p0.0) as u32, (p1.1 - p0.1) as u32);
             } else {
-                rpass.set_scissor_rect(0, u32::MAX, 0, u32::MAX);
+                // rpass.set_scissor_rect(0, u32::MAX, 0, u32::MAX);
             }
     
             rpass.set_bind_group(0, self.texture_cache.texture_bind_group(item.texture), &[]);

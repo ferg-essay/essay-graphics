@@ -210,22 +210,25 @@ impl Matrix4 {
     where
         N: Coord
     {
-        let a_x0 = pos.xmin();
-        let a_y0 = pos.ymin();
-
         let epsilon = f32::EPSILON;
         let a_width = pos.width().max(epsilon);
         let a_height = pos.height().max(epsilon);
 
-        let b_x0 = canvas.xmin();
-        let b_y0 = canvas.ymin();
-
         let b_width = canvas.width();
         let b_height = canvas.height();
 
+        let scale_width = a_width / b_width;
+        let scale_height = a_height / b_height;
+
+        let a_x0 = pos.xmid();
+        let a_y0 = pos.ymid();
+
+        let b_x0 = canvas.xmid();
+        let b_y0 = canvas.ymid();
+
         Self::eye()
-            .scale(a_width / b_width, a_height / b_height, 1.)
-            .translate((a_x0 - b_x0) / b_width, -(a_y0 - b_y0) / b_height, 0.)
+            .scale(scale_width, scale_height, 1.)
+            .translate(2. * (a_x0 - b_x0) / b_width, 2. * (a_y0 - b_y0) / b_height, 0.)
         }
 
     pub fn matmul(&self, y: &Matrix4) -> Self {

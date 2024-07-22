@@ -154,10 +154,11 @@ impl LayoutInner {
     fn draw(
         &mut self, 
         renderer: &mut dyn Renderer,
-        pos: &Bounds<Canvas>,
+        _pos: &Bounds<Canvas>,
     ) {
         for item in &mut self.views {
-            item.draw(renderer, pos);
+            let pos = item.pos().clone();
+            item.draw(renderer, &pos);
         }
     }
 
