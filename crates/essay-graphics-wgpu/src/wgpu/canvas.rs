@@ -637,8 +637,20 @@ impl PlotCanvas {
         camera: &Matrix4,
         clip: &Clip,
     ) -> Result<(), RenderErr> {
+        let clip = match clip {
+            Clip::None => Clip::None,
+            Clip::Bounds(p0, p1) => {
+                Clip::Bounds(
+                    //Point(p0.0, p0.1),
+                    //Point(p1.0, p1.1) 
+                    Point(p0.0, self.bounds().ymax() - p1.1),
+                    Point(p1.0, self.bounds().ymax() - p0.1) 
+                )
+            }
+        };
+
         self.form3d_render.camera(camera);
-        self.form3d_render.draw_form(form, clip);
+        self.form3d_render.draw_form(form, &clip);
         
         Ok(())
     }
