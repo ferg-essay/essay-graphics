@@ -241,13 +241,22 @@ impl<M: Coord> fmt::Debug for Bounds<M> {
     }
 }
 
+impl<M: Coord> From<&Bounds<M>> for Bounds<M> {
+    #[inline]
+    fn from(value: &Bounds<M>) -> Self {
+        value.clone()
+    }
+}
+
 impl<M: Coord> From<()> for Bounds<M> {
+    #[inline]
     fn from(_: ()) -> Self {
         Bounds::zero()
     }
 }
 
 impl<M: Coord> From<(f32, f32)> for Bounds<M> {
+    #[inline]
     fn from(value: (f32, f32)) -> Self {
         Bounds::new(
             Point(value.0, value.1),
@@ -257,6 +266,7 @@ impl<M: Coord> From<(f32, f32)> for Bounds<M> {
 }
 
 impl<M: Coord> From<Point> for Bounds<M> {
+    #[inline]
     fn from(value: Point) -> Self {
         Bounds::new(
             value,
@@ -266,6 +276,7 @@ impl<M: Coord> From<Point> for Bounds<M> {
 }
 
 impl<M: Coord> From<[f32; 2]> for Bounds<M> {
+    #[inline]
     fn from(value: [f32; 2]) -> Self {
         Bounds::new(
             Point(0., 0.),
@@ -275,6 +286,7 @@ impl<M: Coord> From<[f32; 2]> for Bounds<M> {
 }
 
 impl<M: Coord> From<[(f32, f32); 2]> for Bounds<M> {
+    #[inline]
     fn from(value: [(f32, f32); 2]) -> Self {
         Bounds::new(
             Point(value[0].0, value[0].1),
@@ -284,6 +296,7 @@ impl<M: Coord> From<[(f32, f32); 2]> for Bounds<M> {
 }
 
 impl<M: Coord> From<[f32; 4]> for Bounds<M> {
+    #[inline]
     fn from(value: [f32; 4]) -> Self {
         Bounds::new(
             Point(value[0], value[1]),

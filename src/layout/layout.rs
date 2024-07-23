@@ -303,7 +303,7 @@ impl<T: 'static> View<T> {
     }
 
     #[inline]
-    pub fn write<R>(&self, fun: impl FnOnce(&mut T) -> R) -> R {
+    pub fn write<R>(&mut self, fun: impl FnOnce(&mut T) -> R) -> R {
         self.layout.write(self.id, fun)
     }
 }
