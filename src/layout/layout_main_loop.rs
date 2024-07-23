@@ -31,7 +31,7 @@ impl LayoutMainLoop {
         pos: impl Into<Bounds<Layout>>, 
         view: T
     ) -> View<T> {
-        self.layout.add_view(pos, view)
+        self.layout.view(pos, view)
     }
 
     pub fn show(self) {

@@ -13,22 +13,34 @@ impl Layout {
 
     #[inline]
     pub fn bounds(&self) -> Bounds<Layout> {
-        self.0.lock().unwrap().grid_bounds().clone()
+        self.0.lock().unwrap().bounds().clone()
     }
 
+    ///
+    /// Adds a drawable view in layout coordinates, returning a view handle
+    /// to the drawable.
+    /// 
+    /// Layout coordinates are (0, 0) lower left and (1, 1) upper right,
+    /// but normalized to the minimum and maximum of all added views.
+    /// ((1., 1.), (2., 2.)) is allowed, as are negative values.
+    /// 
+    /// If the position is unassigned, the new position will be a unit
+    /// box below any current box, such as ((0., -1), (0., 0.))
+    /// 
     #[inline]
-    pub fn add_view<T: Drawable + Send + 'static>(
+    pub fn view<T: Drawable + Send + 'static>(
         &mut self, 
         pos: impl Into<Bounds<Layout>>,
         view: T, 
     ) -> View<T> {
         let mut pos = pos.into();
 
+        // If unassigned, layout below all other views
         if pos.is_zero() || pos.is_none() {
             let layout = self.bounds();
             pos = Bounds::new(
-                Point(0., layout.ymax()),
-                Point(1., layout.ymax() + 1.),
+                Point(0., layout.ymin() - 1.),
+                Point(1., layout.ymax()),
             );
         }
 
@@ -85,12 +97,13 @@ impl LayoutInner {
     ) -> ViewId {
         let pos = pos.into();
 
-        assert!(pos.xmin() >= 0.);
-        assert!(pos.ymin() >= 0.);
+        assert!(! pos.is_none() && ! pos.is_zero());
+        //assert!(pos.xmin() >= 0.);
+        //assert!(pos.ymin() >= 0.);
 
         // arbitrary limit for now
-        assert!(pos.width() <= 11.);
-        assert!(pos.height() <= 11.);
+        //assert!(pos.width() <= 11.);
+        //assert!(pos.height() <= 11.);
 
         // self.extent = self.extent.union(&pos);
 
@@ -107,32 +120,26 @@ impl LayoutInner {
     }
 
     fn layout(&mut self, renderer: &mut dyn Renderer, pos: &Bounds<Canvas>) {
-        let bounds = self.grid_bounds();
+        let bounds = self.bounds();
         
-        assert!(bounds.xmin() == 0.);
-        assert!(bounds.ymin() == 0.);
+        let (p_x0, p_y0) = pos.min();
 
-        assert!(1. <= bounds.width() && bounds.width() <= 11.);
-        assert!(1. <= bounds.height() && bounds.height() <= 11.);
-        
-        let x_min = pos.xmin();
-        let x_max = pos.xmin() + pos.width();
-        
-        let y_min = pos.ymin();
-        let y_max = pos.ymin() + pos.height();
+        let h = pos.height();
+        let w = pos.width();
 
-        // TODO: nonlinear grid sizes
-        let h = y_max - y_min; // canvas.height();
-        let w = x_max - x_min; // canvas.height();
-        let dw = w / bounds.width();
-        let dh = h / bounds.height();
+        let l_x0 = bounds.xmin().min(0.);
+        let l_y0 = bounds.ymin().min(0.);
+
+        let dw = w / bounds.width().max(1.);
+        let dh = h / bounds.height().max(1.);
 
         for item in &mut self.views {
-            let pos_layout = &item.pos_grid;
+            let (x0, y0) = item.pos_grid.min();
+            let (x1, y1) = item.pos_grid.max();
 
             let pos = Bounds::new(
-                Point(x_min + dw * pos_layout.xmin(), y_max - dh * pos_layout.ymax()),
-                Point(x_min + dw * pos_layout.xmax(), y_max - dh * pos_layout.ymin()),
+                Point(p_x0 + dw * (x0 - l_x0), p_y0 + dh * (y0 - l_y0)),
+                Point(p_x0 + dw * (x1 - l_x0), p_y0 + dh * (y1 - l_y0)),
             );
 
             item.pos_canvas = pos.clone();
@@ -141,8 +148,8 @@ impl LayoutInner {
         }
     }
 
-    fn grid_bounds(&self) -> Bounds<Layout> {
-        let mut bounds = Bounds::zero();
+    fn bounds(&self) -> Bounds<Layout> {
+        let mut bounds = Bounds::none();
 
         for item in &self.views {
             bounds = bounds.union(&item.pos_grid);

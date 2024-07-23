@@ -38,7 +38,7 @@ fn main() {
         [1., 1., 1.]
     ], 0.8);
 
-    layout.add_view((), 
+    layout.view((), 
         CubeView::new(form, texture_colors(&[
             Color::from("red"),
             Color::from("blue"),

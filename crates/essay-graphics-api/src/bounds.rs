@@ -45,8 +45,8 @@ impl<M: Coord> Bounds<M> {
 
     pub fn none() -> Bounds<M> {
         Bounds {
-            p0: Point(f32::MIN, f32::MIN),
-            p1: Point(f32::MAX, f32::MAX),
+            p0: Point(f32::MAX, f32::MAX),
+            p1: Point(f32::MIN, f32::MIN),
             marker: PhantomData,
         }
     }
@@ -65,8 +65,8 @@ impl<M: Coord> Bounds<M> {
 
     #[inline]
     pub fn is_none(&self) -> bool {
-        self.p0 == Point(f32::MIN, f32::MIN)
-        && self.p1 == Point(f32::MAX, f32::MAX)
+        self.p0 == Point(f32::MAX, f32::MAX)
+        && self.p1 == Point(f32::MIN, f32::MIN)
     }
 
     #[inline]
@@ -105,6 +105,11 @@ impl<M: Coord> Bounds<M> {
     }
 
     #[inline]
+    pub fn min(&self) -> (f32, f32) {
+        (self.xmin(), self.ymin())
+    }
+
+    #[inline]
     pub fn xmax(&self) -> f32 {
         self.p0.x().max(self.p1.x())
     }
@@ -115,6 +120,11 @@ impl<M: Coord> Bounds<M> {
     }
 
     #[inline]
+    pub fn max(&self) -> (f32, f32) {
+        (self.xmax(), self.ymax())
+    }
+
+    #[inline]
     pub fn xmid(&self) -> f32 {
         0.5 * (self.p0.x() + self.p1.x())
     }
@@ -122,6 +132,11 @@ impl<M: Coord> Bounds<M> {
     #[inline]
     pub fn ymid(&self) -> f32 {
         0.5 * (self.p0.y() + self.p1.y())
+    }
+
+    #[inline]
+    pub fn mid(&self) -> (f32, f32) {
+        (self.xmid(), self.ymid())
     }
 
     #[inline]
@@ -235,7 +250,7 @@ impl<M: Coord> fmt::Debug for Bounds<M> {
             tail,
             self.x0(),
             self.y0(),
-            self.x1() - self.x0(),
+            self.x1() - self.y1(),
             self.y1() - self.y0()
         )
     }
@@ -251,10 +266,11 @@ impl<M: Coord> From<&Bounds<M>> for Bounds<M> {
 impl<M: Coord> From<()> for Bounds<M> {
     #[inline]
     fn from(_: ()) -> Self {
-        Bounds::zero()
+        Bounds::none()
     }
 }
 
+/// (x0, y0)
 impl<M: Coord> From<(f32, f32)> for Bounds<M> {
     #[inline]
     fn from(value: (f32, f32)) -> Self {
@@ -275,32 +291,46 @@ impl<M: Coord> From<Point> for Bounds<M> {
     }
 }
 
+/// [width, height]
 impl<M: Coord> From<[f32; 2]> for Bounds<M> {
     #[inline]
-    fn from(value: [f32; 2]) -> Self {
+    fn from([w, h]: [f32; 2]) -> Self {
         Bounds::new(
             Point(0., 0.),
-            Point(value[0], value[1]),
+            Point(w, h),
         )
     }
 }
 
+/// ((x, y), [width, height])
+impl<M: Coord> From<((f32, f32), [f32; 2])> for Bounds<M> {
+    #[inline]
+    fn from(((x, y), [w, h]): ((f32, f32), [f32; 2])) -> Self {
+        Bounds::new(
+            Point(x, y),
+            Point(x + w, y + h),
+        )
+    }
+}
+
+/// [(x0, y0), (x1, y1)]
 impl<M: Coord> From<[(f32, f32); 2]> for Bounds<M> {
     #[inline]
-    fn from(value: [(f32, f32); 2]) -> Self {
+    fn from([p0, p1]: [(f32, f32); 2]) -> Self {
         Bounds::new(
-            Point(value[0].0, value[0].1),
-            Point(value[1].0, value[1].1),
+            Point(p0.0, p0.1),
+            Point(p1.0, p1.1),
         )
     }
 }
 
-impl<M: Coord> From<[f32; 4]> for Bounds<M> {
+/// (x0, y0, x1, y1)
+impl<M: Coord> From<(f32, f32, f32, f32)> for Bounds<M> {
     #[inline]
-    fn from(value: [f32; 4]) -> Self {
+    fn from((x0, y0, x1, y1): (f32, f32, f32, f32)) -> Self {
         Bounds::new(
-            Point(value[0], value[1]),
-            Point(value[2], value[3]),
+            Point(x0, y0),
+            Point(x1, y1),
         )
     }
 }
