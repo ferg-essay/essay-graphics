@@ -1,4 +1,4 @@
-use essay_graphics_api::driver::{Backend, Drawable, DeviceErr};
+use essay_graphics_api::renderer::{Backend, Drawable, DeviceErr};
 
 use crate::WgpuMainLoop;
 

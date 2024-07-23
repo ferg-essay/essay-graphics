@@ -1,4 +1,4 @@
-use driver::{Drawable, Renderer};
+use renderer::{Drawable, Renderer};
 use essay_graphics::prelude::*;
 use essay_graphics::layout::LayoutMainLoop;
 use essay_graphics_api::Coord;

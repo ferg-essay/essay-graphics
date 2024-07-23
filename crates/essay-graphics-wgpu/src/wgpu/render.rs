@@ -1,5 +1,5 @@
 use essay_graphics_api::{
-    driver::{RenderErr, Renderer}, 
+    renderer::{RenderErr, Renderer}, 
     form::{Form, FormId, Matrix4}, 
     Bounds, Canvas, Clip, FontStyle, FontTypeId, ImageId, Path, PathOpt, Point, TextStyle, TextureId
 };

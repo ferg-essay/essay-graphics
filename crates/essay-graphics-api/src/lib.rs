@@ -10,7 +10,7 @@ mod canvas;
 mod color;
 mod event;
 mod color_data;
-pub mod driver;
+pub mod renderer;
 mod path;
 pub mod path_opt;
 pub mod path_style;

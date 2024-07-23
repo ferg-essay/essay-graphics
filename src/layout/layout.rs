@@ -1,7 +1,7 @@
 use core::fmt;
 use std::{any::Any, marker::PhantomData, sync::{Arc, Mutex}};
 
-use essay_graphics_api::{driver::{Drawable, Renderer}, Bounds, Canvas, CanvasEvent, Coord, Point};
+use essay_graphics_api::{renderer::{Drawable, Renderer}, Bounds, Canvas, CanvasEvent, Coord, Point};
 
 #[derive(Clone)]
 pub struct Layout(Arc<Mutex<LayoutInner>>);

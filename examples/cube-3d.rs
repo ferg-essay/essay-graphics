@@ -1,4 +1,4 @@
-use driver::{Drawable, Renderer};
+use renderer::{Drawable, Renderer};
 use essay_graphics::{layout::Layout, prelude::*};
 use essay_graphics_wgpu::{WgpuHardcopy, WgpuMainLoop};
 use essay_tensor::Tensor;
@@ -138,7 +138,7 @@ impl Drawable for CubeView {
     // fn update_pos(&mut self, renderer: &mut dyn Renderer, pos: &Bounds<Canvas>) {
     // }
 
-    fn draw(&mut self, renderer: &mut dyn driver::Renderer, pos: &Bounds<Canvas>) {
+    fn draw(&mut self, renderer: &mut dyn renderer::Renderer, pos: &Bounds<Canvas>) {
         if self.is_dirty {
             self.is_dirty = false;
             self.fill_model(renderer);

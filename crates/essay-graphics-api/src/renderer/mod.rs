@@ -1,14 +1,12 @@
 mod backend;
-mod figure;
+mod drawable;
 mod renderer;
 
 pub use backend::{
     Backend, DeviceErr,
 };
 
-pub use figure::{
-    Drawable,
-};
+pub use drawable::Drawable;
 
 pub use renderer::{
     Renderer, RenderErr,

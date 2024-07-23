@@ -1,5 +1,5 @@
 use essay_graphics_api::{
-    driver::{Drawable, RenderErr}, 
+    renderer::{Drawable, RenderErr}, 
     form::{Form, FormId, Matrix4}, 
     Affine2d, Bounds, Canvas, CapStyle, Clip, Color, FontStyle, FontTypeId, 
     HorizAlign, ImageId, JoinStyle, LineStyle, Path, PathCode, 

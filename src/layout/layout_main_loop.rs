@@ -1,7 +1,7 @@
 use essay_graphics_wgpu::WgpuBackend;
 
 use essay_graphics_api::{
-    driver::{Backend, Drawable},
+    renderer::{Backend, Drawable},
     Bounds,
 };
 
