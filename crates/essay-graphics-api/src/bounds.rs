@@ -8,7 +8,6 @@ use super::{Point, Coord, Affine2d};
 ///
 /// Boundary box consisting of two unordered points
 /// 
-#[derive(PartialEq)]
 pub struct Bounds<M: Coord> {
     p0: Point,
     p1: Point,
@@ -235,6 +234,12 @@ impl<M: Coord> Clone for Bounds<M> {
     }
 }
 
+impl<M: Coord> PartialEq for Bounds<M> {
+    fn eq(&self, other: &Self) -> bool {
+        self.p0 == other.p0 && self.p1 == other.p1 && self.marker == other.marker
+    }
+}
+
 impl<M: Coord> fmt::Debug for Bounds<M> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         // TODO: add marker to debug?
@@ -366,4 +371,162 @@ impl<M: Coord> From<Bounds<M>> for Tensor {
     fn from(value: Bounds<M>) -> Self {
         value.corners()
     }
+}
+
+#[cfg(test)]
+mod test {
+    use crate::{Coord, Point};
+
+    use super::Bounds;
+
+    #[test]
+    fn bounds_zero() {
+        let bounds = Bounds::<Test>::zero();
+
+        assert_eq!(bounds.is_zero(), true);
+        assert_eq!(bounds.is_none(), false);
+
+        assert_eq!(bounds.x0(), 0.);
+        assert_eq!(bounds.y0(), 0.);
+
+        assert_eq!(bounds.x1(), 0.);
+        assert_eq!(bounds.y1(), 0.);
+    }
+
+    #[test]
+    fn bounds_none() {
+        let bounds = Bounds::<Test>::none();
+
+        assert_eq!(bounds.is_zero(), false);
+        assert_eq!(bounds.is_none(), true);
+
+        // reversed MAX/MIN allows none() to calculate union extent.
+        assert_eq!(bounds.x0(), f32::MAX);
+        assert_eq!(bounds.y0(), f32::MAX);
+
+        assert_eq!(bounds.x1(), f32::MIN);
+        assert_eq!(bounds.y1(), f32::MIN);
+    }
+
+    #[test]
+    fn bounds_unit() {
+        let bounds = Bounds::<Test>::unit();
+
+        assert_eq!(bounds.is_zero(), false);
+        assert_eq!(bounds.is_none(), false);
+
+        assert_eq!(bounds.x0(), 0.);
+        assert_eq!(bounds.y0(), 0.);
+
+        assert_eq!(bounds.x1(), 1.);
+        assert_eq!(bounds.y1(), 1.);
+    }
+
+    #[test]
+    fn bounds_new() {
+        let bounds = Bounds::<Test>::new(Point(1., 2.), Point(3., 4.));
+
+        assert_eq!(bounds.is_zero(), false);
+        assert_eq!(bounds.is_none(), false);
+
+        assert_eq!(bounds.x0(), 1.);
+        assert_eq!(bounds.y0(), 2.);
+
+        assert_eq!(bounds.x1(), 3.);
+        assert_eq!(bounds.y1(), 4.);
+
+        let b2 = Bounds::<Test>::new(Point(1., 2.), Point(3., 4.));
+
+        assert_eq!(bounds == b2, true);
+        assert_eq!(b2 == bounds, true);
+
+        let b2 = Bounds::<Test>::new(Point(3., 4.), Point(1., 2.));
+
+        assert_eq!(bounds == b2, false);
+        assert_eq!(b2 == bounds, false);
+
+        let b2 = Bounds::<Test>::new(Point(0., 2.), Point(3., 4.));
+
+        assert_eq!(bounds == b2, false);
+        assert_eq!(b2 == bounds, false);
+
+        let b2 = Bounds::<Test>::new(Point(1., 0.), Point(3., 4.));
+
+        assert_eq!(bounds == b2, false);
+        assert_eq!(b2 == bounds, false);
+
+        let b2 = Bounds::<Test>::new(Point(1., 2.), Point(0., 4.));
+
+        assert_eq!(bounds == b2, false);
+        assert_eq!(b2 == bounds, false);
+
+        let b2 = Bounds::<Test>::new(Point(1., 2.), Point(3., 0.));
+
+        assert_eq!(bounds == b2, false);
+        assert_eq!(b2 == bounds, false);
+    }
+
+    #[test]
+    fn bounds_from() {
+        let bounds = Bounds::<Test>::new(Point(1., 2.), Point(3., 4.));
+
+        assert_eq!(bounds, Bounds::<Test>::from((1., 2., 3., 4.)));
+        assert_ne!(bounds, Bounds::<Test>::from((3., 4., 1., 2.)));
+
+        assert_eq!(
+            Bounds::<Test>::from((1., 2.)),
+            Bounds::<Test>::new((1., 2.), (1., 2.))
+        );
+
+        assert_eq!(
+            Bounds::<Test>::from([1., 2.]),
+            Bounds::<Test>::new((0., 0.), (1., 2.))
+        );
+
+        assert_eq!(
+            Bounds::<Test>::from(((10., 20.), [1., 2.])),
+            Bounds::<Test>::new((10., 20.), (11., 22.))
+        );
+
+        assert!(Bounds::<Test>::from(()).is_none());
+    }
+
+    #[test]
+    fn bounds_methods() {
+        let b1 = Bounds::<Test>::new(Point(1., 20.), Point(3., 40.));
+        let b2 = Bounds::<Test>::new(Point(3., 40.), Point(1., 20.));
+
+        assert_eq!(b1.p0(), Point(1., 20.));
+        assert_eq!(b1.p1(), Point(3., 40.));
+
+        assert_eq!(b2.p0(), Point(3., 40.));
+        assert_eq!(b2.p1(), Point(1., 20.));
+
+        assert_eq!(b1.xmin(), 1.);
+        assert_eq!(b2.xmin(), 1.);
+
+        assert_eq!(b1.xmax(), 3.);
+        assert_eq!(b2.xmax(), 3.);
+
+        assert_eq!(b1.xmid(), 2.);
+        assert_eq!(b2.xmid(), 2.);
+
+        assert_eq!(b1.width(), 2.);
+        assert_eq!(b2.width(), 2.);
+
+        assert_eq!(b1.ymin(), 20.);
+        assert_eq!(b2.ymin(), 20.);
+
+        assert_eq!(b1.ymax(), 40.);
+        assert_eq!(b2.ymax(), 40.);
+
+        assert_eq!(b1.ymid(), 30.);
+        assert_eq!(b2.ymid(), 30.);
+
+        assert_eq!(b1.height(), 20.);
+        assert_eq!(b2.height(), 20.);
+    }
+
+    struct Test {}
+    impl Coord for Test {}
 }
