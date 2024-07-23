@@ -28,7 +28,7 @@ pub use color::{Color, Colors};
 
 pub use coord::Coord;
 
-pub use event::CanvasEvent;
+pub use event::Event;
 
 pub use path::{
     Path, PathCode,

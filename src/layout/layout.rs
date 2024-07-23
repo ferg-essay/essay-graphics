@@ -1,19 +1,17 @@
-use core::fmt;
 use std::{any::Any, marker::PhantomData, sync::{Arc, Mutex}};
 
-use essay_graphics_api::{renderer::{Drawable, Renderer}, Bounds, Canvas, CanvasEvent, Coord, Point};
+use essay_graphics_api::{renderer::{Drawable, Renderer}, Bounds, Canvas, Event, Coord, Point};
 
 #[derive(Clone)]
-pub struct Layout(Arc<Mutex<LayoutInner>>);
+pub struct Layout {
+    views: Vec<ViewItem>,
+}
 
 impl Layout {
-    pub fn new() -> Layout {
-        Layout(Arc::new(Mutex::new(LayoutInner::new())))
-    }
-
-    #[inline]
-    pub fn bounds(&self) -> Bounds<Layout> {
-        self.0.lock().unwrap().bounds().clone()
+    pub fn new() -> Self {
+        Self {
+            views: Vec::new(),
+        }
     }
 
     ///
@@ -27,102 +25,41 @@ impl Layout {
     /// If the position is unassigned, the new position will be a unit
     /// box below any current box, such as ((0., -1), (0., 0.))
     /// 
-    #[inline]
     pub fn view<T: Drawable + Send + 'static>(
         &mut self, 
         pos: impl Into<Bounds<Layout>>,
-        view: T, 
+        view: T
     ) -> View<T> {
         let mut pos = pos.into();
 
         // If unassigned, layout below all other views
         if pos.is_zero() || pos.is_none() {
-            let layout = self.bounds();
-            pos = Bounds::new(
-                Point(0., layout.ymin() - 1.),
-                Point(1., layout.ymax()),
-            );
+            if self.views.len() == 0 {
+                pos = Bounds::from([1., 1.])
+            } else {
+                let layout = self.bounds();
+                pos = Bounds::new(
+                    Point(0., layout.ymin() - 1.),
+                    Point(1., layout.ymin()),
+                );
+            }
         }
 
-        let id = self.0.lock().unwrap().add_view(pos, view);
-
-        View::new(id, self.clone())
-    }
-
-    #[inline]
-    fn pos(&self, id: ViewId) -> Bounds<Canvas> {
-        self.0.lock().unwrap().pos(id).clone()
-    }
-
-    #[inline]
-    fn read<T: 'static, R>(&self, id: ViewId, fun: impl FnOnce(&T) -> R) -> R {
-        self.0.lock().unwrap().views[id.0].read(fun)
-    }
-
-    #[inline]
-    fn write<T: 'static, R>(&self, id: ViewId, fun: impl FnOnce(&mut T) -> R) -> R {
-        self.0.lock().unwrap().views[id.0].write(fun)
-    }
-}
-
-impl Drawable for Layout {
-    #[inline]
-    fn draw(&mut self, renderer: &mut dyn Renderer, pos: &Bounds<Canvas>) {
-        self.0.lock().unwrap().draw(renderer, pos);
-    }
-
-    #[inline]
-    fn event(&mut self, renderer: &mut dyn Renderer, event: &CanvasEvent) {
-        self.0.lock().unwrap().event(renderer, event);
-    }
-}
-
-impl Coord for Layout {}
-
-struct LayoutInner {
-    views: Vec<ViewItem>,
-}
-
-impl LayoutInner {
-    pub fn new() -> Self {
-        Self {
-            views: Vec::new(),
-        }
-    }
-
-    fn add_view(
-        &mut self, 
-        pos: impl Into<Bounds<Layout>>,
-        view: impl Drawable + Send + 'static
-    ) -> ViewId {
-        let pos = pos.into();
-
-        assert!(! pos.is_none() && ! pos.is_zero());
-        //assert!(pos.xmin() >= 0.);
-        //assert!(pos.ymin() >= 0.);
-
-        // arbitrary limit for now
-        //assert!(pos.width() <= 11.);
-        //assert!(pos.height() <= 11.);
-
-        // self.extent = self.extent.union(&pos);
-
-        let id = ViewId(self.views.len());
+        let id = self.views.len();
 
         self.views.push(ViewItem::new(pos, view));
 
-        id
-    }
-
-    #[inline]
-    fn pos(&self, id: ViewId) -> &Bounds<Canvas> {
-        self.views[id.index()].pos()
+        View {
+            view_arc: self.views[id].ptr.clone(),
+            marker: PhantomData,
+        }
     }
 
     fn layout(&mut self, renderer: &mut dyn Renderer, pos: &Bounds<Canvas>) {
         let bounds = self.bounds();
-        
-        let (p_x0, p_y0) = pos.min();
+
+        let p_x0 = pos.xmin().min(0.);
+        let p_y0 = pos.ymin().min(0.);
 
         let h = pos.height();
         let w = pos.width();
@@ -144,12 +81,12 @@ impl LayoutInner {
 
             item.pos_canvas = pos.clone();
 
-            item.event(renderer, &CanvasEvent::Resize(pos));
+            item.ptr.event(renderer, &Event::Resize(pos));
         }
     }
 
     fn bounds(&self) -> Bounds<Layout> {
-        let mut bounds = Bounds::none();
+        let mut bounds = Bounds::unit();
 
         for item in &self.views {
             bounds = bounds.union(&item.pos_grid);
@@ -157,29 +94,30 @@ impl LayoutInner {
 
         bounds
     }
+}
 
-    fn draw(
-        &mut self, 
-        renderer: &mut dyn Renderer,
-        _pos: &Bounds<Canvas>,
-    ) {
+impl Drawable for Layout {
+    fn draw(&mut self, renderer: &mut dyn Renderer, _pos: &Bounds<Canvas>) {
         for item in &mut self.views {
-            let pos = item.pos().clone();
-            item.draw(renderer, &pos);
+            item.ptr.draw(renderer, &item.pos_canvas);
         }
     }
 
-    fn event(&mut self, renderer: &mut dyn Renderer, event: &CanvasEvent) {
+    fn event(&mut self, renderer: &mut dyn Renderer, event: &Event) {
         match event {
-            CanvasEvent::Resize(bounds) => {
+            Event::Resize(bounds) => {
                 self.layout(renderer, bounds);
+
+                for view in &mut self.views {
+                    view.ptr.event(renderer, &Event::Resize(view.pos_canvas.clone()));
+                }
             },
             _ => {
                 let point = event.point();
 
                 for view in &mut self.views {
-                    if view.pos().contains(point) {
-                        view.event(renderer, event);
+                    if view.pos_canvas.contains(point) {
+                        view.ptr.event(renderer, event);
                     }
                 }
             }
@@ -187,28 +125,66 @@ impl LayoutInner {
     }
 }
 
+impl Coord for Layout {}
+
+#[derive(Clone)]
 struct ViewItem {
     pos_grid: Bounds<Layout>,
     pos_canvas: Bounds<Canvas>,
 
-    ptr: Box<dyn Any + Send>,
-    handle: Box<dyn DrawableHandle>,
+    ptr: ViewArc,
 }
 
 impl ViewItem {
     fn new<T: Drawable + Send + 'static>(pos: Bounds<Layout>, view: T) -> Self {
         Self {
-            pos_grid: pos.into(),
-            pos_canvas: Bounds::unit(),
-
-            ptr: Box::new(view),
-            handle: Box::new(ViewDrawableHandle::<T>::new()),
+            pos_grid: pos,
+            pos_canvas: Bounds::none(),
+            ptr: ViewArc(Arc::new(Mutex::new(ViewPtr::new(view))))
         }
+    }
+}
+
+#[derive(Clone)]
+struct ViewArc(Arc<Mutex<ViewPtr>>);
+
+impl ViewArc {
+    #[inline]
+    fn draw(&mut self, renderer: &mut dyn Renderer, pos: &Bounds<Canvas>) {
+        let mut view = self.0.lock().unwrap();
+        
+        view.draw(renderer, pos);
     }
 
     #[inline]
-    fn pos(&self) -> &Bounds<Canvas> {
-        &self.pos_canvas
+    fn event(&mut self, renderer: &mut dyn Renderer, event: &Event) {
+        let mut view = self.0.lock().unwrap();
+        
+        view.event(renderer, event);
+    }
+
+    #[inline]
+    fn read<T: 'static, R>(&self, fun: impl FnOnce(&T) -> R) -> R {
+        self.0.lock().unwrap().read(fun)
+    }
+
+    #[inline]
+    fn write<T: 'static, R>(&mut self, fun: impl FnOnce(&mut T) -> R) -> R {
+        self.0.lock().unwrap().write(fun)
+    }
+}
+
+struct ViewPtr {
+    ptr: Box<dyn Any + Send>,
+    handle: Box<dyn ViewHandleTrait>,
+}
+
+impl ViewPtr {
+    fn new<T: Drawable + Send + 'static>(view: T) -> Self {
+        Self {
+            ptr: Box::new(view),
+            handle: Box::new(ViewHandle::<T>::new()),
+        }
     }
 
     #[inline]
@@ -217,7 +193,7 @@ impl ViewItem {
     }
 
     #[inline]
-    fn event(&mut self, renderer: &mut dyn Renderer, event: &CanvasEvent) {
+    fn event(&mut self, renderer: &mut dyn Renderer, event: &Event) {
         self.handle.event(self.ptr.as_mut(), renderer, event);
     }
 
@@ -232,48 +208,37 @@ impl ViewItem {
     }
 }
 
-trait DrawableHandle: Send {
+trait ViewHandleTrait {
     fn draw(&mut self, any: &mut dyn Any, renderer: &mut dyn Renderer, pos: &Bounds<Canvas>);
-    fn event(&mut self, any: &mut dyn Any, renderer: &mut dyn Renderer, event: &CanvasEvent);
+    fn event(&mut self, any: &mut dyn Any, renderer: &mut dyn Renderer, event: &Event);
 }
 
-struct ViewDrawableHandle<T: Drawable> {
+struct ViewHandle<T: Drawable> {
     marker: PhantomData<fn(T)>,
 }
 
-impl<T: Drawable> ViewDrawableHandle<T> {
+impl<T: Drawable> ViewHandle<T> {
     fn new() -> Self {
         Self {
-            marker: PhantomData::default(),
+            marker: PhantomData,
         }
     }
 }
 
-impl<V: Drawable + 'static> DrawableHandle for ViewDrawableHandle<V> {
+impl<V: Drawable + 'static> ViewHandleTrait for ViewHandle<V> {
     #[inline]
     fn draw(&mut self, any: &mut dyn Any, renderer: &mut dyn Renderer, pos: &Bounds<Canvas>) {
         any.downcast_mut::<V>().unwrap().draw(renderer, pos)
     }
 
     #[inline]
-    fn event(&mut self, any: &mut dyn Any, renderer: &mut dyn Renderer, event: &CanvasEvent) {
+    fn event(&mut self, any: &mut dyn Any, renderer: &mut dyn Renderer, event: &Event) {
         any.downcast_mut::<V>().unwrap().event(renderer, event)
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-struct ViewId(usize);
-
-impl ViewId {
-    pub fn index(&self) -> usize {
-        self.0
-    }
-}
-
 pub struct View<T> {
-    id: ViewId,
-
-    layout: Layout,
+    view_arc: ViewArc,
 
     marker: PhantomData<fn(T)>,
 }
@@ -281,65 +246,161 @@ pub struct View<T> {
 impl<T: 'static> Clone for View<T> {
     fn clone(&self) -> Self {
         Self { 
-            id: self.id.clone(), 
-            layout: self.layout.clone(), 
-            marker: Default::default(),
+            view_arc: self.view_arc.clone(), 
+            marker: PhantomData,
         }
     }
 }
 
 impl<T: 'static> View<T> {
-    fn new(id: ViewId, layout: Layout) -> Self {
-        let frame = Self {
-            id,
-            layout,
-            marker: Default::default(),
-        };
-
-        frame
-    }
-
-    #[inline]
-    pub fn pos(&self) -> Bounds<Canvas> {
-        self.layout.pos(self.id)
-    }
-
     #[inline]
     pub fn read<R>(&self, fun: impl FnOnce(&T) -> R) -> R {
-        self.layout.read(self.id, fun)
+        self.view_arc.read(fun)
     }
 
     #[inline]
     pub fn write<R>(&mut self, fun: impl FnOnce(&mut T) -> R) -> R {
-        self.layout.write(self.id, fun)
+        self.view_arc.write(fun)
     }
 }
 
-impl<T: Send> fmt::Debug for View<T> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let pos = self.layout.pos(self.id);
+pub struct PosView {
+    pos: Bounds<Canvas>,
+}
 
-        write!(f, "View[{}]({},{}; {}x{})",
-            self.id.index(),
-            pos.xmin(),
-            pos.ymin(),
-            pos.width(),
-            pos.height(),
-        )
+impl PosView {
+    pub fn new() -> Self {
+        Self {
+            pos: Bounds::none(),
+        }
+    }
+
+    pub fn pos(&self) -> Bounds<Canvas> {
+        self.pos.clone()
     }
 }
 
-/*
-pub trait ViewDrawable: Send {
-    ///
-    /// Draws the view in the renderer.
-    /// 
-    /// Pos is the same as the most recent CanvasEvent::Resize pos.
-    /// 
-    fn draw(&mut self, renderer: &mut dyn Renderer, pos: &Bounds<Canvas>);
+impl Drawable for PosView {
+    fn draw(&mut self, _renderer: &mut dyn Renderer, _pos: &Bounds<Canvas>) {
+    }
 
-    #[allow(unused_variables)]
-    fn event(&mut self, renderer: &mut dyn Renderer, event: &CanvasEvent) {
+    fn event(&mut self, _renderer: &mut dyn Renderer, event: &Event) {
+        if let Event::Resize(pos) = event {
+            self.pos = pos.clone();
+        }
     }
 }
-    */
+
+#[cfg(test)]
+mod test {
+    use essay_graphics_api::{renderer::Drawable, Bounds, Event};
+    use essay_graphics_test::TestRenderer;
+
+    use crate::layout::PosView;
+
+    use super::Layout;
+
+    #[test]
+    fn layout_basic() {
+        let mut layout = Layout::new();
+
+        let bounds = Bounds::from([100., 200.]);
+        let mut renderer = TestRenderer::new(&bounds);
+
+        layout.event(&mut renderer, &Event::Resize(bounds));
+
+        assert_eq!(renderer.drain(), Vec::<String>::new().as_slice());
+    }
+
+    #[test]
+    fn layout_single_pos() {
+        let mut layout = Layout::new();
+
+        let bounds = Bounds::from([100., 200.]);
+        let mut renderer = TestRenderer::new(&bounds);
+
+        let view = layout.view((), PosView::new());
+
+        layout.event(&mut renderer, &Event::Resize(bounds));
+
+        assert_eq!(renderer.drain(), Vec::<String>::new().as_slice());
+
+        assert_eq!(view.read(|v| v.pos()), Bounds::from(((0., 0.), [100., 200.])));
+    }
+
+    #[test]
+    fn layout_dual_pos() {
+        let mut layout = Layout::new();
+
+        let bounds = Bounds::from([360., 3600.]);
+        let mut renderer = TestRenderer::new(&bounds);
+
+        let view1 = layout.view((), PosView::new());
+        let view2 = layout.view((), PosView::new());
+
+        layout.event(&mut renderer, &Event::Resize(bounds));
+
+        assert_eq!(renderer.drain(), Vec::<String>::new().as_slice());
+
+        assert_eq!(view1.read(|v| v.pos()), Bounds::from(((0., 1800.), [360., 1800.])));
+        assert_eq!(view2.read(|v| v.pos()), Bounds::from(((0., 0.), [360., 1800.])));
+    }
+
+    #[test]
+    fn layout_pos_group() {
+        let mut layout = Layout::new();
+
+        let bounds = Bounds::from([360., 3600.]);
+        let mut renderer = TestRenderer::new(&bounds);
+
+        let v1 = layout.view(((0., 0.), [2., 2.]), PosView::new());
+        let v2 = layout.view(((2., 0.), [1., 1.]), PosView::new());
+        let v3 = layout.view(((2., 1.), [1., 1.]), PosView::new());
+        let v4 = layout.view(((0., 2.), [1., 1.]), PosView::new());
+        let v5 = layout.view(((1., 2.), [1., 1.]), PosView::new());
+        let v6 = layout.view(((2., 2.), [1., 1.]), PosView::new());
+
+        layout.event(&mut renderer, &Event::Resize(bounds));
+
+        assert_eq!(renderer.drain(), Vec::<String>::new().as_slice());
+
+        assert_eq!(v1.read(|v| v.pos()), Bounds::from(((0., 0.), [240., 2400.])));
+        assert_eq!(v2.read(|v| v.pos()), Bounds::from(((240., 0.), [120., 1200.])));
+        assert_eq!(v3.read(|v| v.pos()), Bounds::from(((240., 1200.), [120., 1200.])));
+        assert_eq!(v4.read(|v| v.pos()), Bounds::from(((0., 2400.), [120., 1200.])));
+        assert_eq!(v5.read(|v| v.pos()), Bounds::from(((120., 2400.), [120., 1200.])));
+        assert_eq!(v6.read(|v| v.pos()), Bounds::from(((240., 2400.), [120., 1200.])));
+    }
+
+    #[test]
+    fn layout_small_pos_ll() {
+        let mut layout = Layout::new();
+
+        let bounds = Bounds::from([360., 3600.]);
+        let mut renderer = TestRenderer::new(&bounds);
+
+        let view = layout.view(((0., 0.), [0.25, 0.5]), PosView::new());
+
+        layout.event(&mut renderer, &Event::Resize(bounds));
+
+        assert_eq!(renderer.drain(), Vec::<String>::new().as_slice());
+
+        assert_eq!(view.read(|v| v.pos()), Bounds::from(((0., 0.), [90., 1800.])));
+    }
+
+    #[test]
+    fn layout_small_pos_ur() {
+        let mut layout = Layout::new();
+
+        let bounds = Bounds::from([360., 3600.]);
+        let mut renderer = TestRenderer::new(&bounds);
+
+        let view = layout.view(((0.75, 0.5), [0.25, 0.5]), PosView::new());
+
+        layout.event(&mut renderer, &Event::Resize(bounds));
+
+        assert_eq!(renderer.drain(), Vec::<String>::new().as_slice());
+
+        assert_eq!(view.read(|v| v.pos()), Bounds::from(((270., 1800.), [90., 1800.])));
+    }
+}

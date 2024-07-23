@@ -1,6 +1,6 @@
 use std::{fs::File, io::BufWriter, ops::Deref};
 
-use essay_graphics_api::{renderer::Drawable, CanvasEvent, Clip};
+use essay_graphics_api::{renderer::Drawable, Event, Clip};
 use wgpu::BufferView;
 use image::{ImageBuffer, Rgba};
 
@@ -110,7 +110,7 @@ impl WgpuHardcopy {
             Some(&view)
         );
     
-        drawable.event(&mut plot_renderer, &CanvasEvent::Resize(pos.clone()));
+        drawable.event(&mut plot_renderer, &Event::Resize(pos.clone()));
     
         drawable.draw(&mut plot_renderer, &pos);
     

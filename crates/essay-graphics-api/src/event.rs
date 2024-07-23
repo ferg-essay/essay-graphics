@@ -3,7 +3,7 @@ use crate::{Bounds, Canvas, Point};
 // TODO: Consider changing these to abstract events like Pan, Zoom because
 // of tablets, etc.
 #[derive(Clone, Debug)]
-pub enum CanvasEvent {
+pub enum Event {
     Resize(Bounds<Canvas>),
 
     MouseLeftPress(Point),
@@ -25,29 +25,29 @@ pub enum CanvasEvent {
     KeyPress(Point, char),
 }
 
-impl CanvasEvent {
+impl Event {
     #[inline]
     pub fn point(&self) -> Point {
         match self {
-            CanvasEvent::Resize(_) => Point(0., 0.),
+            Event::Resize(_) => Point(0., 0.),
 
-            CanvasEvent::MouseLeftPress(point) => *point,
-            CanvasEvent::MouseLeftRelease(point) => *point,
-            CanvasEvent::Pan(point, _, _) => *point,
-            CanvasEvent::ResetView(point) => *point,
+            Event::MouseLeftPress(point) => *point,
+            Event::MouseLeftRelease(point) => *point,
+            Event::Pan(point, _, _) => *point,
+            Event::ResetView(point) => *point,
 
-            CanvasEvent::MouseRightPress(point) => *point,
-            CanvasEvent::MouseRightRelease(point) => *point,
-            CanvasEvent::MouseRightDrag(point, _) => *point,
-            CanvasEvent::ZoomBounds(point, _) => *point,
-            CanvasEvent::MouseRightDoubleClick(point) => *point,
+            Event::MouseRightPress(point) => *point,
+            Event::MouseRightRelease(point) => *point,
+            Event::MouseRightDrag(point, _) => *point,
+            Event::ZoomBounds(point, _) => *point,
+            Event::MouseRightDoubleClick(point) => *point,
 
-            CanvasEvent::MouseMiddlePress(point) => *point,
-            CanvasEvent::MouseMiddleRelease(point) => *point,
-            CanvasEvent::MouseMiddleDrag(point, _) => *point,
-            CanvasEvent::MouseMiddleDoubleClick(point) => *point,
+            Event::MouseMiddlePress(point) => *point,
+            Event::MouseMiddleRelease(point) => *point,
+            Event::MouseMiddleDrag(point, _) => *point,
+            Event::MouseMiddleDoubleClick(point) => *point,
 
-            CanvasEvent::KeyPress(point, _) => *point,
+            Event::KeyPress(point, _) => *point,
         }
     }
 }

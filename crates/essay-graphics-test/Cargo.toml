@@ -1,0 +1,14 @@
+[package]
+name = "essay-graphics-test"
+version = "0.1.34-dev"
+edition = "2021"
+
+[dependencies]
+env_logger = { version = "0.11" }
+log = { version = "0.4.17" }
+
+essay-tensor = { path = "../../../essay-tensor" }
+essay-graphics-api = { path = "../essay-graphics-api" }
+
+[lib]
+doctest = false

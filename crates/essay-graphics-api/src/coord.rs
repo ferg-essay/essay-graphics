@@ -1,2 +1,2 @@
 
-pub trait Coord: Send + 'static {}
+pub trait Coord: 'static {}

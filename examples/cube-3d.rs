@@ -159,39 +159,39 @@ impl Drawable for CubeView {
         }
     }
 
-    fn event(&mut self, renderer: &mut dyn Renderer, event: &CanvasEvent) {
+    fn event(&mut self, renderer: &mut dyn Renderer, event: &Event) {
         match event {
-            CanvasEvent::KeyPress(_, 'w') => {
+            Event::KeyPress(_, 'w') => {
                 self.camera.forward(0.1);
                 renderer.request_redraw(&Bounds::zero());
             }
-            CanvasEvent::KeyPress(_, 's') => {
+            Event::KeyPress(_, 's') => {
                 self.camera.forward(-0.1);
                 renderer.request_redraw(&Bounds::zero());
             }
-            CanvasEvent::KeyPress(_, 'a') => {
+            Event::KeyPress(_, 'a') => {
                 self.camera.right(-0.1);
                 renderer.request_redraw(&Bounds::zero());
             }
-            CanvasEvent::KeyPress(_, 'd') => {
+            Event::KeyPress(_, 'd') => {
                 self.camera.right(0.1);
                 renderer.request_redraw(&Bounds::zero());
             }
 
-            CanvasEvent::KeyPress(_, 'q') => {
+            Event::KeyPress(_, 'q') => {
                 self.camera.yaw(Angle::Deg(10.));
                 renderer.request_redraw(&Bounds::zero());
             }
-            CanvasEvent::KeyPress(_, 'e') => {
+            Event::KeyPress(_, 'e') => {
                 self.camera.yaw(Angle::Deg(-10.));
                 renderer.request_redraw(&Bounds::zero());
             }
 
-            CanvasEvent::KeyPress(_, 'r') => {
+            Event::KeyPress(_, 'r') => {
                 self.camera.up(0.1);
                 renderer.request_redraw(&Bounds::zero());
             }
-            CanvasEvent::KeyPress(_, 'f') => {
+            Event::KeyPress(_, 'f') => {
                 self.camera.up(-0.1);
                 renderer.request_redraw(&Bounds::zero());
             }

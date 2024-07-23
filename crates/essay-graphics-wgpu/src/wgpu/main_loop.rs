@@ -1,8 +1,8 @@
 use std::time::Instant;
 
-use essay_graphics_api::{renderer::{DeviceErr, Drawable}, Bounds, Canvas, CanvasEvent, Point};
+use essay_graphics_api::{renderer::{DeviceErr, Drawable}, Bounds, Canvas, Event, Point};
 use winit::{
-    event::{ElementState, Event, MouseButton, WindowEvent }, 
+    event::{self, ElementState, MouseButton, WindowEvent }, 
     event_loop::{ControlFlow, EventLoop}, 
     keyboard::{Key, NamedKey}, 
     window::{CursorIcon, Window}
@@ -153,7 +153,7 @@ fn run_event_loop(
 
         window_target.set_control_flow(ControlFlow::Wait);
         match event {
-            Event::WindowEvent {
+            event::Event::WindowEvent {
                 event: WindowEvent::Resized(size),
                 ..
             } => {
@@ -168,9 +168,9 @@ fn run_event_loop(
                 // canvas.set_scale_factor()
                 canvas.request_redraw(true);
                 let mut renderer = PlotRenderer::new(&mut canvas, &device, Some(&queue), None);
-                drawable.event(&mut renderer, &CanvasEvent::Resize(bounds));
+                drawable.event(&mut renderer, &Event::Resize(bounds));
             }
-            Event::WindowEvent {
+            event::Event::WindowEvent {
                 event: WindowEvent::MouseInput {
                     state,
                     button,
@@ -186,14 +186,14 @@ fn run_event_loop(
                         if state == ElementState::Pressed {
                             drawable.event(
                                 &mut renderer,
-                                &CanvasEvent::MouseLeftPress(cursor.position),
+                                &Event::MouseLeftPress(cursor.position),
                             );
                             let now = Instant::now();
 
                             if now.duration_since(mouse.left_press_time).as_millis() < dbl_click {
                                 drawable.event(
                                     &mut renderer,
-                                    &CanvasEvent::ResetView(cursor.position),
+                                    &Event::ResetView(cursor.position),
                                 )
                             }
 
@@ -212,7 +212,7 @@ fn run_event_loop(
                             ElementState::Pressed => {
                                 drawable.event(
                                     &mut renderer,
-                                    &CanvasEvent::MouseRightPress(cursor.position),
+                                    &Event::MouseRightPress(cursor.position),
                                 );
 
                                 mouse.right_press_start = cursor.position;
@@ -222,13 +222,13 @@ fn run_event_loop(
                             ElementState::Released => {
                                 drawable.event(
                                     &mut renderer,
-                                    &CanvasEvent::MouseRightRelease(cursor.position),
+                                    &Event::MouseRightRelease(cursor.position),
                                 );
 
                                 if zoom_min <= mouse.right_press_start.dist(&cursor.position) {
                                     drawable.event(
                                         &mut renderer,
-                                        &CanvasEvent::ZoomBounds(
+                                        &Event::ZoomBounds(
                                             mouse.right_press_start, 
                                             cursor.position
                                         )
@@ -241,7 +241,7 @@ fn run_event_loop(
                     _ => {}
                 }
             }
-            Event::WindowEvent {
+            event::Event::WindowEvent {
                 event: WindowEvent::CursorMoved {
                     position,
                     ..
@@ -255,7 +255,7 @@ fn run_event_loop(
                     && pan_min <= mouse.left_press_start.dist(&cursor.position) {
                     drawable.event(
                         &mut renderer,
-                        &CanvasEvent::Pan(
+                        &Event::Pan(
                             mouse.left_press_start, 
                             mouse.left_press_last, 
                             cursor.position
@@ -268,11 +268,11 @@ fn run_event_loop(
                     && pan_min <= mouse.left_press_start.dist(&cursor.position) {
                         drawable.event(
                             &mut renderer,
-                            &CanvasEvent::MouseRightDrag(mouse.left_press_start, cursor.position),
+                            &Event::MouseRightDrag(mouse.left_press_start, cursor.position),
                     );
                 }
             }
-            Event::WindowEvent {
+            event::Event::WindowEvent {
                 event: WindowEvent::KeyboardInput { event, .. },
                 ..
             } => {
@@ -285,28 +285,28 @@ fn run_event_loop(
                             let ch = key.chars().next().unwrap();
                             drawable.event(
                                 &mut renderer,
-                                &CanvasEvent::KeyPress(pos, ch)
+                                &Event::KeyPress(pos, ch)
                             );
                         }
                         Key::Named(NamedKey::Space) => {
                             // TODO: replace with KeyPressNamed
                             drawable.event(
                                 &mut renderer,
-                                &CanvasEvent::KeyPress(pos, ' ')
+                                &Event::KeyPress(pos, ' ')
                             );
                         },
                         Key::Named(NamedKey::Tab) => {
                             // TODO: replace with KeyPressNamed
                             drawable.event(
                                 &mut renderer,
-                                &CanvasEvent::KeyPress(pos, '\r')
+                                &Event::KeyPress(pos, '\r')
                             );
                         },
                         Key::Named(NamedKey::Enter) => {
                             // TODO: replace with KeyPressNamed
                             drawable.event(
                                 &mut renderer,
-                                &CanvasEvent::KeyPress(pos, '\n')
+                                &Event::KeyPress(pos, '\n')
                             );
                         },
                         Key::Named(_) => {},
@@ -315,17 +315,17 @@ fn run_event_loop(
                     }
                 }
             }
-            Event::WindowEvent {
+            event::Event::WindowEvent {
                 event: WindowEvent::RedrawRequested,
                 ..
             } => {
                 canvas.request_redraw(true);
             },
-            Event::WindowEvent {
+            event::Event::WindowEvent {
                 event: WindowEvent::CloseRequested,
                 ..
             } => window_target.exit(),
-            Event::AboutToWait => {
+            event::Event::AboutToWait => {
                 if canvas.is_request_redraw() {
                     canvas.request_redraw(false);
 

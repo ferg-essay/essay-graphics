@@ -1,5 +1,5 @@
 use super::Renderer;
-use crate::{Bounds, Canvas, CanvasEvent};
+use crate::{Bounds, Canvas, Event};
 
 pub trait Drawable {
     ///
@@ -19,5 +19,5 @@ pub trait Drawable {
     ///
     /// Called to inform the drawable when an event occurs in the drawable.
     /// 
-    fn event(&mut self, renderer: &mut dyn Renderer, event: &CanvasEvent);
+    fn event(&mut self, renderer: &mut dyn Renderer, event: &Event);
 }

@@ -40,8 +40,8 @@ impl PathView {
 }
 
 impl Drawable for PathView {
-    fn event(&mut self, _renderer: &mut dyn Renderer, event: &CanvasEvent) {
-        if let CanvasEvent::Resize(pos) = event {
+    fn event(&mut self, _renderer: &mut dyn Renderer, event: &Event) {
+        if let Event::Resize(pos) = event {
             let to_canvas = Bounds::<Data>::new((0., 0.), (1., 1.)).affine_to(pos);
 
             self.path = self.path_data.transform(&to_canvas);
