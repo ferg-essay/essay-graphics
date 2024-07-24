@@ -112,7 +112,7 @@ impl WgpuHardcopy {
     
         drawable.event(&mut plot_renderer, &Event::Resize(pos.clone()));
     
-        drawable.draw(&mut plot_renderer);
+        drawable.draw(&mut plot_renderer).unwrap();
     }
 
     pub fn read_into<R>(&mut self, id: SurfaceId, fun: impl FnOnce(ImageBuffer::<Rgba<u8>, &[u8]>) -> R) -> R {

@@ -1,7 +1,7 @@
 use std::{any::Any, marker::PhantomData, sync::{Arc, Mutex}};
 
 use essay_graphics_api::{
-    renderer::{Canvas, Drawable, Event, Renderer}, Bounds, Coord, Point
+    renderer::{Result, Canvas, Drawable, Event, Renderer}, Bounds, Coord, Point
 };
 
 #[derive(Clone)]
@@ -99,10 +99,12 @@ impl Layout {
 }
 
 impl Drawable for Layout {
-    fn draw(&mut self, renderer: &mut dyn Renderer) {
+    fn draw(&mut self, renderer: &mut dyn Renderer) -> Result<()> {
         for item in &mut self.views {
-            renderer.draw_with(&item.pos_canvas, &mut item.ptr);
+            renderer.draw_with(&item.pos_canvas, &mut item.ptr)?;
         }
+
+        Ok(())
     }
 
     fn event(&mut self, renderer: &mut dyn Renderer, event: &Event) {
@@ -164,10 +166,10 @@ impl ViewArc {
 
 impl Drawable for ViewArc {
     #[inline]
-    fn draw(&mut self, renderer: &mut dyn Renderer) {
+    fn draw(&mut self, renderer: &mut dyn Renderer) -> Result<()> {
         let mut view = self.0.lock().unwrap();
         
-        view.draw(renderer);
+        view.draw(renderer)
     }
 
     #[inline]
@@ -192,8 +194,8 @@ impl ViewPtr {
     }
 
     #[inline]
-    fn draw(&mut self, renderer: &mut dyn Renderer) {
-        self.handle.draw(self.ptr.as_mut(), renderer);
+    fn draw(&mut self, renderer: &mut dyn Renderer) -> Result<()> {
+        self.handle.draw(self.ptr.as_mut(), renderer)
     }
 
     #[inline]
@@ -212,8 +214,8 @@ impl ViewPtr {
     }
 }
 
-trait ViewHandleTrait {
-    fn draw(&mut self, any: &mut dyn Any, renderer: &mut dyn Renderer);
+trait ViewHandleTrait : Send {
+    fn draw(&mut self, any: &mut dyn Any, renderer: &mut dyn Renderer) -> Result<()>;
     fn event(&mut self, any: &mut dyn Any, renderer: &mut dyn Renderer, event: &Event);
 }
 
@@ -231,7 +233,7 @@ impl<T: Drawable> ViewHandle<T> {
 
 impl<V: Drawable + 'static> ViewHandleTrait for ViewHandle<V> {
     #[inline]
-    fn draw(&mut self, any: &mut dyn Any, renderer: &mut dyn Renderer) {
+    fn draw(&mut self, any: &mut dyn Any, renderer: &mut dyn Renderer) -> Result<()> {
         any.downcast_mut::<V>().unwrap().draw(renderer)
     }
 
@@ -285,7 +287,8 @@ impl PosView {
 }
 
 impl Drawable for PosView {
-    fn draw(&mut self, _renderer: &mut dyn Renderer) {
+    fn draw(&mut self, _renderer: &mut dyn Renderer) -> Result<()> {
+        Ok(())
     }
 
     fn event(&mut self, _renderer: &mut dyn Renderer, event: &Event) {

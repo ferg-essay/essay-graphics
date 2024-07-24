@@ -138,7 +138,7 @@ impl Drawable for CubeView {
     // fn update_pos(&mut self, renderer: &mut dyn Renderer, pos: &Bounds<Canvas>) {
     // }
 
-    fn draw(&mut self, renderer: &mut dyn Renderer) {
+    fn draw(&mut self, renderer: &mut dyn Renderer) -> renderer::Result<()> {
         if self.is_dirty {
             self.is_dirty = false;
             self.fill_model(renderer);
@@ -152,8 +152,10 @@ impl Drawable for CubeView {
                 id,
                 &camera,
                 &Clip::Bounds(pos.p0(), pos.p1())
-            ).unwrap();
+            )?;
         }
+
+        Ok(())
     }
 
     fn event(&mut self, renderer: &mut dyn Renderer, event: &Event) {

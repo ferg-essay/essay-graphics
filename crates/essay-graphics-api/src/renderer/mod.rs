@@ -15,5 +15,5 @@ pub use drawable::Drawable;
 pub use event::Event;
 
 pub use renderer::{
-    Renderer, RenderErr,
+    Renderer, Result, RenderErr,
 };

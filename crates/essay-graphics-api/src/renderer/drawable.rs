@@ -1,4 +1,4 @@
-use super::{Event, Renderer};
+use super::{Event, Renderer, Result};
 
 pub trait Drawable {
     ///
@@ -13,7 +13,7 @@ pub trait Drawable {
     /// The view pos is identical to the most recent update to avoid the
     /// need to store the position.
     /// 
-    fn draw(&mut self, renderer: &mut dyn Renderer);
+    fn draw(&mut self, renderer: &mut dyn Renderer) -> Result<()>;
 
     ///
     /// Called to inform the drawable when an event occurs in the drawable.

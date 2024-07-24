@@ -701,11 +701,11 @@ impl PlotCanvas {
     pub fn draw_image_ref(
         &mut self,
         device: &wgpu::Device,
-        bounds: &Bounds<Canvas>,  // Nx2 x,y in canvas coordinates
+        pos: &Bounds<Canvas>,  // Nx2 x,y in canvas coordinates
         image: ImageId,    // N in rgba
         _clip: &Clip,
     ) -> Result<(), RenderErr> {
-        self.image_render.draw_image(device, bounds, &image, &self.to_gpu);
+        self.image_render.draw_image(device, pos, &image, &self.to_gpu);
 
         Ok(())
     }
@@ -740,10 +740,10 @@ impl PlotCanvas {
             Some(view)
         );
         */
-        let mut renderer = self.renderer(device, queue, view);
+        let mut renderer = self.renderer(device, queue, Some(view));
 
         //figure.draw(&mut renderer, &draw_bounds);
-        figure.draw(&mut renderer);
+        figure.draw(&mut renderer).unwrap();
 
         // renderer.flush_inner(&Clip::None);
     }
@@ -752,11 +752,11 @@ impl PlotCanvas {
         &'a mut self, 
         device: &'a wgpu::Device, 
         queue: &'a wgpu::Queue, 
-        view: &'a wgpu::TextureView
+        view: Option<&'a wgpu::TextureView>
     ) -> PlotRenderer<'a> {
         self.clear();
 
-        PlotRenderer::new(self, device, Some(queue), Some(view))
+        PlotRenderer::new(self, device, Some(queue), view)
     }
 }
 

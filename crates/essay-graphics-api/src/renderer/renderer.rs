@@ -29,7 +29,7 @@ pub trait Renderer {
         path: &Path<Canvas>, 
         style: &dyn PathOpt, 
         clip: &Clip,
-    ) -> Result<(), RenderErr>;
+    ) -> Result<()>;
 
     fn draw_markers(
         &mut self, 
@@ -39,7 +39,7 @@ pub trait Renderer {
         color: &Tensor<u32>,
         style: &dyn PathOpt, 
         clip: &Clip,
-    ) -> Result<(), RenderErr>;
+    ) -> Result<()>;
 
     fn font(
         &mut self,
@@ -54,7 +54,7 @@ pub trait Renderer {
         style: &dyn PathOpt, 
         text_style: &TextStyle,
         clip: &Clip,
-    ) -> Result<(), RenderErr>;
+    ) -> Result<()>;
 
     fn draw_triangles(
         &mut self,
@@ -62,14 +62,14 @@ pub trait Renderer {
         colors: Tensor<u32>,    // N in rgba
         triangles: Tensor<u32>, // Mx3 vertex indices
         clip: &Clip,
-    ) -> Result<(), RenderErr>;
+    ) -> Result<()>;
 
     fn draw_image(
         &mut self,
         bounds: &Bounds<Canvas>,
         colors: &Tensor<u8>,  // [rows, cols, 4]
         clip: &Clip
-    ) -> Result<(), RenderErr>;
+    ) -> Result<()>;
 
     fn create_image(
         &mut self,
@@ -91,7 +91,7 @@ pub trait Renderer {
         bounds: &Bounds<Canvas>,
         image: ImageId,
         clip: &Clip
-    ) -> Result<(), RenderErr>;
+    ) -> Result<()>;
 
     fn create_form(
         &mut self,
@@ -103,7 +103,7 @@ pub trait Renderer {
         form: FormId,
         camera: &Matrix4,
         clip: &Clip,
-    ) -> Result<(), RenderErr>;
+    ) -> Result<()>;
 
     fn flush(
         &mut self,
@@ -115,8 +115,15 @@ pub trait Renderer {
         bounds: &Bounds<Canvas>
     );
 
-    fn draw_with(&mut self, pos: &Bounds<Canvas>, drawable: &mut dyn Drawable);
+    fn draw_with(
+        &mut self, 
+        pos: &Bounds<Canvas>, 
+        drawable: 
+        &mut dyn Drawable
+    ) -> Result<()>;
 }
+
+pub type Result<T, E=RenderErr> = std::result::Result<T, E>;
 
 #[derive(Debug)]
 pub enum RenderErr {
