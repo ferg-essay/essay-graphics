@@ -1,6 +1,9 @@
 use std::{any::Any, marker::PhantomData, sync::{Arc, Mutex}};
 
-use essay_graphics_api::{renderer::{Drawable, Renderer}, Bounds, Canvas, Event, Coord, Point};
+use essay_graphics_api::{
+    renderer::{Canvas, Drawable, Event, Renderer}, 
+    Bounds, Coord, Point
+};
 
 #[derive(Clone)]
 pub struct Layout {
@@ -293,7 +296,7 @@ impl Drawable for PosView {
 
 #[cfg(test)]
 mod test {
-    use essay_graphics_api::{renderer::Drawable, Bounds, Event};
+    use essay_graphics_api::{renderer::{Drawable, Event}, Bounds};
     use essay_graphics_test::TestRenderer;
 
     use crate::layout::PosView;

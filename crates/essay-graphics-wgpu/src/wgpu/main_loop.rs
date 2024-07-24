@@ -1,6 +1,6 @@
 use std::time::Instant;
 
-use essay_graphics_api::{renderer::{DeviceErr, Drawable}, Bounds, Canvas, Event, Point};
+use essay_graphics_api::{renderer::{Canvas, DeviceErr, Drawable, Event}, Bounds, Point};
 use winit::{
     event::{self, ElementState, MouseButton, WindowEvent }, 
     event_loop::{ControlFlow, EventLoop}, 

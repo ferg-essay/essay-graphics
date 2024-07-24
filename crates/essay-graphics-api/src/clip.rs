@@ -1,4 +1,4 @@
-use crate::{Point, Bounds, Canvas};
+use crate::{renderer::Canvas, Bounds, Point};
 
 #[derive(Clone, Debug, Copy)]
 pub enum Clip {

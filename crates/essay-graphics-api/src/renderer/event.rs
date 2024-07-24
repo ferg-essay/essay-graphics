@@ -1,4 +1,4 @@
-use crate::{Bounds, Canvas, Point};
+use crate::{renderer::Canvas, Bounds, Point};
 
 // TODO: Consider changing these to abstract events like Pan, Zoom because
 // of tablets, etc.

@@ -1,7 +1,5 @@
 use essay_graphics_api::{
-    renderer::{RenderErr, Renderer}, 
-    form::{Form, FormId, Matrix4}, 
-    Bounds, Canvas, Clip, FontStyle, FontTypeId, ImageId, Path, PathOpt, Point, TextStyle, TextureId
+    form::{Form, FormId, Matrix4}, renderer::{Canvas, RenderErr, Renderer}, Bounds, Clip, FontStyle, FontTypeId, ImageId, Path, PathOpt, Point, TextStyle, TextureId
 };
 use essay_tensor::Tensor;
 

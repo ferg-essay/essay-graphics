@@ -1,9 +1,11 @@
 use essay_tensor::Tensor;
 
 use crate::{
-    form::{Form, FormId, Matrix4}, Bounds, Canvas, Clip, FontStyle, FontTypeId, 
+    form::{Form, FormId, Matrix4}, Bounds, Clip, FontStyle, FontTypeId, 
     ImageId, Path, PathOpt, Point, TextStyle, TextureId
 };
+
+use super::Canvas;
 
 pub trait Renderer {
     ///

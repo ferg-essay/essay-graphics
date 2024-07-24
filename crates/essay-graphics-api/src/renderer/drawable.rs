@@ -1,5 +1,5 @@
-use super::Renderer;
-use crate::{Bounds, Canvas, Event};
+use super::{Canvas, Event, Renderer};
+use crate::Bounds;
 
 pub trait Drawable {
     ///

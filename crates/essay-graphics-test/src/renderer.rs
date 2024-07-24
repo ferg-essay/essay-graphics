@@ -1,4 +1,8 @@
-use essay_graphics_api::{form::{Form, FormId, Matrix4}, renderer::{RenderErr, Renderer}, Bounds, Canvas, Clip, FontStyle, FontTypeId, ImageId, Path, PathOpt, Point, TextStyle, TextureId};
+use essay_graphics_api::{
+    form::{Form, FormId, Matrix4}, 
+    renderer::{Canvas, RenderErr, Renderer}, 
+    Bounds, Clip, FontStyle, FontTypeId, ImageId, Path, PathOpt, Point, TextStyle, TextureId
+};
 use essay_tensor::Tensor;
 
 pub struct TestRenderer {
@@ -170,7 +174,7 @@ impl Renderer for TestRenderer {
 
 #[cfg(test)]
 mod test {
-    use essay_graphics_api::{renderer::Renderer, Bounds, Canvas, Clip};
+    use essay_graphics_api::{renderer::{Canvas, Renderer}, Bounds, Clip};
 
     use super::TestRenderer;
 

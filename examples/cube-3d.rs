@@ -1,4 +1,4 @@
-use renderer::{Drawable, Renderer};
+use renderer::{Canvas, Drawable, Event, Renderer};
 use essay_graphics::{layout::Layout, prelude::*};
 use essay_graphics_wgpu::{WgpuHardcopy, WgpuMainLoop};
 use essay_tensor::Tensor;

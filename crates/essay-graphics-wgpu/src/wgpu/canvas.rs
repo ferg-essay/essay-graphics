@@ -1,9 +1,5 @@
 use essay_graphics_api::{
-    renderer::{Drawable, RenderErr}, 
-    form::{Form, FormId, Matrix4}, 
-    Affine2d, Bounds, Canvas, CapStyle, Clip, Color, FontStyle, FontTypeId, 
-    HorizAlign, ImageId, JoinStyle, LineStyle, Path, PathCode, 
-    PathOpt, Point, TextStyle, TextureId, VertAlign
+    form::{Form, FormId, Matrix4}, renderer::{Canvas, Drawable, RenderErr}, Affine2d, Bounds, CapStyle, Clip, Color, FontStyle, FontTypeId, HorizAlign, ImageId, JoinStyle, LineStyle, Path, PathCode, PathOpt, Point, TextStyle, TextureId, VertAlign
 };
 use essay_tensor::Tensor;
 

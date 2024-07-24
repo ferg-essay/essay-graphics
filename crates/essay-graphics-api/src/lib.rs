@@ -6,9 +6,7 @@ mod instance;
 mod point;
 mod coord;
 mod bounds;
-mod canvas;
 mod color;
-mod event;
 mod color_data;
 pub mod renderer;
 mod path;
@@ -20,15 +18,11 @@ pub use affine2d::Affine2d;
 
 pub use bounds::Bounds;
 
-pub use canvas::Canvas;
-
 pub use clip::Clip;
 
 pub use color::{Color, Colors};
 
 pub use coord::Coord;
-
-pub use event::Event;
 
 pub use path::{
     Path, PathCode,
