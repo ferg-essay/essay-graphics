@@ -38,7 +38,7 @@ fn main() {
         [1., 1., 1.]
     ], 0.8);
 
-    layout.view((), 
+    layout.view(((0.5, 0.5), [0.5, 0.5]),
         CubeView::new(form, texture_colors(&[
             Color::from("red"),
             Color::from("blue"),
@@ -127,7 +127,7 @@ impl CubeView {
 
     fn camera(&self, renderer: &mut dyn Renderer, pos: &Bounds<Canvas>) -> Matrix4 {
         let matrix = self.camera.matrix();
-        let bounds = renderer.bounds();
+        let bounds = renderer.extent();
         let to = Matrix4::view_to_canvas_unit(pos, bounds);
 
         to.matmul(&matrix)
@@ -145,11 +145,7 @@ impl Drawable for CubeView {
         }
 
         if let Some(id) = self.form_id {
-            //let pos = Bounds::<Canvas>::new(
-            //    (0.5 * pos.xmax(), 0.5 * pos.ymax()),
-            //    (pos.xmax(), pos.ymax())
-            //);
-            let pos = renderer.bounds().clone();
+            let pos = renderer.pos().clone();
             let camera = self.camera(renderer, &pos);
 
             renderer.draw_form(

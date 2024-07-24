@@ -9,9 +9,14 @@ use super::{Canvas, Drawable};
 
 pub trait Renderer {
     ///
-    /// Returns the boundary of the canvas, usually in pixels or points.
+    /// Returns the boundary of the full canvas, usually in pixels or points.
     ///
-    fn bounds(&self) -> &Bounds<Canvas>;
+    fn extent(&self) -> &Bounds<Canvas>;
+
+    ///
+    /// Returns the position of the current view.
+    ///
+    fn pos(&self) -> &Bounds<Canvas>;
 
     fn scale_factor(&self) -> f32;
 

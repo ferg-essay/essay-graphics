@@ -115,10 +115,10 @@ impl Drawable for Layout {
                 }
             },
             _ => {
-                let point = event.point();
+                // let point = event.point();
 
                 for view in &mut self.views {
-                    if view.pos_canvas.contains(point) {
+                    if event.in_bounds(&view.pos_canvas) {
                         view.ptr.event(renderer, event);
                     }
                 }
@@ -151,22 +151,6 @@ impl ViewItem {
 struct ViewArc(Arc<Mutex<ViewPtr>>);
 
 impl ViewArc {
-    /*
-    #[inline]
-    fn draw(&mut self, renderer: &mut dyn Renderer) {
-        let mut view = self.0.lock().unwrap();
-        
-        view.draw(renderer);
-    }
-
-    #[inline]
-    fn event(&mut self, renderer: &mut dyn Renderer, event: &Event) {
-        let mut view = self.0.lock().unwrap();
-        
-        view.event(renderer, event);
-    }
-    */
-
     #[inline]
     fn read<T: 'static, R>(&self, fun: impl FnOnce(&T) -> R) -> R {
         self.0.lock().unwrap().read(fun)

@@ -7,6 +7,7 @@ use essay_tensor::Tensor;
 
 pub struct TestRenderer {
     bounds: Bounds<Canvas>,
+    pos: Bounds<Canvas>,
     scale_factor: f32,
 
     vec: Vec<String>,
@@ -14,8 +15,11 @@ pub struct TestRenderer {
 
 impl TestRenderer {
     pub fn new(bounds: impl Into<Bounds<Canvas>>) -> Self {
+        let bounds = bounds.into();
+
         Self {
-            bounds: bounds.into(),
+            pos: bounds.clone(),
+            bounds,
             scale_factor: 1.,
             vec: Vec::new(),
         }
@@ -41,8 +45,12 @@ impl TestRenderer {
 }
 
 impl Renderer for TestRenderer {
-    fn bounds(&self) -> &Bounds<Canvas> {
+    fn extent(&self) -> &Bounds<Canvas> {
         &self.bounds
+    }
+
+    fn pos(&self) -> &Bounds<Canvas> {
+        &self.pos
     }
 
     fn scale_factor(&self) -> f32 {
@@ -186,7 +194,7 @@ mod test {
     fn bounds() {
         let mut test = TestRenderer::new((1., 2., 30., 40.));
 
-        assert_eq!(test.bounds(), &Bounds::<Canvas>::from((1., 2., 30., 40.)));
+        assert_eq!(test.extent(), &Bounds::<Canvas>::from((1., 2., 30., 40.)));
         assert_eq!(test.drain(), Vec::<String>::new());
     }
 

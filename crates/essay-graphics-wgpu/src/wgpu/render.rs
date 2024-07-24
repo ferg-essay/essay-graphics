@@ -59,8 +59,11 @@ impl<'a> PlotRenderer<'a> {
 }
 
 impl<'a> Renderer for PlotRenderer<'a> {
-    fn bounds(&self) -> &Bounds<Canvas> {
-        // self.canvas.bounds()
+    fn extent(&self) -> &Bounds<Canvas> {
+        self.canvas.bounds()
+    }
+
+    fn pos(&self) -> &Bounds<Canvas> {
         &self.pos
     }
 

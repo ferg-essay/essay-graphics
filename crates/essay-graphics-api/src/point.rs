@@ -41,6 +41,13 @@ impl Point {
     }
 }
 
+impl From<&Point> for Point {
+    #[inline]
+    fn from(value: &Point) -> Self {
+        *value
+    }
+}
+
 impl From<[f32; 2]> for Point {
     #[inline]
     fn from(value: [f32; 2]) -> Self {

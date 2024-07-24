@@ -149,7 +149,8 @@ impl<M: Coord> Bounds<M> {
     }
 
     #[inline]
-    pub fn contains(&self, point: Point) -> bool {
+    pub fn contains(&self, point: impl Into<Point>) -> bool {
+        let point = point.into();
         self.contains_x(point.x()) && self.contains_y(point.y())
     }
 
