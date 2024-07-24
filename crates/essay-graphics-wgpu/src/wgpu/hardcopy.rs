@@ -1,6 +1,6 @@
 use std::{fs::File, io::BufWriter, ops::Deref};
 
-use essay_graphics_api::renderer::{Drawable, Event, Renderer};
+use essay_graphics_api::renderer::{Drawable, Event};
 use wgpu::BufferView;
 use image::{ImageBuffer, Rgba};
 

@@ -1,5 +1,3 @@
-use std::ops::{Deref, DerefMut};
-
 use essay_tensor::Tensor;
 
 use crate::{
@@ -112,25 +110,7 @@ pub trait Renderer {
         bounds: &Bounds<Canvas>
     );
 
-    fn sub_render(&mut self, pos: &Bounds<Canvas>, drawable: &mut dyn Drawable);
-}
-
-pub struct RendererGuard<'a> {
-    ptr: &'a mut dyn Renderer,
-}
-
-impl<'a> RendererGuard<'a> {
-    pub fn new(ptr: &'a mut dyn Renderer) -> Self {
-        Self {
-            ptr
-        }
-    }
-}
-
-impl Drop for RendererGuard<'_> {
-    fn drop(&mut self) {
-        println!("DropGuard");
-    }
+    fn draw_with(&mut self, pos: &Bounds<Canvas>, drawable: &mut dyn Drawable);
 }
 
 #[derive(Debug)]

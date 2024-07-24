@@ -1,7 +1,7 @@
 use std::mem;
 
 use essay_graphics_api::{
-    form::{Form, FormId, Matrix4}, renderer::{Canvas, Drawable, RenderErr, Renderer, RendererGuard}, Bounds, Clip, FontStyle, FontTypeId, ImageId, Path, PathOpt, Point, TextStyle, TextureId
+    form::{Form, FormId, Matrix4}, renderer::{Canvas, Drawable, RenderErr, Renderer}, Bounds, Clip, FontStyle, FontTypeId, ImageId, Path, PathOpt, Point, TextStyle, TextureId
 };
 use essay_tensor::Tensor;
 
@@ -193,20 +193,24 @@ impl<'a> Renderer for PlotRenderer<'a> {
         self.flush_inner(clip);
     }
 
-    fn sub_render(
+    fn draw_with(
         &mut self, 
         pos: &Bounds<Canvas>, 
         drawable: &mut dyn Drawable
     ) {
-        let push = Push::new(self,  pos);
+        let push = Push::new(self, pos);
 
         drawable.draw(push.ptr);
+
+        push.ptr.flush_inner(&push.clip);
     }
 }
 
 struct Push<'a, 'b> {
     ptr: &'a mut PlotRenderer<'b>,
+
     pos: Bounds<Canvas>,
+    clip: Clip,
 }
 
 impl<'a, 'b> Push<'a, 'b> {
@@ -214,6 +218,7 @@ impl<'a, 'b> Push<'a, 'b> {
         let mut push = Self {
             ptr: renderer,
             pos: pos.clone(),
+            clip: Clip::Bounds(pos.p0(), pos.p1()),
         };
 
         mem::swap(&mut push.pos, &mut push.ptr.pos);

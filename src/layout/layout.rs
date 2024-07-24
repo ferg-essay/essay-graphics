@@ -1,7 +1,7 @@
 use std::{any::Any, marker::PhantomData, sync::{Arc, Mutex}};
 
 use essay_graphics_api::{
-    renderer::{Canvas, Drawable, Event, Renderer}, Bounds, Clip, Coord, Point
+    renderer::{Canvas, Drawable, Event, Renderer}, Bounds, Coord, Point
 };
 
 #[derive(Clone)]
@@ -101,7 +101,7 @@ impl Layout {
 impl Drawable for Layout {
     fn draw(&mut self, renderer: &mut dyn Renderer) {
         for item in &mut self.views {
-            renderer.sub_render(&item.pos_canvas, &mut item.ptr);
+            renderer.draw_with(&item.pos_canvas, &mut item.ptr);
         }
     }
 

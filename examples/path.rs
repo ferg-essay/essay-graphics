@@ -11,7 +11,7 @@ fn main() {
         .close_poly(0.25, 0.5)
         .to_path();
 
-    let view = figure.add_view((), PathView::new(path));
+    figure.add_view((), PathView::new(path));
 
     let path = Path::<Data>::move_to(0.25, 0.25)
         .line_to(0.5, 0.25)
@@ -47,7 +47,7 @@ impl PathView {
 }
 
 impl Drawable for PathView {
-    fn event(&mut self, _renderer: &mut dyn Renderer, event: &Event) {
+    fn event(&mut self, _renderer: &mut dyn Renderer, _event: &Event) {
         /*
         if let Event::Resize(pos) = event {
             let to_canvas = Bounds::<Data>::new((0., 0.), (1., 1.)).affine_to(pos);
