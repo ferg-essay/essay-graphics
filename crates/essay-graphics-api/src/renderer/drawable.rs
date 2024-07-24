@@ -1,5 +1,4 @@
-use super::{Canvas, Event, Renderer};
-use crate::Bounds;
+use super::{Event, Renderer};
 
 pub trait Drawable {
     ///
@@ -14,7 +13,7 @@ pub trait Drawable {
     /// The view pos is identical to the most recent update to avoid the
     /// need to store the position.
     /// 
-    fn draw(&mut self, renderer: &mut dyn Renderer, pos: &Bounds<Canvas>);
+    fn draw(&mut self, renderer: &mut dyn Renderer);
 
     ///
     /// Called to inform the drawable when an event occurs in the drawable.

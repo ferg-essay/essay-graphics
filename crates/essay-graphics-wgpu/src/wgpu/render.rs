@@ -1,5 +1,7 @@
+use std::mem;
+
 use essay_graphics_api::{
-    form::{Form, FormId, Matrix4}, renderer::{Canvas, RenderErr, Renderer}, Bounds, Clip, FontStyle, FontTypeId, ImageId, Path, PathOpt, Point, TextStyle, TextureId
+    form::{Form, FormId, Matrix4}, renderer::{Canvas, Drawable, RenderErr, Renderer, RendererGuard}, Bounds, Clip, FontStyle, FontTypeId, ImageId, Path, PathOpt, Point, TextStyle, TextureId
 };
 use essay_tensor::Tensor;
 
@@ -10,24 +12,29 @@ pub struct PlotRenderer<'a> {
     device: &'a wgpu::Device,
     queue: Option<&'a wgpu::Queue>,
     view: Option<&'a wgpu::TextureView>,
+
+    pos: Bounds<Canvas>,
 }
 
 impl<'a> PlotRenderer<'a> {
     pub fn new(
-        figure: &'a mut PlotCanvas,
+        canvas: &'a mut PlotCanvas,
         device: &'a wgpu::Device,
         queue: Option<&'a wgpu::Queue>,
         view: Option<&'a wgpu::TextureView>,
     ) -> Self {
+        let pos = canvas.bounds().clone();
+
         Self {
             device,
-            canvas: figure,
+            canvas,
             queue,
             view,
+            pos,
         }
     }
 
-    pub fn flush_inner(&mut self, clip: &Clip) {
+    fn flush_inner(&mut self, clip: &Clip) {
         if let Some(queue) = self.queue {
             if let Some(view) = self.view {
                 let mut encoder =
@@ -49,12 +56,12 @@ impl<'a> PlotRenderer<'a> {
             }
         }
     }
-
 }
 
-impl Renderer for PlotRenderer<'_> {
+impl<'a> Renderer for PlotRenderer<'a> {
     fn bounds(&self) -> &Bounds<Canvas> {
-        self.canvas.bounds()
+        // self.canvas.bounds()
+        &self.pos
     }
 
     fn scale_factor(&self) -> f32 {
@@ -184,5 +191,45 @@ impl Renderer for PlotRenderer<'_> {
         clip: &Clip
     ) {
         self.flush_inner(clip);
+    }
+
+    fn sub_render(
+        &mut self, 
+        pos: &Bounds<Canvas>, 
+        drawable: &mut dyn Drawable
+    ) {
+        let push = Push::new(self,  pos);
+
+        drawable.draw(push.ptr);
+    }
+}
+
+struct Push<'a, 'b> {
+    ptr: &'a mut PlotRenderer<'b>,
+    pos: Bounds<Canvas>,
+}
+
+impl<'a, 'b> Push<'a, 'b> {
+    fn new(renderer: &'a mut PlotRenderer<'b>, pos: &Bounds<Canvas>) -> Self {
+        let mut push = Self {
+            ptr: renderer,
+            pos: pos.clone(),
+        };
+
+        mem::swap(&mut push.pos, &mut push.ptr.pos);
+
+        push
+    }
+} 
+
+impl Drop for Push<'_, '_> {
+    fn drop(&mut self) {
+        mem::swap(&mut self.pos, &mut self.ptr.pos);
+    }
+}
+
+impl Drop for PlotRenderer<'_> {
+    fn drop(&mut self) {
+        self.flush_inner(&Clip::None);
     }
 }

@@ -13,6 +13,13 @@ fn main() {
 
     let view = figure.add_view((), PathView::new(path));
 
+    let path = Path::<Data>::move_to(0.25, 0.25)
+        .line_to(0.5, 0.25)
+        .close_poly(0.25, 0.5)
+        .to_path();
+
+    let view = figure.add_view((), PathView::new(path));
+
     println!("Path {:?} ", view.read(|t| t.path()));
 
     figure.show();
@@ -41,15 +48,22 @@ impl PathView {
 
 impl Drawable for PathView {
     fn event(&mut self, _renderer: &mut dyn Renderer, event: &Event) {
+        /*
         if let Event::Resize(pos) = event {
             let to_canvas = Bounds::<Data>::new((0., 0.), (1., 1.)).affine_to(pos);
 
             self.path = self.path_data.transform(&to_canvas);
         }
+        */
     }
 
-    fn draw(&mut self, renderer: &mut dyn Renderer, _pos: &Bounds<Canvas>) {
+    fn draw(&mut self, renderer: &mut dyn Renderer) {
+        println!("Pos {:?}", renderer.bounds());
+        let to_canvas = Bounds::<Data>::new((0., 0.), (1., 1.)).affine_to(renderer.bounds());
+
+        let path = self.path_data.transform(&to_canvas);
+
         let style = PathStyleBase::new();
-        renderer.draw_path(&self.path, &style, &Clip::None).unwrap();
+        renderer.draw_path(&path, &style, &Clip::None).unwrap();
     }
 }

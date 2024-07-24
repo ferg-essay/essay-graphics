@@ -138,7 +138,7 @@ impl Drawable for CubeView {
     // fn update_pos(&mut self, renderer: &mut dyn Renderer, pos: &Bounds<Canvas>) {
     // }
 
-    fn draw(&mut self, renderer: &mut dyn renderer::Renderer, pos: &Bounds<Canvas>) {
+    fn draw(&mut self, renderer: &mut dyn Renderer) {
         if self.is_dirty {
             self.is_dirty = false;
             self.fill_model(renderer);
@@ -149,6 +149,7 @@ impl Drawable for CubeView {
             //    (0.5 * pos.xmax(), 0.5 * pos.ymax()),
             //    (pos.xmax(), pos.ymax())
             //);
+            let pos = renderer.bounds().clone();
             let camera = self.camera(renderer, &pos);
 
             renderer.draw_form(

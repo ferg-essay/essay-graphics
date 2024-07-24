@@ -1,8 +1,7 @@
 use std::{any::Any, marker::PhantomData, sync::{Arc, Mutex}};
 
 use essay_graphics_api::{
-    renderer::{Canvas, Drawable, Event, Renderer}, 
-    Bounds, Coord, Point
+    renderer::{Canvas, Drawable, Event, Renderer}, Bounds, Clip, Coord, Point
 };
 
 #[derive(Clone)]
@@ -100,9 +99,9 @@ impl Layout {
 }
 
 impl Drawable for Layout {
-    fn draw(&mut self, renderer: &mut dyn Renderer, _pos: &Bounds<Canvas>) {
+    fn draw(&mut self, renderer: &mut dyn Renderer) {
         for item in &mut self.views {
-            item.ptr.draw(renderer, &item.pos_canvas);
+            renderer.sub_render(&item.pos_canvas, &mut item.ptr);
         }
     }
 
@@ -152,11 +151,12 @@ impl ViewItem {
 struct ViewArc(Arc<Mutex<ViewPtr>>);
 
 impl ViewArc {
+    /*
     #[inline]
-    fn draw(&mut self, renderer: &mut dyn Renderer, pos: &Bounds<Canvas>) {
+    fn draw(&mut self, renderer: &mut dyn Renderer) {
         let mut view = self.0.lock().unwrap();
         
-        view.draw(renderer, pos);
+        view.draw(renderer);
     }
 
     #[inline]
@@ -165,6 +165,7 @@ impl ViewArc {
         
         view.event(renderer, event);
     }
+    */
 
     #[inline]
     fn read<T: 'static, R>(&self, fun: impl FnOnce(&T) -> R) -> R {
@@ -174,6 +175,22 @@ impl ViewArc {
     #[inline]
     fn write<T: 'static, R>(&mut self, fun: impl FnOnce(&mut T) -> R) -> R {
         self.0.lock().unwrap().write(fun)
+    }
+}
+
+impl Drawable for ViewArc {
+    #[inline]
+    fn draw(&mut self, renderer: &mut dyn Renderer) {
+        let mut view = self.0.lock().unwrap();
+        
+        view.draw(renderer);
+    }
+
+    #[inline]
+    fn event(&mut self, renderer: &mut dyn Renderer, event: &Event) {
+        let mut view = self.0.lock().unwrap();
+        
+        view.event(renderer, event);
     }
 }
 
@@ -191,8 +208,8 @@ impl ViewPtr {
     }
 
     #[inline]
-    fn draw(&mut self, renderer: &mut dyn Renderer, pos: &Bounds<Canvas>) {
-        self.handle.draw(self.ptr.as_mut(), renderer, pos);
+    fn draw(&mut self, renderer: &mut dyn Renderer) {
+        self.handle.draw(self.ptr.as_mut(), renderer);
     }
 
     #[inline]
@@ -212,7 +229,7 @@ impl ViewPtr {
 }
 
 trait ViewHandleTrait {
-    fn draw(&mut self, any: &mut dyn Any, renderer: &mut dyn Renderer, pos: &Bounds<Canvas>);
+    fn draw(&mut self, any: &mut dyn Any, renderer: &mut dyn Renderer);
     fn event(&mut self, any: &mut dyn Any, renderer: &mut dyn Renderer, event: &Event);
 }
 
@@ -230,8 +247,8 @@ impl<T: Drawable> ViewHandle<T> {
 
 impl<V: Drawable + 'static> ViewHandleTrait for ViewHandle<V> {
     #[inline]
-    fn draw(&mut self, any: &mut dyn Any, renderer: &mut dyn Renderer, pos: &Bounds<Canvas>) {
-        any.downcast_mut::<V>().unwrap().draw(renderer, pos)
+    fn draw(&mut self, any: &mut dyn Any, renderer: &mut dyn Renderer) {
+        any.downcast_mut::<V>().unwrap().draw(renderer)
     }
 
     #[inline]
@@ -284,7 +301,7 @@ impl PosView {
 }
 
 impl Drawable for PosView {
-    fn draw(&mut self, _renderer: &mut dyn Renderer, _pos: &Bounds<Canvas>) {
+    fn draw(&mut self, _renderer: &mut dyn Renderer) {
     }
 
     fn event(&mut self, _renderer: &mut dyn Renderer, event: &Event) {

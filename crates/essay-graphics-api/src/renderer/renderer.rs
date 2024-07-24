@@ -1,3 +1,5 @@
+use std::ops::{Deref, DerefMut};
+
 use essay_tensor::Tensor;
 
 use crate::{
@@ -5,7 +7,7 @@ use crate::{
     ImageId, Path, PathOpt, Point, TextStyle, TextureId
 };
 
-use super::Canvas;
+use super::{Canvas, Drawable};
 
 pub trait Renderer {
     ///
@@ -109,6 +111,26 @@ pub trait Renderer {
         &mut self,
         bounds: &Bounds<Canvas>
     );
+
+    fn sub_render(&mut self, pos: &Bounds<Canvas>, drawable: &mut dyn Drawable);
+}
+
+pub struct RendererGuard<'a> {
+    ptr: &'a mut dyn Renderer,
+}
+
+impl<'a> RendererGuard<'a> {
+    pub fn new(ptr: &'a mut dyn Renderer) -> Self {
+        Self {
+            ptr
+        }
+    }
+}
+
+impl Drop for RendererGuard<'_> {
+    fn drop(&mut self) {
+        println!("DropGuard");
+    }
 }
 
 #[derive(Debug)]

@@ -1,5 +1,5 @@
 use essay_graphics_api::{
-    form::{Form, FormId, Matrix4}, renderer::{Canvas, Drawable, RenderErr}, Affine2d, Bounds, CapStyle, Clip, Color, FontStyle, FontTypeId, HorizAlign, ImageId, JoinStyle, LineStyle, Path, PathCode, PathOpt, Point, TextStyle, TextureId, VertAlign
+    form::{Form, FormId, Matrix4}, renderer::{Canvas, Drawable, RenderErr, Renderer}, Affine2d, Bounds, CapStyle, Clip, Color, FontStyle, FontTypeId, HorizAlign, ImageId, JoinStyle, LineStyle, Path, PathCode, PathOpt, Point, TextStyle, TextureId, VertAlign
 };
 use essay_tensor::Tensor;
 
@@ -741,9 +741,9 @@ impl PlotCanvas {
         let mut renderer = self.renderer(device, queue, view);
 
         //figure.draw(&mut renderer, &draw_bounds);
-        figure.draw(&mut renderer, &pos);
+        figure.draw(&mut renderer);
 
-        renderer.flush_inner(&Clip::None);
+        // renderer.flush_inner(&Clip::None);
     }
 
     pub fn renderer<'a>(

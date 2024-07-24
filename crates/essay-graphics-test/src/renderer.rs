@@ -1,6 +1,6 @@
 use essay_graphics_api::{
     form::{Form, FormId, Matrix4}, 
-    renderer::{Canvas, RenderErr, Renderer}, 
+    renderer::{Canvas, Drawable, RenderErr, Renderer, RendererGuard}, 
     Bounds, Clip, FontStyle, FontTypeId, ImageId, Path, PathOpt, Point, TextStyle, TextureId
 };
 use essay_tensor::Tensor;
@@ -168,6 +168,10 @@ impl Renderer for TestRenderer {
         &mut self,
         _bounds: &Bounds<Canvas>
     ) {
+        todo!()
+    }
+    
+    fn sub_render(&mut self, _pos: &Bounds<Canvas>, drawable: &mut dyn Drawable) {
         todo!()
     }
 }

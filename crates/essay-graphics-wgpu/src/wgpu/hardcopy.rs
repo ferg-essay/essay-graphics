@@ -1,6 +1,6 @@
 use std::{fs::File, io::BufWriter, ops::Deref};
 
-use essay_graphics_api::{renderer::{Drawable, Event}, Clip};
+use essay_graphics_api::renderer::{Drawable, Event, Renderer};
 use wgpu::BufferView;
 use image::{ImageBuffer, Rgba};
 
@@ -112,16 +112,8 @@ impl WgpuHardcopy {
     
         drawable.event(&mut plot_renderer, &Event::Resize(pos.clone()));
     
-        drawable.draw(&mut plot_renderer, &pos);
-    
-        plot_renderer.flush_inner(&Clip::None);
-
-        // view.flush();
+        drawable.draw(&mut plot_renderer);
     }
-
-    //pub fn read_buffer(&mut self, id: SurfaceId) -> ImageBuffer<Rgba<u8>, wgpu::BufferView> {
-    //    pollster::block_on(self.read_buffer_async(id))
-    //}
 
     pub fn read_into<R>(&mut self, id: SurfaceId, fun: impl FnOnce(ImageBuffer::<Rgba<u8>, &[u8]>) -> R) -> R {
         pollster::block_on(self.read_into_async(id, fun))
@@ -156,19 +148,6 @@ impl WgpuHardcopy {
     }
 
     pub async fn read_buffer_async(&mut self, id: SurfaceId) -> BufferView {
-        /*
-        let u32_size = std::mem::size_of::<u32>() as u32;
-        let o_size = (u32_size * self.texture_size.width * self.texture_size.height) as wgpu::BufferAddress;
-
-        let o_desc = wgpu::BufferDescriptor {
-            size: o_size,
-            usage: wgpu::BufferUsages::COPY_DST
-                | wgpu::BufferUsages::MAP_READ,
-            label: None,
-            mapped_at_creation: false,
-        };
-        */
-
         let o_buffer = &self.buffers[id.0]; // self.device.create_buffer(&o_desc);
 
         let mut encoder = self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
@@ -298,19 +277,6 @@ impl WgpuHardcopy {
         }
     }
 
-    /*
-    pub fn create_view(&mut self) -> CanvasView {
-        let view = self
-            .texture
-            .create_view(&wgpu::TextureViewDescriptor::default());
-
-        CanvasView {
-            // frame,
-            view
-        }
-    }
-    */
-
     fn clear_screen(&self, view: &wgpu::TextureView) {
         let mut encoder =
             self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
@@ -375,54 +341,6 @@ async fn wgpu_device() -> (wgpu::Device, wgpu::Queue) {
         .await
         .expect("Failed to create device")
 }
-/*
-pub fn draw_hardcopy(
-    width: f32,
-    height: f32,
-    dpi: f32,
-    drawable: &mut dyn Drawable,
-    path: impl AsRef<std::path::Path>,
-) {
-    let width = width as u32;
-    let height = height as u32;
-
-    // let width_px = width + (256 - width) % 256;
-
-    let mut wgpu = WgpuHardcopy::new(width, height);
-
-    let mut plot_canvas = PlotCanvas::new(
-        &wgpu.device,
-        &wgpu.queue,
-        wgpu.texture.format(),
-        width,
-        height
-    );
-
-    // plot_canvas.resize(width, height);
-    plot_canvas.set_scale_factor(dpi / 100. * 4. / 3.);
-
-    let view = wgpu.create_view();
-    wgpu.clear_screen(&view.view);
-
-    let pos = plot_canvas.bounds().clone();
-
-    let mut plot_renderer = PlotRenderer::new(
-        &mut plot_canvas, 
-        &wgpu.device, 
-        Some(&wgpu.queue), 
-        Some(&view.view)
-    );
-
-    drawable.event(&mut plot_renderer, &CanvasEvent::Resize(pos.clone()));
-
-    drawable.draw(&mut plot_renderer, &pos);
-
-    plot_renderer.flush_inner(&Clip::None);
-    view.flush();
-
-    wgpu.save(path, dpi as usize);
-}
-    */
 
 fn _save_png(
     path: impl AsRef<std::path::Path>, 
@@ -448,65 +366,3 @@ fn _save_png(
     let mut writer = encoder.write_header().unwrap();
     writer.write_image_data(data).unwrap();
 }
-
-/*
-pub struct CanvasView {
-    //frame: SurfaceTexture,
-    pub(crate) view: TextureView,
-}
-
-impl CanvasView {
-    pub(crate) fn flush(self) {
-        //self.frame.present();
-    }
-}
-
-async fn init_wgpu_args(width: u32, height: u32) -> WgpuHardcopy {
-    let wgpu_width = width;// + (256 - width % 256) % 256;
-    let wgpu_height = height;
-
-    let instance = wgpu::Instance::default();
-
-    let adapter = instance
-        .request_adapter(&wgpu::RequestAdapterOptions {
-            power_preference: wgpu::PowerPreference::default(),
-            force_fallback_adapter: false,
-            compatible_surface: None,
-        })
-        .await
-        .expect("Failed to find adapter");
-
-    let (device, queue) = adapter
-        .request_device(&Default::default(), None)
-        .await
-        .expect("Failed to create device");
-
-    let texture_format = wgpu::TextureFormat::Rgba8UnormSrgb;
-
-    let texture_desc = wgpu::TextureDescriptor {
-        size: wgpu::Extent3d {
-            width: wgpu_width,
-            height: wgpu_height,
-            depth_or_array_layers: 1,
-        },
-        mip_level_count: 1,
-        sample_count: 1,
-        dimension: wgpu::TextureDimension::D2,
-        format: wgpu::TextureFormat::Rgba8UnormSrgb,
-        usage: wgpu::TextureUsages::COPY_SRC
-            | wgpu::TextureUsages::RENDER_ATTACHMENT,
-        view_formats: &[texture_format],
-        label: None,
-    };
-    let texture = device.create_texture(&texture_desc);
-
-    WgpuHardcopy {
-        width,
-        height,
-        device,
-        texture,
-        texture_size: texture_desc.size,
-        queue,
-    }
-}
-    */
