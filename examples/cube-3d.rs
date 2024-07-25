@@ -54,7 +54,11 @@ fn main() {
         //let camera = Camera::new();
 
         let id = hardcopy.add_surface();
-        hardcopy.draw(id, &mut layout);
+        hardcopy.draw(&mut layout);
+        hardcopy.copy_into_buffer(id);
+
+        hardcopy.draw(&mut layout);
+        hardcopy.copy_into_buffer(id);
 
         let vec = hardcopy.read_into(id, |buf| {
             let mut vec = Vec::<u8>::new();
@@ -65,7 +69,6 @@ fn main() {
 
             Tensor::from(vec).reshape([16, 16])
         });
-
         println!("Vec {:?}", vec);
 
         let vec = hardcopy.read_into(id, |buf| {

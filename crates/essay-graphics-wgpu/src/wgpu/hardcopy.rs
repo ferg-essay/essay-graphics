@@ -12,12 +12,12 @@ pub struct WgpuHardcopy {
 
     canvas: PlotCanvas,
 
-    texture_format: wgpu::TextureFormat,
+    texture: wgpu::Texture,
+    // texture_format: wgpu::TextureFormat,
     texture_size: wgpu::Extent3d,
     bytes_per_row: u32,
     is_short_row: bool,
-    textures: Vec<wgpu::Texture>,
-    buffers: Vec<wgpu::Buffer>,
+    surfaces: Vec<SurfaceItem>,
 }
 
 impl WgpuHardcopy {
@@ -37,6 +37,20 @@ impl WgpuHardcopy {
         let is_short_row = bytes_per_row % 256 != 0;
         let bytes_per_row = bytes_per_row + (256 - bytes_per_row) % 256;
 
+        let texture_desc = wgpu::TextureDescriptor {
+            size: texture_size.clone(),
+            mip_level_count: 1,
+            sample_count: 1,
+            dimension: wgpu::TextureDimension::D2,
+            format: texture_format,
+            usage: wgpu::TextureUsages::COPY_SRC
+                | wgpu::TextureUsages::RENDER_ATTACHMENT,
+            view_formats: &[texture_format],
+            label: None,
+        };
+        
+        let texture = device.create_texture(&texture_desc);
+
         let canvas = PlotCanvas::new(
             &device,
             &queue,
@@ -49,17 +63,18 @@ impl WgpuHardcopy {
             device,
             queue,
             canvas,
-            texture_format,
+            texture,
+            // texture_format,
             texture_size,
             bytes_per_row,
             is_short_row,
 
-            textures: Vec::new(),
-            buffers: Vec::new(),
+            surfaces: Vec::new(),
         }
     }
 
     pub fn add_surface(&mut self) -> SurfaceId {
+        /*
         let texture_desc = wgpu::TextureDescriptor {
             size: self.texture_size.clone(),
             mip_level_count: 1,
@@ -73,10 +88,10 @@ impl WgpuHardcopy {
         };
         
         let texture = self.device.create_texture(&texture_desc);
+        */
 
-        let id = SurfaceId(self.textures.len());
+        let id = SurfaceId(self.surfaces.len());
 
-        self.textures.push(texture);
 
         let o_size = (self.bytes_per_row * self.texture_size.height) as wgpu::BufferAddress;
 
@@ -90,13 +105,40 @@ impl WgpuHardcopy {
 
         let o_buffer = self.device.create_buffer(&o_desc);
 
-        self.buffers.push(o_buffer);
+        // let buffer_slice = o_buffer.slice(..);
+
+        // let (tx, rx) = futures_intrusive::channel::shared::oneshot_channel();
+        // buffer_slice.map_async(wgpu::MapMode::Read, move |result| {
+        //     tx.send(result).unwrap();
+        // });
+
+        self.surfaces.push(SurfaceItem {
+            // texture,
+            buffer: o_buffer,
+            // buffer_slice,
+        });
 
         id
     }
 
-    pub fn draw(&mut self, id: SurfaceId, drawable: &mut dyn Drawable) {
-        let view = self.textures[id.0]
+    pub fn draw_and_read<R>(
+        &mut self, 
+        id: SurfaceId, 
+        drawable: &mut dyn Drawable,
+        fun: impl FnOnce(ImageBuffer::<Rgba<u8>, &[u8]>) -> R
+    ) -> R {        
+        self.draw(drawable);
+        self.copy_into_buffer(id);
+        self.read_into(id, fun)
+    }
+
+    pub fn draw(&mut self, drawable: &mut dyn Drawable) {
+            /*
+        let view = self.surfaces[id.0]
+            .texture
+            .create_view(&wgpu::TextureViewDescriptor::default());
+        */
+        let view = self.texture
             .create_view(&wgpu::TextureViewDescriptor::default());
 
         self.clear_screen(&view);
@@ -113,6 +155,37 @@ impl WgpuHardcopy {
         drawable.event(&mut plot_renderer, &Event::Resize(pos.clone()));
     
         drawable.draw(&mut plot_renderer).unwrap();
+    }
+
+    pub fn copy_into_buffer(
+        &mut self, 
+        id: SurfaceId, 
+    ) {
+        let o_buffer = &self.surfaces[id.0].buffer; // self.device.create_buffer(&o_desc);
+
+        let mut encoder = self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
+            label: None,
+        });
+
+        encoder.copy_texture_to_buffer(
+            wgpu::ImageCopyTexture {
+                aspect: wgpu::TextureAspect::All,
+                texture: &self.texture, // surfaces[id.0].texture,
+                mip_level: 0,
+                origin: wgpu::Origin3d::ZERO,
+            },
+            wgpu::ImageCopyBuffer {
+                buffer: &o_buffer,
+                layout: wgpu::ImageDataLayout {
+                    offset: 0,
+                    bytes_per_row: Some(self.bytes_per_row),
+                    rows_per_image: Some(self.texture_size.height),
+                }
+            },
+            self.texture_size,
+        );
+        
+        self.queue.submit(Some(encoder.finish()));
     }
 
     pub fn read_into<R>(&mut self, id: SurfaceId, fun: impl FnOnce(ImageBuffer::<Rgba<u8>, &[u8]>) -> R) -> R {
@@ -147,14 +220,14 @@ impl WgpuHardcopy {
             }
         };
 
-        self.buffers[id.0].unmap();
+        self.surfaces[id.0].buffer.unmap();
 
         result
     }
 
     pub async fn read_buffer_async(&mut self, id: SurfaceId) -> BufferView {
-        let o_buffer = &self.buffers[id.0]; // self.device.create_buffer(&o_desc);
-
+        let o_buffer = &self.surfaces[id.0].buffer; // self.device.create_buffer(&o_desc);
+        /*
         let mut encoder = self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
             label: None,
         });
@@ -162,7 +235,7 @@ impl WgpuHardcopy {
         encoder.copy_texture_to_buffer(
             wgpu::ImageCopyTexture {
                 aspect: wgpu::TextureAspect::All,
-                texture: &self.textures[id.0],
+                texture: &self.texture, // surfaces[id.0].texture,
                 mip_level: 0,
                 origin: wgpu::Origin3d::ZERO,
             },
@@ -176,8 +249,9 @@ impl WgpuHardcopy {
             },
             self.texture_size,
         );
-
+        
         self.queue.submit(Some(encoder.finish()));
+        */
 
         {
             let buffer_slice = o_buffer.slice(..);
@@ -213,7 +287,8 @@ impl WgpuHardcopy {
         // pollster::block_on(self.extract_buffer(path, dpi));
     }
 
-    async fn _extract_buffer(
+    /*
+    async fn extract_buffer(
         &mut self,
         path: impl AsRef<std::path::Path>,
         dpi: usize
@@ -238,7 +313,7 @@ impl WgpuHardcopy {
         encoder.copy_texture_to_buffer(
             wgpu::ImageCopyTexture {
                 aspect: wgpu::TextureAspect::All,
-                texture: &self.textures[0],
+                texture: &self.surfaces[0].texture,
                 mip_level: 0,
                 origin: wgpu::Origin3d::ZERO,
             },
@@ -281,6 +356,7 @@ impl WgpuHardcopy {
             }
         }
     }
+    */
 
     fn clear_screen(&self, view: &wgpu::TextureView) {
         let mut encoder =
@@ -328,6 +404,11 @@ fn short_buffer(buffer: &[u8], row_size: usize, width: usize, height: usize) -> 
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct SurfaceId(usize);
+
+struct SurfaceItem {
+    // texture: wgpu::Texture,
+    buffer: wgpu::Buffer,
+}
 
 async fn wgpu_device() -> (wgpu::Device, wgpu::Queue) {
     let instance = wgpu::Instance::default();
