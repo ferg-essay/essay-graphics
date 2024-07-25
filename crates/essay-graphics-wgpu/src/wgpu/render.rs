@@ -45,7 +45,7 @@ impl<'a> PlotRenderer<'a> {
                 let scissor = self.canvas.to_scissor(clip);
 
                 self.canvas.image_render.flush(queue, view, &mut encoder);
-                self.canvas.triangle_render.flush(self.device, queue, view, &mut encoder, clip);
+                self.canvas.triangle_render.flush(self.device, queue, view, &mut encoder, scissor);
                 // TODO: order issues with bezier and shape2d
                 self.canvas.shape2d_render.flush(self.device, queue, view, &mut encoder, scissor);
                 self.canvas.bezier_render.flush(self.device, queue, view, &mut encoder, scissor);

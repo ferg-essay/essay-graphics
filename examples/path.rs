@@ -11,14 +11,14 @@ fn main() {
         .close_poly(0.25, 0.5)
         .to_path();
 
-    figure.add_view((), PathView::new(path));
+    figure.view((), PathView::new(path));
 
     let path = Path::<Data>::move_to(0.25, 0.25)
         .line_to(0.5, 0.25)
         .close_poly(0.25, 0.5)
         .to_path();
 
-    let view = figure.add_view((), PathView::new(path));
+    let view = figure.view((), PathView::new(path));
 
     println!("Path {:?} ", view.read(|t| t.path()));
 

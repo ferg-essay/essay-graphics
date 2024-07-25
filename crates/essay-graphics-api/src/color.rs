@@ -42,11 +42,18 @@ impl Color {
 
         Color((r << 24) | (g << 16) | (b << 8) | a)
     }
+    
+    #[inline]
+    pub fn from_grey(value: f32) -> Color {
+        Self::from_rgb(value, value, value)
+    }
 
+    #[inline]
     pub fn from_hsv(h: f32, s: f32, v: f32) -> Color {
         Self::from_hsva(h, s, v, 1.)
     }
 
+    #[inline]
     pub fn from_hsva(h: f32, s: f32, v: f32, a: f32) -> Color {
         let h = h.clamp(0., 1.);
         let s = s.clamp(0., 1.);

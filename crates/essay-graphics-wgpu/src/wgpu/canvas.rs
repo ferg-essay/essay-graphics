@@ -8,7 +8,7 @@ use essay_tensor::Tensor;
 use crate::PlotRenderer;
 
 use super::{
-    bezier::BezierRender, form3d::Form3dRender, image::ImageRender, shape2d::Shape2dRender, shape2d_texture::Shape2dTextureRender, text::TextRender, text_cache::FontId, triangle2d::GridMesh2dRender, triangulate::triangulate2
+    bezier::BezierRender, form3d::Form3dRender, image::ImageRender, shape2d::Shape2dRender, shape2d_texture::Shape2dTextureRender, text::TextRender, text_cache::FontId, triangle2d::Triangle2dRenderer, triangulate::triangulate2
 };
 
 
@@ -17,7 +17,7 @@ pub struct PlotCanvas {
     scale_factor: f32,
 
     pub(crate) image_render: ImageRender,
-    pub(crate) triangle_render: GridMesh2dRender,
+    pub(crate) triangle_render: Triangle2dRenderer,
     pub(crate) form3d_render: Form3dRender,
     pub(crate) shape2d_render: Shape2dRender,
     pub(crate) shape2d_texture_render: Shape2dTextureRender,
@@ -43,7 +43,7 @@ impl PlotCanvas {
     ) -> Self {
     
         let image_render = ImageRender::new(device, format);
-        let triangle_render = GridMesh2dRender::new(device, format);
+        let triangle_render = Triangle2dRenderer::new(device, format);
         let triangle3d_render = Form3dRender::new(device, format, width, height);
         let shape2d_render = Shape2dRender::new(device, format);
         let shape2d_texture_render = Shape2dTextureRender::new(device, queue, format);

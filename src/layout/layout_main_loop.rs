@@ -26,7 +26,7 @@ impl LayoutMainLoop {
         }
     }
 
-    pub fn add_view<T: Drawable + Send + 'static>(
+    pub fn view<T: Drawable + Send + 'static>(
         &mut self, 
         pos: impl Into<Bounds<Layout>>, 
         view: T

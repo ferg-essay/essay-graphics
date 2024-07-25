@@ -1,10 +1,10 @@
 use bytemuck_derive::{Pod, Zeroable};
-use essay_graphics_api::{Affine2d, Clip};
+use essay_graphics_api::Affine2d;
 use wgpu::util::DeviceExt;
 
-pub struct GridMesh2dRender {
+pub struct Triangle2dRenderer {
     vertex_stride: usize,
-    vertex_vec: Vec<GridMesh2dVertex>,
+    vertex_vec: Vec<Vertex>,
     vertex_buffer: wgpu::Buffer,
     vertex_offset: usize,
 
@@ -14,26 +14,26 @@ pub struct GridMesh2dRender {
     index_offset: usize,
 
     style_stride: usize,
-    style_vec: Vec<GridMesh2dStyle>,
+    style_vec: Vec<Style>,
     style_buffer: wgpu::Buffer,
     style_offset: usize,
 
-    mesh_items: Vec<GridMesh2dItem>,
+    mesh_items: Vec<Item>,
 
     pipeline: wgpu::RenderPipeline,
 
     is_stale: bool,
 }
 
-impl GridMesh2dRender {
+impl Triangle2dRenderer {
     pub(crate) fn new(
         device: &wgpu::Device, 
         format: wgpu::TextureFormat,
     ) -> Self {
         let len = 2048;
 
-        let mut vertex_vec = Vec::<GridMesh2dVertex>::new();
-        vertex_vec.resize(len, GridMesh2dVertex { 
+        let mut vertex_vec = Vec::<Vertex>::new();
+        vertex_vec.resize(len, Vertex { 
             position: [0.0, 0.0], 
             color: 0 
         });
@@ -57,8 +57,8 @@ impl GridMesh2dRender {
             }
         );
 
-        let mut style_vec = Vec::<GridMesh2dStyle>::new();
-        style_vec.resize(len, GridMesh2dStyle { 
+        let mut style_vec = Vec::<Style>::new();
+        style_vec.resize(len, Style { 
             affine_0: [0.0, 0.0, 0.0, 0.0], 
             affine_1: [0.0, 0.0, 0.0, 0.0], 
         });
@@ -77,7 +77,7 @@ impl GridMesh2dRender {
         );
     
         Self {
-            vertex_stride: std::mem::size_of::<GridMesh2dVertex>(),
+            vertex_stride: std::mem::size_of::<Vertex>(),
             vertex_vec,
             vertex_buffer,
             vertex_offset: 0,
@@ -87,7 +87,7 @@ impl GridMesh2dRender {
             index_buffer,
             index_offset: 0,
 
-            style_stride: std::mem::size_of::<GridMesh2dStyle>(),
+            style_stride: std::mem::size_of::<Style>(),
             style_vec,
             style_buffer,
             style_offset: 0,
@@ -109,7 +109,7 @@ impl GridMesh2dRender {
     }
 
     pub fn start_triangles(&mut self) {
-        self.mesh_items.push(GridMesh2dItem {
+        self.mesh_items.push(Item {
             v_start: self.vertex_offset,
             v_end: usize::MAX,
             i_start: self.index_offset,
@@ -120,14 +120,14 @@ impl GridMesh2dRender {
     }
 
     pub fn draw_vertex(&mut self, x: f32, y: f32, rgba: u32) {
-        let vertex = GridMesh2dVertex { 
+        let vertex = Vertex { 
             position: [x, y],
             color: rgba,
         };
 
         let len = self.vertex_vec.len();
         if len <= self.vertex_offset {
-            self.vertex_vec.resize(len + 2048, GridMesh2dVertex::empty());
+            self.vertex_vec.resize(len + 2048, Vertex::empty());
             self.is_stale = true;
         }
         
@@ -170,7 +170,7 @@ impl GridMesh2dRender {
         item.v_end = v_end;
         item.i_end = i_end;
 
-        self.style_vec[self.style_offset] = GridMesh2dStyle::new(affine);
+        self.style_vec[self.style_offset] = Style::new(affine);
         self.style_offset += 1;
 
         item.s_end = self.style_offset;
@@ -182,7 +182,7 @@ impl GridMesh2dRender {
         queue: &wgpu::Queue, 
         view: &wgpu::TextureView,
         encoder: &mut wgpu::CommandEncoder,
-        clip: &Clip,
+        clip: Option<(u32, u32, u32, u32)>,
     ) {
         if self.mesh_items.len() == 0 {
             return;
@@ -251,8 +251,8 @@ impl GridMesh2dRender {
 
         rpass.set_pipeline(&self.pipeline);
 
-        if let Clip::Bounds(p0, p1) = clip {
-            rpass.set_scissor_rect(p0.0 as u32, p0.1 as u32, (p1.0 - p0.0) as u32, (p1.1 - p0.1) as u32);
+        if let Some((x0, y0, w, h)) = clip {
+            rpass.set_scissor_rect(x0, y0, w, h);
         }
 
         for item in self.mesh_items.drain(..) {
@@ -281,7 +281,7 @@ impl GridMesh2dRender {
     }
 }
 
-pub struct GridMesh2dItem {
+pub struct Item {
     v_start: usize,
     v_end: usize,
 
@@ -294,12 +294,12 @@ pub struct GridMesh2dItem {
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug, Pod, Zeroable)]
-pub struct GridMesh2dVertex {
+pub struct Vertex {
     position: [f32; 2],
     color: u32,
 }
 
-impl GridMesh2dVertex {
+impl Vertex {
     const ATTRS: [wgpu::VertexAttribute; 2] =
         wgpu::vertex_attr_array![0 => Float32x2, 1 => Uint32 ];
 
@@ -312,7 +312,7 @@ impl GridMesh2dVertex {
 
     pub(crate) fn desc() -> wgpu::VertexBufferLayout<'static> {
         wgpu::VertexBufferLayout {
-            array_stride: std::mem::size_of::<GridMesh2dVertex>() as wgpu::BufferAddress,
+            array_stride: std::mem::size_of::<Vertex>() as wgpu::BufferAddress,
             step_mode: wgpu::VertexStepMode::Vertex,
             attributes: &Self::ATTRS,
         }
@@ -321,12 +321,12 @@ impl GridMesh2dVertex {
 }
 #[repr(C)]
 #[derive(Copy, Clone, Debug, Pod, Zeroable)]
-pub struct GridMesh2dStyle {
+pub struct Style {
     affine_0: [f32; 4],
     affine_1: [f32; 4],
 }
 
-impl GridMesh2dStyle {
+impl Style {
     const ATTRS: [wgpu::VertexAttribute; 2] =
         wgpu::vertex_attr_array![
             2 => Float32x4, 
@@ -335,7 +335,7 @@ impl GridMesh2dStyle {
 
     pub(crate) fn desc() -> wgpu::VertexBufferLayout<'static> {
         wgpu::VertexBufferLayout {
-            array_stride: std::mem::size_of::<GridMesh2dStyle>() as wgpu::BufferAddress,
+            array_stride: std::mem::size_of::<Style>() as wgpu::BufferAddress,
             step_mode: wgpu::VertexStepMode::Instance,
             attributes: &Self::ATTRS,
         }
@@ -360,8 +360,8 @@ fn create_gridmesh2d_pipeline(
     let vertex_entry = "vs_triangle";
     let fragment_entry = "fs_triangle";
 
-    let vertex_layout = GridMesh2dVertex::desc();
-    let style_layout = GridMesh2dStyle::desc();
+    let vertex_layout = Vertex::desc();
+    let style_layout = Style::desc();
 
     let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
         label: None,
