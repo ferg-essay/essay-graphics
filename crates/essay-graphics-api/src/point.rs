@@ -123,11 +123,26 @@ impl Angle {
     pub fn sin(&self) -> f32 {
         self.to_radians().sin()
     }
+
+    #[inline]
+    pub fn sin_cos(&self) -> (f32, f32) {
+        self.to_radians().sin_cos()
+    }
 }
 
 impl From<f32> for Angle {
     fn from(value: f32) -> Self {
         Angle::Rad(value)
+    }
+}
+
+impl From<Heading> for Angle {
+    fn from(value: Heading) -> Self {
+        match value {
+            Heading::Rad(theta) => Angle::Rad(theta),
+            Heading::Deg(theta) => Angle::Deg((360. + 90. - theta) % 360.),
+            Heading::Unit(theta) => Angle::Unit((1.25 - theta) % 1.),
+        }
     }
 }
 

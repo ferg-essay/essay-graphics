@@ -47,7 +47,7 @@ fn main() {
         ]))
     );
 
-    if true {
+    if false {
         WgpuMainLoop::new().main_loop(Box::new(layout)).unwrap();
     } else {
         let mut hardcopy = WgpuHardcopy::new(16, 16);
@@ -55,6 +55,18 @@ fn main() {
 
         let id = hardcopy.add_surface();
         hardcopy.draw(id, &mut layout);
+
+        let vec = hardcopy.read_into(id, |buf| {
+            let mut vec = Vec::<u8>::new();
+
+            for p in buf.pixels() {
+                vec.push(p.to_luma().0[0]);
+            }
+
+            Tensor::from(vec).reshape([16, 16])
+        });
+
+        println!("Vec {:?}", vec);
 
         let vec = hardcopy.read_into(id, |buf| {
             let mut vec = Vec::<u8>::new();

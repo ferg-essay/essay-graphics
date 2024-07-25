@@ -129,22 +129,27 @@ impl WgpuHardcopy {
         let width = self.texture_size.width;
         let height = self.texture_size.height;
 
-        let buffer = self.read_buffer_async(id).await;
+        let result = {
+            let buffer = self.read_buffer_async(id).await;
 
-        if is_short_row {
-            let u32_size = std::mem::size_of::<u32>() as u32;
-            let vec = short_buffer(
-                buffer.deref(), 
-                bytes_per_row as usize, 
-                (u32_size * width) as usize,
-                height as usize
-            );
+            if is_short_row {
+                let u32_size = std::mem::size_of::<u32>() as u32;
+                let vec = short_buffer(
+                    buffer.deref(), 
+                    bytes_per_row as usize, 
+                    (u32_size * width) as usize,
+                    height as usize
+                );
 
-            fun(ImageBuffer::from_raw(width, height, vec.deref()).unwrap())
-        } else {
-            fun(ImageBuffer::from_raw(width, height, buffer.deref()).unwrap())
-        }
+                fun(ImageBuffer::from_raw(width, height, vec.deref()).unwrap())
+            } else {
+                fun(ImageBuffer::from_raw(width, height, buffer.deref()).unwrap())
+            }
+        };
 
+        self.buffers[id.0].unmap();
+
+        result
     }
 
     pub async fn read_buffer_async(&mut self, id: SurfaceId) -> BufferView {

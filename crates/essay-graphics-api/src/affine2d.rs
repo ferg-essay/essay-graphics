@@ -2,7 +2,7 @@ use core::fmt;
 
 use essay_tensor::{prelude::*, tensor::TensorUninit};
 
-use crate::Point;
+use crate::{Angle, Point};
 
 #[derive(Clone)]
 pub struct Affine2d {
@@ -50,7 +50,7 @@ impl Affine2d {
         ]); 
 
         Self {
-            mat: compose(&translate, &self.mat),
+            mat: matmul(&translate, &self.mat),
         }
     }
 
@@ -62,13 +62,12 @@ impl Affine2d {
         ]); 
 
         Self {
-            mat: compose(&scale, &self.mat),
+            mat: matmul(&scale, &self.mat),
         }
     }
 
-    pub fn rotate(&self, theta: f32) -> Self {
-        let sin = theta.sin();
-        let cos = theta.cos();
+    pub fn rotate(&self, theta: impl Into<Angle>) -> Self {
+        let (sin, cos) = theta.into().sin_cos();
 
         let rot = tf32!([
             [cos, -sin, 0.],
@@ -77,7 +76,7 @@ impl Affine2d {
         ]); 
 
         Self {
-            mat: compose(&rot, &self.mat),
+            mat: matmul(&rot, &self.mat),
         }
     }
 
@@ -95,7 +94,13 @@ impl Affine2d {
 
     pub fn matmul(&self, y: &Affine2d) -> Self {
         Self {
-            mat: compose(&self.mat, &y.mat),
+            mat: matmul(&self.mat, &y.mat),
+        }
+    }
+
+    pub fn compose(&self, y: &Affine2d) -> Self {
+        Self {
+            mat: matmul(&y.mat, &self.mat),
         }
     }
 
@@ -199,7 +204,7 @@ pub fn rotate_deg(deg: f32) -> Affine2d {
     )
 }
 
-fn compose(x: &Tensor, y: &Tensor) -> Tensor {
+fn matmul(x: &Tensor, y: &Tensor) -> Tensor {
     assert_eq!(x.shape().as_slice(), &[3, 3]);
     assert_eq!(y.shape().as_slice(), &[3, 3]);
 
