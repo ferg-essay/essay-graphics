@@ -1,6 +1,6 @@
 use essay_graphics_api::{
     form::{Form, FormId, Matrix4}, 
-    renderer::{Canvas, Drawable, RenderErr}, 
+    renderer::{Canvas, Drawable, Result, RenderErr}, 
     Affine2d, Bounds, CapStyle, Clip, Color, FontStyle, FontTypeId, HorizAlign, ImageId, JoinStyle, LineStyle, Path, PathCode, PathOpt, Point, TextStyle, TextureId, VertAlign
 };
 use essay_tensor::Tensor;
@@ -325,6 +325,8 @@ impl PlotCanvas {
                 let mp = line_intersection(p0, p1, q1, q2);
 
                 if mp != p0 { // non-parallel
+                    let mp = clamp_miter(b1, mp, lw2 * 2.);
+
                     self.shape2d_render.draw_triangle(&p1, &mp, &q1);
                 }
             },
@@ -332,6 +334,8 @@ impl PlotCanvas {
                 let mp = line_intersection(p0, p1, q1, q2);
 
                 if mp != p0 && p0.dist(&p1) > 1. && q1.dist(&q2) > 1. { // non-parallel
+                    let mp = clamp_miter(b1, mp, lw2 * 2.);
+                    
                     self.bezier_render.draw_bezier_fill(&p1, &mp, &q1);
                 }
             }
@@ -695,11 +699,11 @@ impl PlotCanvas {
         device: &wgpu::Device,
         queue: &wgpu::Queue,
         view: &wgpu::TextureView,
-    ) {
+    ) -> Result<()> {
         let mut renderer = self.renderer(device, queue, Some(view));
 
         //figure.draw(&mut renderer, &draw_bounds);
-        figure.draw(&mut renderer).unwrap();
+        figure.draw(&mut renderer)
 
         // renderer.flush_inner(&Clip::None);
     }
@@ -714,6 +718,13 @@ impl PlotCanvas {
 
         PlotRenderer::new(self, device, Some(queue), view)
     }
+}
+
+fn clamp_miter(center: Point, miter: Point, lim: f32) -> Point {
+    Point(
+        miter.0.clamp(center.0 - lim, center.0 + lim),
+        miter.1.clamp(center.1 - lim, center.1 + lim),
+    )
 }
 
 pub(crate) fn line_normal(
