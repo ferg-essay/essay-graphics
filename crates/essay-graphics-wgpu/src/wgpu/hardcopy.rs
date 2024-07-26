@@ -1,6 +1,6 @@
 use std::{fs::File, io::BufWriter, ops::Deref};
 
-use essay_graphics_api::renderer::{Drawable, Event};
+use essay_graphics_api::renderer::Drawable;
 use wgpu::BufferView;
 use image::{ImageBuffer, Rgba};
 
@@ -132,6 +132,15 @@ impl WgpuHardcopy {
         self.read_into(id, fun)
     }
 
+    pub fn renderer_viewless(&mut self) -> PlotRenderer {
+        PlotRenderer::new(
+            &mut self.canvas, 
+            &self.device, 
+            Some(&self.queue), 
+            None
+        )
+    }
+
     pub fn draw(&mut self, drawable: &mut dyn Drawable) {
             /*
         let view = self.surfaces[id.0]
@@ -143,7 +152,7 @@ impl WgpuHardcopy {
 
         self.clear_screen(&view);
 
-        let pos = self.canvas.bounds().clone();
+        // let pos = self.canvas.bounds().clone();
     
         let mut plot_renderer = PlotRenderer::new(
             &mut self.canvas, 
@@ -152,7 +161,7 @@ impl WgpuHardcopy {
             Some(&view)
         );
     
-        drawable.event(&mut plot_renderer, &Event::Resize(pos.clone()));
+        // drawable.event(&mut plot_renderer, &Event::Resize(pos.clone()));
     
         drawable.draw(&mut plot_renderer).unwrap();
     }
