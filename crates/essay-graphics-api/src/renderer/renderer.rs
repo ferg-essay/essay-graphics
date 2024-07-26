@@ -1,7 +1,7 @@
 use essay_tensor::Tensor;
 
 use crate::{
-    form::{Form, FormId, Matrix4}, Bounds, Clip, FontStyle, FontTypeId, 
+    form::{Form, FormId, Matrix4}, Bounds, FontStyle, FontTypeId, 
     ImageId, Path, PathOpt, Point, TextStyle, TextureId
 };
 
@@ -51,7 +51,6 @@ pub trait Renderer {
         angle: f32,
         style: &dyn PathOpt, 
         text_style: &TextStyle,
-        clip: &Clip,
     ) -> Result<()>;
 
     fn draw_triangles(
@@ -59,14 +58,12 @@ pub trait Renderer {
         vertices: Tensor<f32>,  // Nx2 x,y in canvas coordinates
         colors: Tensor<u32>,    // N in rgba
         triangles: Tensor<u32>, // Mx3 vertex indices
-        clip: &Clip,
     ) -> Result<()>;
 
     fn draw_image(
         &mut self,
         bounds: &Bounds<Canvas>,
         colors: &Tensor<u8>,  // [rows, cols, 4]
-        clip: &Clip
     ) -> Result<()>;
 
     fn create_image(
@@ -88,7 +85,6 @@ pub trait Renderer {
         &mut self,
         bounds: &Bounds<Canvas>,
         image: ImageId,
-        clip: &Clip
     ) -> Result<()>;
 
     fn create_form(
@@ -100,7 +96,6 @@ pub trait Renderer {
         &mut self,
         form: FormId,
         camera: &Matrix4,
-        clip: &Clip,
     ) -> Result<()>;
 
     fn flush(

@@ -533,7 +533,6 @@ impl PlotCanvas {
         angle: f32,
         style: &dyn PathOpt, 
         text_style: &TextStyle,
-        _clip: &Clip,
     ) -> Result<(), RenderErr> {
 
         let color = match style.get_face_color() {
@@ -584,7 +583,6 @@ impl PlotCanvas {
         vertices: Tensor<f32>,  // Nx2 x,y in canvas coordinates
         rgba: Tensor<u32>,    // N in rgba
         triangles: Tensor<u32>, // Mx3 vertex indices
-        _clip: &Clip,
     ) -> Result<(), RenderErr> {
         assert!(vertices.rank() == 2, 
             "vertices must be 2d (rank2) shape={:?}",
@@ -628,22 +626,9 @@ impl PlotCanvas {
         &mut self,
         form: FormId,
         camera: &Matrix4,
-        clip: &Clip,
     ) -> Result<(), RenderErr> {
-        let clip = match clip {
-            Clip::None => Clip::None,
-            Clip::Bounds(p0, p1) => {
-                Clip::Bounds(
-                    //Point(p0.0, p0.1),
-                    //Point(p1.0, p1.1) 
-                    Point(p0.0, self.bounds().ymax() - p1.1),
-                    Point(p1.0, self.bounds().ymax() - p0.1) 
-                )
-            }
-        };
-
         self.form3d_render.camera(camera);
-        self.form3d_render.draw_form(form, &clip);
+        self.form3d_render.draw_form(form);
         
         Ok(())
     }
@@ -698,7 +683,6 @@ impl PlotCanvas {
         device: &wgpu::Device,
         pos: &Bounds<Canvas>,  // Nx2 x,y in canvas coordinates
         image: ImageId,    // N in rgba
-        _clip: &Clip,
     ) -> Result<(), RenderErr> {
         self.image_render.draw_image(device, pos, &image, &self.to_gpu);
 

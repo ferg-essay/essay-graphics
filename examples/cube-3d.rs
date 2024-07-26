@@ -166,7 +166,6 @@ impl Drawable for CubeView {
             renderer.draw_form(
                 id,
                 &camera,
-                &Clip::Bounds(pos.p0(), pos.p1())
             )?;
         }
 

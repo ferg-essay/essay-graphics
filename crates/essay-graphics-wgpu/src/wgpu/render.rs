@@ -3,7 +3,7 @@ use std::mem;
 use essay_graphics_api::{
     form::{Form, FormId, Matrix4}, 
     renderer::{Canvas, Drawable, Result, RenderErr, Renderer}, 
-    Bounds, Clip, FontStyle, FontTypeId, ImageId, Path, PathOpt, Point, TextStyle, TextureId
+    Bounds, FontStyle, FontTypeId, ImageId, Path, PathOpt, Point, TextStyle, TextureId
 };
 use essay_tensor::Tensor;
 
@@ -53,7 +53,7 @@ impl<'a> PlotRenderer<'a> {
                 self.canvas.shape2d_texture_render.flush(self.device, queue, view, &mut encoder, scissor);
                 self.canvas.text_render.flush(queue, view, &mut encoder);
 
-                self.canvas.form3d_render.flush(self.device, queue, view, &mut encoder);
+                self.canvas.form3d_render.flush(self.device, queue, view, &mut encoder, scissor);
                 
                 queue.submit(Some(encoder.finish()));
             }
@@ -131,9 +131,8 @@ impl<'a> Renderer for PlotRenderer<'a> {
         angle: f32,
         style: &dyn PathOpt, 
         text_style: &TextStyle,
-        clip: &Clip,
     ) -> Result<(), RenderErr> {
-        self.canvas.draw_text(xy, text, angle, style, text_style, clip)
+        self.canvas.draw_text(xy, text, angle, style, text_style)
     }
 
     fn draw_triangles(
@@ -141,9 +140,8 @@ impl<'a> Renderer for PlotRenderer<'a> {
         vertices: Tensor<f32>,  // Nx2 x,y in canvas coordinates
         colors: Tensor<u32>,    // N in rgba
         triangles: Tensor<u32>, // Mx3 vertex indices
-        clip: &Clip,
     ) -> Result<(), RenderErr> {
-        self.canvas.draw_triangles(vertices, colors, triangles, clip)
+        self.canvas.draw_triangles(vertices, colors, triangles)
     }
 
     fn create_form(
@@ -157,9 +155,8 @@ impl<'a> Renderer for PlotRenderer<'a> {
         &mut self,
         form: FormId,
         camera: &Matrix4,
-        clip: &Clip,
     ) -> Result<(), RenderErr> {
-        self.canvas.draw_form(form, camera, clip)
+        self.canvas.draw_form(form, camera)
     }
 
     fn request_redraw(
@@ -173,11 +170,10 @@ impl<'a> Renderer for PlotRenderer<'a> {
         &mut self,
         bounds: &Bounds<Canvas>,
         colors: &Tensor<u8>,
-        clip: &Clip
     ) -> Result<(), RenderErr> {
         let image = self.canvas.create_image(self.device, colors);
 
-        self.canvas.draw_image_ref(self.device, bounds, image, clip)
+        self.canvas.draw_image_ref(self.device, bounds, image)
     }
 
     fn create_image(
@@ -205,9 +201,8 @@ impl<'a> Renderer for PlotRenderer<'a> {
         &mut self,
         bounds: &Bounds<Canvas>,
         image: ImageId,
-        clip: &Clip
     ) -> Result<(), RenderErr> {
-        self.canvas.draw_image_ref(self.device, bounds, image, clip)
+        self.canvas.draw_image_ref(self.device, bounds, image)
     }
 
     fn flush(

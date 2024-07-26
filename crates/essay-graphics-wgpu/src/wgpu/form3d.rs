@@ -1,5 +1,5 @@
 use bytemuck_derive::{Pod, Zeroable};
-use essay_graphics_api::{form::{Form, FormId, Matrix4}, Clip, TextureId};
+use essay_graphics_api::{form::{Form, FormId, Matrix4}, TextureId};
 use essay_tensor::Tensor;
 use wgpu::util::DeviceExt;
 
@@ -255,8 +255,8 @@ impl Form3dRender {
         self.style_offset += 1;
     }
 
-    pub fn draw_form(&mut self, form: FormId, clip: &Clip) {
-        self.draw_items.push(DrawItem::new(form, clip.clone()));
+    pub fn draw_form(&mut self, form: FormId) {
+        self.draw_items.push(DrawItem::new(form));
     }
 
     pub fn camera(
@@ -272,6 +272,7 @@ impl Form3dRender {
         queue: &wgpu::Queue, 
         view: &wgpu::TextureView,
         encoder: &mut wgpu::CommandEncoder,
+        clip: Option<(u32, u32, u32, u32)>
     ) {
         if self.draw_items.len() == 0 {
             return;
@@ -362,14 +363,20 @@ impl Form3dRender {
         // rpass.set_stencil_ref
         rpass.set_bind_group(1, &self.camera_bind_group, &[]);
 
+        if let Some((x, y, w, h)) = clip {
+            rpass.set_scissor_rect(x, y, w, h);
+        }
+
         for draw_item in self.draw_items.drain(..) {
             let item = &self.form_items[draw_item.id.0];
 
+            /*
             if let Clip::Bounds(p0, p1) = draw_item.clip {
                 rpass.set_scissor_rect(p0.0 as u32, p0.1 as u32, (p1.0 - p0.0) as u32, (p1.1 - p0.1) as u32);
             } else {
                 // rpass.set_scissor_rect(0, u32::MAX, 0, u32::MAX);
             }
+            */
     
             rpass.set_bind_group(0, self.texture_cache.texture_bind_group(item.texture), &[]);
 
@@ -415,14 +422,12 @@ struct FormItem {
 
 struct DrawItem {
     id: FormId,
-    clip: Clip,
 }
 
 impl DrawItem {
-    fn new(id: FormId, clip: Clip) -> Self {
+    fn new(id: FormId) -> Self {
         Self {
             id,
-            clip,
         }
     }
 }

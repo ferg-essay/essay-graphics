@@ -60,7 +60,7 @@ impl Drawable for TriangleView {
 
         let colors = Tensor::from(colors);
 
-        renderer.draw_triangles(self.vertices.clone(), colors.clone(), self.triangles.clone(), &Clip::None)?;
+        renderer.draw_triangles(self.vertices.clone(), colors.clone(), self.triangles.clone())?;
 
         Ok(())
     }

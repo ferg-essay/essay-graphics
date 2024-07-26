@@ -1,7 +1,7 @@
 use essay_graphics_api::{
     form::{Form, FormId, Matrix4}, 
     renderer::{Canvas, Drawable, Result, RenderErr, Renderer}, 
-    Bounds, Clip, FontStyle, FontTypeId, ImageId, Path, PathOpt, Point, TextStyle, TextureId
+    Bounds, FontStyle, FontTypeId, ImageId, Path, PathOpt, Point, TextStyle, TextureId
 };
 use essay_tensor::Tensor;
 
@@ -90,7 +90,6 @@ impl Renderer for TestRenderer {
         _angle: f32,
         _style: &dyn PathOpt, 
         _text_style: &TextStyle,
-        _clip: &Clip,
     ) -> Result<(), RenderErr> {
         todo!()
     }
@@ -100,7 +99,6 @@ impl Renderer for TestRenderer {
         _vertices: Tensor<f32>,  // Nx2 x,y in canvas coordinates
         _colors: Tensor<u32>,    // N in rgba
         _triangles: Tensor<u32>, // Mx3 vertex indices
-        _clip: &Clip,
     ) -> Result<(), RenderErr> {
         todo!()
     }
@@ -109,7 +107,6 @@ impl Renderer for TestRenderer {
         &mut self,
         _bounds: &Bounds<Canvas>,
         _colors: &Tensor<u8>,  // [rows, cols, 4]
-        _clip: &Clip
     ) -> Result<(), RenderErr> {
         todo!()
     }
@@ -139,7 +136,6 @@ impl Renderer for TestRenderer {
         &mut self,
         _bounds: &Bounds<Canvas>,
         _image: ImageId,
-        _clip: &Clip
     ) -> Result<(), RenderErr> {
         todo!()
     }
@@ -155,7 +151,6 @@ impl Renderer for TestRenderer {
         &mut self,
         _form: FormId,
         _camera: &Matrix4,
-        _clip: &Clip,
     ) -> Result<(), RenderErr> {
         todo!()
     }
