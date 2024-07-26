@@ -416,7 +416,7 @@ fn main_render(
 
     queue.submit(Some(encoder.finish()));
 
-    canvas.draw(drawable, device, queue, &view);
+    canvas.draw(drawable, device, queue, &view).unwrap();
 
     frame.present();
 }

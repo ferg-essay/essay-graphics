@@ -33,7 +33,7 @@ impl TestRenderer {
         self.scale_factor = scale_factor;
     }
 
-    fn push(&mut self, str: &str) -> &mut Self {
+    fn _push(&mut self, str: &str) -> &mut Self {
         self.vec.push(String::from(str));
 
         self
