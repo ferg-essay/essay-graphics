@@ -1,4 +1,4 @@
-use renderer::{Canvas, Drawable, Event, Renderer};
+use renderer::{Canvas, Drawable, Renderer};
 use essay_graphics::prelude::*;
 use essay_graphics::layout::LayoutMainLoop;
 use essay_graphics_api::Coord;
@@ -67,6 +67,6 @@ impl Drawable for PathView {
         let mut style = PathStyleBase::new();
         style.color(self.color);
 
-        renderer.draw_path(&path, &style, &Clip::None)
+        renderer.draw_path(&path, &style)
     }
 }

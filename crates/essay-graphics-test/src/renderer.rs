@@ -61,7 +61,6 @@ impl Renderer for TestRenderer {
         &mut self, 
         _path: &Path<Canvas>, 
         _style: &dyn PathOpt, 
-        _clip: &Clip,
     ) -> Result<(), RenderErr> {
         todo!()
     }
@@ -73,7 +72,6 @@ impl Renderer for TestRenderer {
         _scale: &Tensor,
         _color: &Tensor<u32>,
         _style: &dyn PathOpt, 
-        _clip: &Clip,
     ) -> Result<(), RenderErr> {
         todo!()
     }
@@ -164,12 +162,7 @@ impl Renderer for TestRenderer {
 
     fn flush(
         &mut self,
-        clip: &Clip
     ) {
-        match clip {
-            Clip::None => { self.push("flush"); },
-            Clip::Bounds(_, _) => todo!(),
-        }
     }
 
     fn request_redraw(
@@ -186,7 +179,7 @@ impl Renderer for TestRenderer {
 
 #[cfg(test)]
 mod test {
-    use essay_graphics_api::{renderer::{Canvas, Renderer}, Bounds, Clip};
+    use essay_graphics_api::{renderer::{Canvas, Renderer}, Bounds};
 
     use super::TestRenderer;
 
@@ -202,7 +195,7 @@ mod test {
     fn flush() {
         let mut test = TestRenderer::new([1., 1.]);
 
-        test.flush(&Clip::None);
+        test.flush();
 
         assert_eq!(test.drain(), &["flush"]);
     }

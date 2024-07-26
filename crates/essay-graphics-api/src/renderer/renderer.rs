@@ -28,7 +28,6 @@ pub trait Renderer {
         &mut self, 
         path: &Path<Canvas>, 
         style: &dyn PathOpt, 
-        clip: &Clip,
     ) -> Result<()>;
 
     fn draw_markers(
@@ -38,7 +37,6 @@ pub trait Renderer {
         scale: &Tensor,
         color: &Tensor<u32>,
         style: &dyn PathOpt, 
-        clip: &Clip,
     ) -> Result<()>;
 
     fn font(
@@ -107,12 +105,6 @@ pub trait Renderer {
 
     fn flush(
         &mut self,
-        clip: &Clip
-    );
-
-    fn request_redraw(
-        &mut self,
-        bounds: &Bounds<Canvas>
     );
 
     fn draw_with(
@@ -121,6 +113,11 @@ pub trait Renderer {
         drawable: 
         &mut dyn Drawable
     ) -> Result<()>;
+
+    fn request_redraw(
+        &mut self,
+        bounds: &Bounds<Canvas>
+    );
 }
 
 pub type Result<T, E=RenderErr> = std::result::Result<T, E>;

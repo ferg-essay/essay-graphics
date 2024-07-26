@@ -149,7 +149,6 @@ impl PlotCanvas {
     fn fill_path(
         &mut self, 
         path: &Path<Canvas>, 
-        _clip: &Clip,
     ) {
         self.shape2d_render.start_shape(None);
         self.bezier_render.start_shape();
@@ -179,7 +178,6 @@ impl PlotCanvas {
         &mut self, 
         path: &Path<Canvas>, 
         texture: TextureId,
-        _clip: &Clip,
     ) {
         self.shape2d_texture_render.start_shape(texture, None);
         // TODO: bezier
@@ -195,7 +193,6 @@ impl PlotCanvas {
         &mut self, 
         path: &Path<Canvas>, 
         style: &dyn PathOpt, 
-        _clip: &Clip,
     ) {
         let linewidth  = match style.get_line_width() {
             Some(linewidth) => *linewidth,
@@ -388,7 +385,6 @@ impl PlotCanvas {
         &mut self, 
         path: &Path<Canvas>, 
         style: &dyn PathOpt, 
-        clip: &Clip,
     ) -> Result<(), RenderErr> {
         // let to_unit = self.to_gpu.matmul(to_device);
 
@@ -424,34 +420,34 @@ impl PlotCanvas {
             if let Some(hatch) = style.get_hatch() {
                 let texture = self.shape2d_texture_render.hatch_texture(*hatch);
 
-                self.fill_texture_path(&path, texture, clip);
+                self.fill_texture_path(&path, texture);
 
                 self.shape2d_texture_render.draw_style(face_color, &self.to_gpu);
                 //self.bezier_render.draw_style(face_color, &self.to_gpu);
 
                 is_texture = true;
             } else if let Some(texture) = style.get_texture() {
-                self.fill_texture_path(&path, *texture, clip);
+                self.fill_texture_path(&path, *texture);
     
                 self.shape2d_texture_render.draw_style(face_color, &self.to_gpu);
                 self.bezier_render.draw_style(face_color, &self.to_gpu);
 
                 is_texture = true;
             } else {
-                self.fill_path(&path, clip);
+                self.fill_path(&path);
 
                 self.shape2d_render.draw_style(face_color, &self.to_gpu);
                 self.bezier_render.draw_style(face_color, &self.to_gpu);
             }
 
             if face_color != edge_color || is_texture {
-                self.draw_lines(&path, style, clip);
+                self.draw_lines(&path, style);
 
                 self.shape2d_render.draw_style(edge_color, &self.to_gpu);
                 self.bezier_render.draw_style(edge_color, &self.to_gpu);
             }
         } else {
-            self.draw_lines(&path, style, clip);
+            self.draw_lines(&path, style);
 
             self.shape2d_render.draw_style(edge_color, &self.to_gpu);
             self.bezier_render.draw_style(edge_color, &self.to_gpu);
@@ -468,7 +464,6 @@ impl PlotCanvas {
         scale: &Tensor,
         color: &Tensor<u32>,
         style: &dyn PathOpt, 
-        clip: &Clip,
     ) -> Result<(), RenderErr> {
         let path = transform_solid_path(path);
 
@@ -483,7 +478,7 @@ impl PlotCanvas {
         };
 
         if path.is_closed_path() && ! face_color.is_none() {
-            self.fill_path(&path, clip);
+            self.fill_path(&path);
 
             for (i, xy) in xy.iter_row().enumerate() {
                 let affine = marker_affine(xy[0], xy[1], i, scale);
@@ -494,7 +489,7 @@ impl PlotCanvas {
             }
 
             if face_color != edge_color && ! edge_color.is_none() {
-                self.draw_lines(&path, style, clip);
+                self.draw_lines(&path, style);
 
                 for (i, xy) in xy.iter_row().enumerate() {
                     let affine = marker_affine(xy[0], xy[1], i, scale);
@@ -504,7 +499,7 @@ impl PlotCanvas {
                 }
             }
         } else if ! edge_color.is_none() {
-            self.draw_lines(&path, style, clip);
+            self.draw_lines(&path, style);
 
             for (i, xy) in xy.iter_row().enumerate() {
                 let affine = marker_affine(xy[0], xy[1], i, scale);

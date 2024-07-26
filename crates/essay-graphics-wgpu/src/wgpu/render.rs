@@ -36,7 +36,7 @@ impl<'a> PlotRenderer<'a> {
         }
     }
 
-    fn flush_inner(&mut self, clip: &Clip) {
+    fn flush_inner(&mut self) {
         if let Some(queue) = self.queue {
             if let Some(view) = self.view {
                 let mut encoder =
@@ -102,9 +102,8 @@ impl<'a> Renderer for PlotRenderer<'a> {
         &mut self, 
         path: &Path<Canvas>, 
         style: &dyn PathOpt, 
-        clip: &Clip,
     ) -> Result<(), RenderErr> {
-        self.canvas.draw_path(path, style, clip)
+        self.canvas.draw_path(path, style)
     }
 
     fn draw_markers(
@@ -114,9 +113,8 @@ impl<'a> Renderer for PlotRenderer<'a> {
         scale: &Tensor,
         color: &Tensor<u32>,
         style: &dyn PathOpt, 
-        clip: &Clip,
     ) -> Result<(), RenderErr> {
-        self.canvas.draw_markers(marker, xy, scale, color, style, clip)
+        self.canvas.draw_markers(marker, xy, scale, color, style)
     }
 
     fn font(
@@ -214,9 +212,8 @@ impl<'a> Renderer for PlotRenderer<'a> {
 
     fn flush(
         &mut self,
-        clip: &Clip
     ) {
-        self.flush_inner(clip);
+        self.flush_inner();
     }
 
     fn draw_with(
@@ -228,7 +225,8 @@ impl<'a> Renderer for PlotRenderer<'a> {
 
         drawable.draw(push.ptr)?;
 
-        push.ptr.flush_inner(&push.clip);
+        //push.ptr.flush_inner(&push.clip);
+        push.ptr.flush_inner();
 
         Ok(())
     }
@@ -238,7 +236,6 @@ struct Push<'a, 'b> {
     ptr: &'a mut PlotRenderer<'b>,
 
     pos: Bounds<Canvas>,
-    clip: Clip,
 }
 
 impl<'a, 'b> Push<'a, 'b> {
@@ -246,7 +243,6 @@ impl<'a, 'b> Push<'a, 'b> {
         let mut push = Self {
             ptr: renderer,
             pos: pos.clone(),
-            clip: Clip::Bounds(pos.p0(), pos.p1()),
         };
 
         mem::swap(&mut push.pos, &mut push.ptr.pos);
@@ -263,6 +259,6 @@ impl Drop for Push<'_, '_> {
 
 impl Drop for PlotRenderer<'_> {
     fn drop(&mut self) {
-        self.flush_inner(&Clip::None);
+        self.flush_inner();
     }
 }
