@@ -716,30 +716,7 @@ impl PlotCanvas {
         device: &wgpu::Device,
         queue: &wgpu::Queue,
         view: &wgpu::TextureView,
-        // encoder: &mut wgpu::CommandEncoder,
     ) {
-        //let (width, height) = bounds;
-
-        //self.clear();
-
-        //self.resize(device, width, height);
-        //let pt_to_px_factor = 4. / 3.;
-        //self.set_scale_factor(scale_factor * pt_to_px_factor);
-        //let draw_bounds = self.canvas.bounds().clone();
-
-        // let pos = self.bounds().clone();
-        // let mut renderer = self.renderer(device, queue, view);
-        // figure.update(&mut renderer, &pos);
-        // renderer.flush_inner(&Clip::None);
-
-        /*
-        let mut renderer = DrawRenderer::new(
-            self, 
-            device, 
-            Some(queue), 
-            Some(view)
-        );
-        */
         let mut renderer = self.renderer(device, queue, Some(view));
 
         //figure.draw(&mut renderer, &draw_bounds);

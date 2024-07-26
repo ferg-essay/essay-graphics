@@ -42,7 +42,8 @@ impl<'a> PlotRenderer<'a> {
                 let mut encoder =
                    self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
 
-                let scissor = self.canvas.to_scissor(clip);
+                //let scissor = self.canvas.to_scissor(clip);
+                let scissor = self.get_scissor();
 
                 self.canvas.image_render.flush(queue, view, &mut encoder);
                 self.canvas.triangle_render.flush(self.device, queue, view, &mut encoder, scissor);
@@ -57,6 +58,26 @@ impl<'a> PlotRenderer<'a> {
                 queue.submit(Some(encoder.finish()));
             }
         }
+    }
+
+    fn get_scissor(&self) -> Option<(u32, u32, u32, u32)> {
+        let pos = &self.pos;
+
+        /*
+        Some((
+            pos.xmin() as u32, 
+            (self.canvas.bounds().height() - pos.ymin()) as u32, 
+            (pos.width() - 1.) as u32, 
+            (pos.height() - 1.) as u32
+        ))
+        */
+        Some((
+            pos.xmin() as u32, 
+            (self.canvas.bounds().ymax() - pos.ymax()) as u32, 
+            // pos.ymin() as u32, 
+            (pos.width()) as u32, 
+            (pos.height()) as u32
+        ))
     }
 }
 
