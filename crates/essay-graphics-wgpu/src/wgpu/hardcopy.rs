@@ -35,7 +35,7 @@ impl WgpuHardcopy {
         let u32_size = std::mem::size_of::<u32>() as u32;
         let bytes_per_row = u32_size * width;
         let is_short_row = bytes_per_row % 256 != 0;
-        let bytes_per_row = bytes_per_row + (256 - bytes_per_row) % 256;
+        let bytes_per_row = bytes_per_row + (256 - bytes_per_row % 256) % 256;
 
         let texture_desc = wgpu::TextureDescriptor {
             size: texture_size.clone(),

@@ -847,7 +847,7 @@ fn marker_affine(x: f32, y: f32, i: usize, scale: &Tensor) -> Affine2d {
 
     // optional scaling
     if scale.len() > 1 {
-       affine = match scale.cols() {
+       affine = match scale.rank() {
             1 => affine.scale(scale[i], scale[i]),
             2 => affine.scale(scale[(i, 0)], scale[(i, 1)]),
             _ => panic!("Marker scale must be 1 or 2 dimensional {:?}", scale.shape().as_slice())

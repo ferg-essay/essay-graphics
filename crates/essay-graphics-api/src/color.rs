@@ -60,6 +60,26 @@ impl Color {
         let v = v.clamp(0., 1.);
         let a = a.clamp(0., 1.);
 
+        let i = (h * 6.) as u32;
+        let ff = h * 6. - i as f32;
+        let p = v * (1. - s);
+        let q = v * (1. - (s * ff));
+        let t = v * (1. - (s * (1. - ff)));
+
+        let (r, g, b) = match i {
+            0 => (v, t, p),
+            1 => (q, v, p),
+            2 => (p, v, t),
+            3 => (p, q, v),
+            4 => (t, p, v),
+            _ => (v, p, q),
+        };
+        /*
+        let h = h.clamp(0., 1.);
+        let s = s.clamp(0., 1.);
+        let v = v.clamp(0., 1.);
+        let a = a.clamp(0., 1.);
+
         let i = (h / 6.) as u32;
         let ff = h / 6. - i as f32;
         let p = v * (1. - s);
@@ -74,6 +94,7 @@ impl Color {
             4 => (t, p, v),
             _ => (v, p, q),
         };
+        */
 
         Self::from_rgba(r, g, b, a)
     }
