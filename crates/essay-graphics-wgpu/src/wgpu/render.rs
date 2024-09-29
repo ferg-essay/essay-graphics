@@ -52,6 +52,14 @@ impl<'a> PlotRenderer<'a> {
                 self.canvas.text_render.flush(queue, view, &mut encoder);
 
                 self.canvas.form3d_render.flush(self.device, queue, view, &mut encoder, scissor);
+                self.canvas.shape2d_tex2_render.flush(
+                    self.device, 
+                    queue, 
+                    view, 
+                    &mut encoder, 
+                    &self.canvas.texture_store, 
+                    scissor
+                );
                 
                 queue.submit(Some(encoder.finish()));
             }

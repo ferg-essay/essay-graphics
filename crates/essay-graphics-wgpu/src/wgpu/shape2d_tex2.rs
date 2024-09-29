@@ -11,8 +11,8 @@ pub struct Shape2dTex2Render {
     vertex_buffer: wgpu::Buffer,
     vertex_offset: usize,
 
-    texture_cache: TextureCache,
-    depth_buffer: DepthBuffer,
+    // texture_cache: TextureCache,
+    // depth_buffer: DepthBuffer,
 
     camera: CameraUniform,
     camera_buffer: wgpu::Buffer,
@@ -70,7 +70,7 @@ impl Shape2dTex2Render {
             }
         );
 
-        let depth_buffer = DepthBuffer::new(device, width, height);
+        // let depth_buffer = DepthBuffer::new(device, width, height);
 
         let pipeline = form3d_pipeline(
             device, 
@@ -86,8 +86,8 @@ impl Shape2dTex2Render {
             form_items: Vec::new(),
             draw_items: Vec::new(),
 
-            texture_cache: TextureCache::new(),
-            depth_buffer,
+            // texture_cache: TextureCache::new(),
+            // depth_buffer,
 
             camera,
             camera_bind_group: camera_bind_group(device, &camera_buffer),
@@ -102,17 +102,18 @@ impl Shape2dTex2Render {
 
     pub(crate) fn resize(
         &mut self,
-        device: &wgpu::Device, 
-        width: u32,
-        height: u32,
+        _device: &wgpu::Device, 
+        _width: u32,
+        _height: u32,
     ) {
-        self.depth_buffer.resize(device, width, height);
+        // self.depth_buffer.resize(device, width, height);
     }
 
     pub fn clear(&mut self) {
         self.draw_items.drain(..);
     }
 
+    /*
     pub fn create_texture_rgba8(
         &mut self, 
         device: &wgpu::Device, 
@@ -130,6 +131,7 @@ impl Shape2dTex2Render {
             image.as_slice()
         )
     }
+    */
 
     pub fn create_shape(&mut self, shape: &Shape) -> ShapeId {
         let id = ShapeId(self.form_items.len());
@@ -185,8 +187,10 @@ impl Shape2dTex2Render {
         queue: &wgpu::Queue, 
         view: &wgpu::TextureView,
         encoder: &mut wgpu::CommandEncoder,
+        textures: &TextureCache,
         clip: Option<(u32, u32, u32, u32)>
     ) {
+        println!("Flush {}", self.draw_items.len());
         if self.draw_items.len() == 0 {
             return;
         }
@@ -201,14 +205,7 @@ impl Shape2dTex2Render {
                     store: wgpu::StoreOp::Store,
                 }
             })],
-            depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
-                view: &self.depth_buffer.view,
-                depth_ops: Some(wgpu::Operations {
-                    load: wgpu::LoadOp::Clear(1.),
-                    store: wgpu::StoreOp::Store,
-                }),
-                stencil_ops: None,
-            }),
+            depth_stencil_attachment: None,
             timestamp_writes: None,
             occlusion_query_set: None,
         });
@@ -253,15 +250,7 @@ impl Shape2dTex2Render {
         for draw_item in self.draw_items.drain(..) {
             let item = &self.form_items[draw_item.id.0];
 
-            /*
-            if let Clip::Bounds(p0, p1) = draw_item.clip {
-                rpass.set_scissor_rect(p0.0 as u32, p0.1 as u32, (p1.0 - p0.0) as u32, (p1.1 - p0.1) as u32);
-            } else {
-                // rpass.set_scissor_rect(0, u32::MAX, 0, u32::MAX);
-            }
-            */
-    
-            rpass.set_bind_group(0, self.texture_cache.texture_bind_group(item.texture), &[]);
+            rpass.set_bind_group(0, textures.texture_bind_group(item.texture), &[]);
 
             if item.v_start < item.v_end {
                 let stride = self.vertex_stride;
@@ -328,22 +317,22 @@ impl Vertex {
 #[repr(C)]
 #[derive(Copy, Clone, Debug, Pod, Zeroable)]
 struct CameraUniform {
-    a0: [f32; 3],
-    a1: [f32; 3],
+    a0: [f32; 4],
+    a1: [f32; 4],
 }
 
 impl CameraUniform {
     fn new() -> Self {
         Self {
-            a0: [1., 0., 0.],
-            a1: [0., 1., 0.],
+            a0: [1., 0., 0., 0.],
+            a1: [0., 1., 0., 0.],
         }
     }
 
     fn set(&mut self, affine: &Affine2d) {
         let mat = affine.mat();
-        self.a0 = [mat[0], mat[1], mat[2]];
-        self.a1 = [mat[3], mat[4], mat[5]];
+        self.a0 = [mat[0], mat[1], mat[2], 0.];
+        self.a1 = [mat[3], mat[4], mat[5], 0.];
     }
 }
 
@@ -403,14 +392,7 @@ fn form3d_pipeline(
             ],
         }),
         primitive: wgpu::PrimitiveState::default(),
-        // TODO: remove depth
-        depth_stencil: Some(wgpu::DepthStencilState {
-            format: DepthBuffer::DEPTH_FORMAT,
-            depth_write_enabled: true,
-            depth_compare: wgpu::CompareFunction::Less,
-            stencil: wgpu::StencilState::default(),
-            bias: wgpu::DepthBiasState::default(),
-        }),
+        depth_stencil: None,
         multisample: wgpu::MultisampleState::default(),
         multiview: None,
     })
@@ -472,71 +454,4 @@ fn texture_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
         ],
         label: Some("texture bind_group layout"),
     })
-}
-
-struct DepthBuffer {
-    texture: wgpu::Texture,
-    view: wgpu::TextureView,
-}
-
-impl DepthBuffer {
-    const DEPTH_FORMAT : wgpu::TextureFormat = wgpu::TextureFormat::Depth32Float;
-
-    fn new(
-        device: &wgpu::Device, 
-        width: u32,
-        height: u32,
-    ) -> Self {
-        let texture = depth_texture(device, width, height);
-        let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
-
-        Self {
-            texture,
-            view,
-        }
-    }
-
-    fn resize(&mut self, device: &wgpu::Device, width: u32, height: u32) {
-        self.texture = depth_texture(device, width, height);
-        self.view = self.texture.create_view(&wgpu::TextureViewDescriptor::default());
-    }
-}
-
-fn depth_texture(device: &wgpu::Device, width: u32, height: u32) -> wgpu::Texture {
-    let size = wgpu::Extent3d {
-        width,
-        height,
-        depth_or_array_layers: 1,
-    };
-
-    let desc = wgpu::TextureDescriptor {
-        label: None,
-        size,
-        mip_level_count: 1,
-        sample_count: 1,
-        dimension: wgpu::TextureDimension::D2,
-        format: DepthBuffer::DEPTH_FORMAT,
-        usage: wgpu::TextureUsages::RENDER_ATTACHMENT
-            | wgpu::TextureUsages::TEXTURE_BINDING,
-        view_formats: &[],
-    };
-
-    device.create_texture(&desc)
-}
-
-fn _depth_sampler(device: &wgpu::Device) -> wgpu::Sampler {
-    device.create_sampler(
-        &wgpu::SamplerDescriptor {
-            address_mode_u: wgpu::AddressMode::ClampToEdge,
-            address_mode_v: wgpu::AddressMode::ClampToEdge,
-            address_mode_w: wgpu::AddressMode::ClampToEdge,
-            mag_filter: wgpu::FilterMode::Linear,
-            min_filter: wgpu::FilterMode::Linear,
-            mipmap_filter: wgpu::FilterMode::Nearest,
-            compare: Some(wgpu::CompareFunction::LessEqual),
-            lod_min_clamp: 0.,
-            lod_max_clamp: 100.,
-            ..Default::default()
-        }
-    )
 }

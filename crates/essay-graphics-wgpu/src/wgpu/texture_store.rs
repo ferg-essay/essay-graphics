@@ -1,4 +1,5 @@
 use essay_graphics_api::TextureId;
+use essay_tensor::Tensor;
 
 
 pub struct TextureCache {
@@ -66,6 +67,24 @@ impl TextureCache {
     
     pub(crate) fn texture_bind_group(&self, id: TextureId) -> &wgpu::BindGroup {
         &self.texture_items[id.index()].bind_group
+    }
+    
+    pub(crate) fn create_texture_rgba8(
+        &mut self, 
+        device: &wgpu::Device, 
+        queue: &wgpu::Queue, 
+        image: &Tensor<u8>
+    ) -> TextureId {
+        assert!(image.rank() == 3, "texture rank must be 3 shape={:?}", image.shape().as_slice());
+        assert!(image.cols() == 4, "texture cols 4 shape={:?}", image.shape().as_slice());
+    
+        self.add_rgba_u8(
+            device, 
+            queue, 
+            image.dim(1) as u32, 
+            image.dim(0) as u32, 
+            image.as_slice()
+        )
     }
 }
 

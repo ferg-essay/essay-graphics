@@ -3,8 +3,8 @@
 //
 
 struct Camera {
-    a0: vec3<f32>,
-    a1: vec3<f32>,
+    a0: vec4<f32>,
+    a1: vec4<f32>,
 }
 
 @group(1) @binding(0)

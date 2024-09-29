@@ -8,16 +8,7 @@ use essay_tensor::Tensor;
 use crate::PlotRenderer;
 
 use super::{
-    bezier::BezierRender, 
-    form3d::Form3dRender, 
-    image::ImageRender, 
-    shape2d::Shape2dRender, 
-    shape2d_tex2::Shape2dTex2Render, 
-    shape2d_texture::Shape2dTextureRender, 
-    text::TextRender, 
-    text_cache::FontId, 
-    triangle2d::Triangle2dRenderer, 
-    triangulate::triangulate2
+    bezier::BezierRender, form3d::Form3dRender, image::ImageRender, shape2d::Shape2dRender, shape2d_tex2::Shape2dTex2Render, shape2d_texture::Shape2dTextureRender, text::TextRender, text_cache::FontId, texture_store::TextureCache, triangle2d::Triangle2dRenderer, triangulate::triangulate2
 };
 
 
@@ -36,7 +27,7 @@ pub struct PlotCanvas {
     pub(crate) bezier_render: BezierRender,
     pub(crate) text_render: TextRender,
 
-    // texture_store: TextureCache,
+    pub(crate) texture_store: TextureCache,
 
     font_id_default: FontId,
 
@@ -81,7 +72,7 @@ impl PlotCanvas {
             bezier_render,
 
             font_id_default,
-            // texture_store,
+            texture_store: TextureCache::new(),
 
             to_gpu: Affine2d::eye(),
 
@@ -664,7 +655,8 @@ impl PlotCanvas {
         shape: ShapeId,
         camera: &Affine2d,
     ) -> Result<(), RenderErr> {
-        self.shape2d_tex2_render.camera(camera);
+        let camera = camera.compose(&self.to_gpu);
+        self.shape2d_tex2_render.camera(&camera);
         self.shape2d_tex2_render.draw_shape(shape);
         
         Ok(())
@@ -707,11 +699,13 @@ impl PlotCanvas {
     ) -> TextureId {
         assert!(image.rank() == 3, "texture rank must be 3 shape={:?}", image.shape().as_slice());
         assert!(image.cols() == 4, "texture cols 4 shape={:?}", image.shape().as_slice());
-
-        self.form3d_render.create_texture_rgba8(
+    
+        self.texture_store.add_rgba_u8(
             device, 
             queue, 
-            image
+            image.dim(1) as u32, 
+            image.dim(0) as u32, 
+            image.as_slice()
         )
     }
 

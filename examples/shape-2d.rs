@@ -2,41 +2,20 @@ use renderer::{Canvas, Drawable, Event, Renderer};
 use essay_graphics::{layout::Layout, prelude::*};
 use essay_graphics_wgpu::{WgpuHardcopy, WgpuMainLoop};
 use essay_tensor::Tensor;
-use form::{Form, FormId, Matrix4};
+use form::{Matrix4, Shape, ShapeId};
 use image::Pixel;
 
 fn main() { 
     let mut layout = Layout::new();
 
-    let mut form = Form::new();
+    let mut form = Shape::new();
     // let mut vertices = Vec::<[f32; 3]>::new();
     square(&mut form, [
-        [-1., -1., -1.],
-        [-1., -1., 1.],
-        [-1., 1., -1.],
-        [-1., 1., 1.]
+        [0., 0.],
+        [0., 1.],
+        [1., 1.],
+        [1., 0.]
     ], 0.1);
-
-    square(&mut form, [
-        [1., -1., -1.],
-        [1., -1., 1.],
-        [1., 1., -1.],
-        [1., 1., 1.]
-    ], 0.3);
-
-    square(&mut form, [
-        [-1., -1., -1.],
-        [-1., -1., 1.],
-        [1., -1., -1.],
-        [1., -1., 1.]
-    ], 0.6);
-
-    square(&mut form, [
-        [-1., 1., -1.],
-        [-1., 1., 1.],
-        [1., 1., -1.],
-        [1., 1., 1.]
-    ], 0.8);
 
     layout.view(((0.5, 0.5), [0.5, 0.5]),
         CubeView::new(form, texture_colors(&[
@@ -47,47 +26,12 @@ fn main() {
         ]))
     );
 
-    if true {
-        WgpuMainLoop::new().main_loop(Box::new(layout)).unwrap();
-    } else {
-        let mut hardcopy = WgpuHardcopy::new(16, 16);
-        //let camera = Camera::new();
-
-        let id = hardcopy.add_surface();
-        hardcopy.draw(&mut layout);
-        hardcopy.copy_into_buffer(id);
-
-        hardcopy.draw(&mut layout);
-        hardcopy.copy_into_buffer(id);
-
-        let vec = hardcopy.read_into(id, |buf| {
-            let mut vec = Vec::<u8>::new();
-
-            for p in buf.pixels() {
-                vec.push(p.to_luma().0[0]);
-            }
-
-            Tensor::from(vec).reshape([16, 16])
-        });
-        println!("Vec {:?}", vec);
-
-        let vec = hardcopy.read_into(id, |buf| {
-            let mut vec = Vec::<u8>::new();
-
-            for p in buf.pixels() {
-                vec.push(p.to_luma().0[0]);
-            }
-
-            Tensor::from(vec).reshape([16, 16])
-        });
-
-        println!("Vec {:?}", vec);
-    }
+    WgpuMainLoop::new().main_loop(Box::new(layout)).unwrap();
 }
 
 fn square(
-    form: &mut Form, 
-    vertices: [[f32; 3]; 4],
+    form: &mut Shape, 
+    vertices: [[f32; 2]; 4],
     //uv0: [f32; 2],
     //uv1: [f32; 2],
     v: f32,
@@ -97,19 +41,21 @@ fn square(
     let y0 = v;
     let y1 = v;
 
-    let v0 = form.vertex(vertices[0], [x0, y0]);
-    let v1 = form.vertex(vertices[1], [x0, y1]);
-    let v2 = form.vertex(vertices[2], [x1, y0]);
-    let v3 = form.vertex(vertices[3], [x1, y1]);
+    form.vertex(vertices[0], [x0, y0]);
+    form.vertex(vertices[1], [x0, y1]);
+    form.vertex(vertices[2], [x1, y0]);
+    form.vertex(vertices[3], [x1, y1]);
+    form.vertex(vertices[2], [x1, y1]);
+    form.vertex(vertices[0], [x1, y1]);
 
-    form.triangle([v0, v1, v3]);
-    form.triangle([v3, v2, v0]);
+    //form.triangle([v0, v1, v3]);
+    //form.triangle([v3, v2, v0]);
 
 }
 
 struct CubeView {
-    form: Form,
-    form_id: Option<FormId>,
+    form: Shape,
+    form_id: Option<ShapeId>,
     texture: Tensor<u8>,
     
     camera: Camera,
@@ -119,7 +65,7 @@ struct CubeView {
 }
 
 impl CubeView {
-    fn new(form: Form, texture: Tensor<u8>) -> Self {
+    fn new(form: Shape, texture: Tensor<u8>) -> Self {
         let mut camera = Camera::new();
         camera.translate(0., 0.2, -2.);
 
@@ -137,7 +83,7 @@ impl CubeView {
 
         self.form.texture(texture);
 
-        self.form_id = Some(renderer.create_form(&self.form));
+        self.form_id = Some(renderer.create_shape(&self.form));
     }
 
     fn camera(&self, renderer: &mut dyn Renderer, pos: &Bounds<Canvas>) -> Matrix4 {
@@ -160,10 +106,11 @@ impl Drawable for CubeView {
         }
 
         if let Some(id) = self.form_id {
-            let pos = renderer.pos().clone();
-            let camera = self.camera(renderer, &pos);
-
-            renderer.draw_form(
+            let canvas = renderer.pos().clone();
+            let bounds = Bounds::<Canvas>::from(((0., 0.), [1., 1.]));
+            let camera = bounds.affine_to(&canvas);
+            
+            renderer.draw_shape(
                 id,
                 &camera,
             )?;
