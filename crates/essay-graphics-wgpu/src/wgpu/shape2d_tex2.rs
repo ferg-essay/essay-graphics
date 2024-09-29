@@ -1,6 +1,5 @@
 use bytemuck_derive::{Pod, Zeroable};
-use essay_graphics_api::{form::{Form, FormId, Matrix4, Shape, ShapeId}, Affine2d, TextureId};
-use essay_tensor::Tensor;
+use essay_graphics_api::{form::{Shape, ShapeId}, Affine2d, TextureId};
 use wgpu::util::DeviceExt;
 
 use super::texture_store::TextureCache;
@@ -31,8 +30,6 @@ impl Shape2dTex2Render {
     pub(crate) fn new(
         device: &wgpu::Device, 
         format: wgpu::TextureFormat,
-        width: u32,
-        height: u32,
     ) -> Self {
         let len = 2048;
 
@@ -52,14 +49,6 @@ impl Shape2dTex2Render {
 
         let mut index_vec = Vec::<u32>::new();
         index_vec.resize(len, 0);
-
-        let index_buffer = device.create_buffer_init(
-            &wgpu::util::BufferInitDescriptor {
-                label: None,
-                contents: bytemuck::cast_slice(index_vec.as_slice()),
-                usage: wgpu::BufferUsages::INDEX | wgpu::BufferUsages::COPY_DST,
-            }
-        );
 
         let camera = CameraUniform::new();
         let camera_buffer = device.create_buffer_init(
@@ -100,38 +89,9 @@ impl Shape2dTex2Render {
         }
     }
 
-    pub(crate) fn resize(
-        &mut self,
-        _device: &wgpu::Device, 
-        _width: u32,
-        _height: u32,
-    ) {
-        // self.depth_buffer.resize(device, width, height);
-    }
-
     pub fn clear(&mut self) {
         self.draw_items.drain(..);
     }
-
-    /*
-    pub fn create_texture_rgba8(
-        &mut self, 
-        device: &wgpu::Device, 
-        queue: &wgpu::Queue, 
-        image: &Tensor<u8>
-    ) -> TextureId {
-        assert!(image.rank() == 3, "texture rank must be 3 shape={:?}", image.shape().as_slice());
-        assert!(image.cols() == 4, "texture cols 4 shape={:?}", image.shape().as_slice());
-
-        self.texture_cache.add_rgba_u8(
-            device, 
-            queue, 
-            image.dim(1) as u32, 
-            image.dim(0) as u32, 
-            image.as_slice()
-        )
-    }
-    */
 
     pub fn create_shape(&mut self, shape: &Shape) -> ShapeId {
         let id = ShapeId(self.form_items.len());
@@ -190,7 +150,6 @@ impl Shape2dTex2Render {
         textures: &TextureCache,
         clip: Option<(u32, u32, u32, u32)>
     ) {
-        println!("Flush {}", self.draw_items.len());
         if self.draw_items.len() == 0 {
             return;
         }

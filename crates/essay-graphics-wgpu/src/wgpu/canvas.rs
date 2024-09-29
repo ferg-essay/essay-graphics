@@ -48,7 +48,7 @@ impl PlotCanvas {
         let image_render = ImageRender::new(device, format);
         let triangle_render = Triangle2dRenderer::new(device, format);
         let triangle3d_render = Form3dRender::new(device, format, width, height);
-        let shape2d_tex2_render = Shape2dTex2Render::new(device, format, width, height);
+        let shape2d_tex2_render = Shape2dTex2Render::new(device, format);
         let shape2d_render = Shape2dRender::new(device, format);
         let shape2d_texture_render = Shape2dTextureRender::new(device, queue, format);
         let bezier_render = BezierRender::new(device, format);

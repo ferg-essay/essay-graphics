@@ -1,6 +1,5 @@
 use bytemuck_derive::{Pod, Zeroable};
 use essay_graphics_api::{form::{Form, FormId, Matrix4}, TextureId};
-use essay_tensor::Tensor;
 use wgpu::util::DeviceExt;
 
 use super::texture_store::TextureCache;
@@ -21,7 +20,7 @@ pub struct Form3dRender {
     style_buffer: wgpu::Buffer,
     style_offset: usize,
 
-    texture_cache: TextureCache,
+    // texture_cache: TextureCache,
     depth_buffer: DepthBuffer,
 
     camera: CameraUniform,
@@ -120,7 +119,7 @@ impl Form3dRender {
             form_items: Vec::new(),
             draw_items: Vec::new(),
 
-            texture_cache: TextureCache::new(),
+            // texture_cache: TextureCache::new(),
             depth_buffer,
 
             camera,
@@ -147,6 +146,7 @@ impl Form3dRender {
         self.draw_items.drain(..);
     }
 
+    /*
     pub fn create_texture_rgba8(
         &mut self, 
         device: &wgpu::Device, 
@@ -164,6 +164,7 @@ impl Form3dRender {
             image.as_slice()
         )
     }
+    */
 
     pub fn create_form(&mut self, form: &Form) -> FormId {
         let id = FormId(self.form_items.len());
@@ -272,6 +273,7 @@ impl Form3dRender {
         queue: &wgpu::Queue, 
         view: &wgpu::TextureView,
         encoder: &mut wgpu::CommandEncoder,
+        textures: &TextureCache,
         clip: Option<(u32, u32, u32, u32)>
     ) {
         if self.draw_items.len() == 0 {
@@ -378,7 +380,7 @@ impl Form3dRender {
             }
             */
     
-            rpass.set_bind_group(0, self.texture_cache.texture_bind_group(item.texture), &[]);
+            rpass.set_bind_group(0, textures.texture_bind_group(item.texture), &[]);
 
             if item.v_start < item.v_end && item.i_start < item.i_end {
                 let stride = self.vertex_stride;

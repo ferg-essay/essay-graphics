@@ -1,9 +1,8 @@
-use renderer::{Canvas, Drawable, Event, Renderer};
+use renderer::{Canvas, Drawable, Renderer};
 use essay_graphics::{layout::Layout, prelude::*};
-use essay_graphics_wgpu::{WgpuHardcopy, WgpuMainLoop};
+use essay_graphics_wgpu::WgpuMainLoop;
 use essay_tensor::Tensor;
-use form::{Matrix4, Shape, ShapeId};
-use image::Pixel;
+use form::{Shape, ShapeId};
 
 fn main() { 
     let mut layout = Layout::new();
@@ -12,13 +11,20 @@ fn main() {
     // let mut vertices = Vec::<[f32; 3]>::new();
     square(&mut form, [
         [0., 0.],
-        [0., 1.],
-        [1., 1.],
-        [1., 0.]
+        [0., 0.5],
+        [0.5, 0.5],
+        [0.5, 0.]
     ], 0.1);
 
+    square(&mut form, [
+        [0.5, 0.5],
+        [0.5, 1.],
+        [1., 1.],
+        [1., 0.5]
+    ], 0.3);
+
     layout.view(((0.5, 0.5), [0.5, 0.5]),
-        CubeView::new(form, texture_colors(&[
+        ShapeView::new(form, texture_colors(&[
             Color::from("red"),
             Color::from("blue"),
             Color::from("orange"),
@@ -32,8 +38,6 @@ fn main() {
 fn square(
     form: &mut Shape, 
     vertices: [[f32; 2]; 4],
-    //uv0: [f32; 2],
-    //uv1: [f32; 2],
     v: f32,
 ) {
     let x0 = 0.5;
@@ -47,32 +51,21 @@ fn square(
     form.vertex(vertices[3], [x1, y1]);
     form.vertex(vertices[2], [x1, y1]);
     form.vertex(vertices[0], [x1, y1]);
-
-    //form.triangle([v0, v1, v3]);
-    //form.triangle([v3, v2, v0]);
-
 }
 
-struct CubeView {
+struct ShapeView {
     form: Shape,
     form_id: Option<ShapeId>,
     texture: Tensor<u8>,
-    
-    camera: Camera,
-
 
     is_dirty: bool,
 }
 
-impl CubeView {
+impl ShapeView {
     fn new(form: Shape, texture: Tensor<u8>) -> Self {
-        let mut camera = Camera::new();
-        camera.translate(0., 0.2, -2.);
-
         Self {
             form,
             form_id: None,
-            camera: camera,
             texture,
             is_dirty: true,
         }
@@ -85,17 +78,9 @@ impl CubeView {
 
         self.form_id = Some(renderer.create_shape(&self.form));
     }
-
-    fn camera(&self, renderer: &mut dyn Renderer, pos: &Bounds<Canvas>) -> Matrix4 {
-        let matrix = self.camera.matrix();
-        let bounds = renderer.extent();
-        let to = Matrix4::view_to_canvas_unit(pos, bounds);
-
-        to.matmul(&matrix)
-    }
 }
 
-impl Drawable for CubeView {
+impl Drawable for ShapeView {
     // fn update_pos(&mut self, renderer: &mut dyn Renderer, pos: &Bounds<Canvas>) {
     // }
 
@@ -117,107 +102,6 @@ impl Drawable for CubeView {
         }
 
         Ok(())
-    }
-
-    fn event(&mut self, renderer: &mut dyn Renderer, event: &Event) {
-        match event {
-            Event::KeyPress(_, 'w') => {
-                self.camera.forward(0.1);
-                renderer.request_redraw(&Bounds::zero());
-            }
-            Event::KeyPress(_, 's') => {
-                self.camera.forward(-0.1);
-                renderer.request_redraw(&Bounds::zero());
-            }
-            Event::KeyPress(_, 'a') => {
-                self.camera.right(-0.1);
-                renderer.request_redraw(&Bounds::zero());
-            }
-            Event::KeyPress(_, 'd') => {
-                self.camera.right(0.1);
-                renderer.request_redraw(&Bounds::zero());
-            }
-
-            Event::KeyPress(_, 'q') => {
-                self.camera.yaw(Angle::Deg(10.));
-                renderer.request_redraw(&Bounds::zero());
-            }
-            Event::KeyPress(_, 'e') => {
-                self.camera.yaw(Angle::Deg(-10.));
-                renderer.request_redraw(&Bounds::zero());
-            }
-
-            Event::KeyPress(_, 'r') => {
-                self.camera.up(0.1);
-                renderer.request_redraw(&Bounds::zero());
-            }
-            Event::KeyPress(_, 'f') => {
-                self.camera.up(-0.1);
-                renderer.request_redraw(&Bounds::zero());
-            }
-            _ => {}
-        }
-    }
-}
-
-struct Camera {
-    eye: [f32; 3],
-    rot: Matrix4,
-    mat: Matrix4,
-}
-
-impl Camera {
-    fn new() -> Self {
-        Self {
-            eye: [0., 0., 0.],
-            rot: Matrix4::eye(),
-            mat: Matrix4::eye(),
-        }
-    }
-
-    fn forward(&mut self, delta: f32) {
-        self.eye = [self.eye[0], self.eye[1], self.eye[2] + delta];
-        self.mat = self.mat.translate(0., 0., delta)
-    }
-
-    fn translate(&mut self, x: f32, y: f32, z: f32) {
-        self.eye = [self.eye[0] + x, self.eye[1] + y, self.eye[2] + z];
-        self.mat = self.mat.translate(x, y, z);
-    }
-
-    fn right(&mut self, delta: f32) {
-        self.eye = [self.eye[0] - delta, self.eye[1], self.eye[2]];
-        self.mat = self.mat.translate(-delta, 0., 0.)
-    }
-
-    fn up(&mut self, delta: f32) {
-        self.eye = [self.eye[0], self.eye[1] - delta, self.eye[2]];
-        self.mat = self.mat.translate(0., -delta, 0.)
-    }
-
-    fn yaw(&mut self, yaw: impl Into<Angle>) {
-        let yaw = yaw.into();
-        self.rot = self.rot.rot_xz(yaw);
-        self.mat = self.mat.rot_xz(yaw);
-    }
-
-    fn matrix(&self) -> Matrix4 {
-        let mut camera = Matrix4::eye();
-
-        //camera = camera.translate(self.eye[0], self.eye[1], self.eye[2]);
-        //camera = self.rot.matmul(&camera);
-        camera = self.mat.matmul(&camera);
-
-        //let fov = 45.0f32;
-        let fov = 120.0f32;
-        camera = camera.projection(fov.to_radians(), 1., 0.1, 100.);
-
-    
-        // let view = pos.affine_to(renderer.bounds());
-        // let scale = pos.height();
-        //camera = camera.matmul(&view);
-
-        camera
     }
 }
 
