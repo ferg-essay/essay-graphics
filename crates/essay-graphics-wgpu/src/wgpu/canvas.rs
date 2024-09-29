@@ -1,6 +1,6 @@
 use essay_graphics_api::{
-    form::{Form, FormId, Matrix4}, 
-    renderer::{Canvas, Drawable, Result, RenderErr}, 
+    form::{Form, FormId, Matrix4, Shape, ShapeId}, 
+    renderer::{Canvas, Drawable, RenderErr, Result}, 
     Affine2d, Bounds, CapStyle, Clip, Color, FontStyle, FontTypeId, HorizAlign, ImageId, JoinStyle, LineStyle, Path, PathCode, PathOpt, Point, TextStyle, TextureId, VertAlign
 };
 use essay_tensor::Tensor;
@@ -8,7 +8,16 @@ use essay_tensor::Tensor;
 use crate::PlotRenderer;
 
 use super::{
-    bezier::BezierRender, form3d::Form3dRender, image::ImageRender, shape2d::Shape2dRender, shape2d_texture::Shape2dTextureRender, text::TextRender, text_cache::FontId, triangle2d::Triangle2dRenderer, triangulate::triangulate2
+    bezier::BezierRender, 
+    form3d::Form3dRender, 
+    image::ImageRender, 
+    shape2d::Shape2dRender, 
+    shape2d_tex2::Shape2dTex2Render, 
+    shape2d_texture::Shape2dTextureRender, 
+    text::TextRender, 
+    text_cache::FontId, 
+    triangle2d::Triangle2dRenderer, 
+    triangulate::triangulate2
 };
 
 
@@ -18,7 +27,10 @@ pub struct PlotCanvas {
 
     pub(crate) image_render: ImageRender,
     pub(crate) triangle_render: Triangle2dRenderer,
+
     pub(crate) form3d_render: Form3dRender,
+    pub(crate) shape2d_tex2_render: Shape2dTex2Render,
+
     pub(crate) shape2d_render: Shape2dRender,
     pub(crate) shape2d_texture_render: Shape2dTextureRender,
     pub(crate) bezier_render: BezierRender,
@@ -45,6 +57,7 @@ impl PlotCanvas {
         let image_render = ImageRender::new(device, format);
         let triangle_render = Triangle2dRenderer::new(device, format);
         let triangle3d_render = Form3dRender::new(device, format, width, height);
+        let shape2d_tex2_render = Shape2dTex2Render::new(device, format, width, height);
         let shape2d_render = Shape2dRender::new(device, format);
         let shape2d_texture_render = Shape2dTextureRender::new(device, queue, format);
         let bezier_render = BezierRender::new(device, format);
@@ -64,6 +77,7 @@ impl PlotCanvas {
             text_render,
             triangle_render,
             form3d_render: triangle3d_render,
+            shape2d_tex2_render,
             bezier_render,
 
             font_id_default,
@@ -92,6 +106,7 @@ impl PlotCanvas {
         self.image_render.clear();
 
         self.form3d_render.clear();
+        self.shape2d_tex2_render.clear();
     }
 
     pub fn resize(&mut self, device: &wgpu::Device, width: u32, height: u32) {
@@ -633,6 +648,24 @@ impl PlotCanvas {
     ) -> Result<(), RenderErr> {
         self.form3d_render.camera(camera);
         self.form3d_render.draw_form(form);
+        
+        Ok(())
+    }
+
+    pub fn create_shape(
+        &mut self,
+        shape: &Shape,
+    ) -> ShapeId {
+        self.shape2d_tex2_render.create_shape(shape)
+    }
+
+    pub fn draw_shape(
+        &mut self,
+        shape: ShapeId,
+        camera: &Affine2d,
+    ) -> Result<(), RenderErr> {
+        self.shape2d_tex2_render.camera(camera);
+        self.shape2d_tex2_render.draw_shape(shape);
         
         Ok(())
     }

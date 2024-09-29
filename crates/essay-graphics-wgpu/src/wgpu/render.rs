@@ -1,9 +1,7 @@
 use std::mem;
 
 use essay_graphics_api::{
-    form::{Form, FormId, Matrix4}, 
-    renderer::{Canvas, Drawable, Result, RenderErr, Renderer}, 
-    Bounds, FontStyle, FontTypeId, ImageId, Path, PathOpt, Point, TextStyle, TextureId
+    form::{Form, FormId, Matrix4, Shape, ShapeId}, renderer::{Canvas, Drawable, RenderErr, Renderer, Result}, Affine2d, Bounds, FontStyle, FontTypeId, ImageId, Path, PathOpt, Point, TextStyle, TextureId
 };
 use essay_tensor::Tensor;
 
@@ -157,6 +155,21 @@ impl<'a> Renderer for PlotRenderer<'a> {
         camera: &Matrix4,
     ) -> Result<(), RenderErr> {
         self.canvas.draw_form(form, camera)
+    }
+
+    fn create_shape(
+        &mut self,
+        shape: &Shape,
+    ) -> ShapeId {
+        self.canvas.create_shape(shape)
+    }
+
+    fn draw_shape(
+        &mut self,
+        shape: ShapeId,
+        camera: &Affine2d,
+    ) -> Result<(), RenderErr> {
+        self.canvas.draw_shape(shape, camera)
     }
 
     fn request_redraw(

@@ -1,8 +1,7 @@
 use essay_tensor::Tensor;
 
 use crate::{
-    form::{Form, FormId, Matrix4}, Bounds, FontStyle, FontTypeId, 
-    ImageId, Path, PathOpt, Point, TextStyle, TextureId
+    form::{Form, FormId, Matrix4, Shape, ShapeId}, Affine2d, Bounds, FontStyle, FontTypeId, ImageId, Path, PathOpt, Point, TextStyle, TextureId
 };
 
 use super::{Canvas, Drawable};
@@ -96,6 +95,17 @@ pub trait Renderer {
         &mut self,
         form: FormId,
         camera: &Matrix4,
+    ) -> Result<()>;
+
+    fn create_shape(
+        &mut self,
+        form: &Shape,
+    ) -> ShapeId;
+
+    fn draw_shape(
+        &mut self,
+        form: ShapeId,
+        camera: &Affine2d,
     ) -> Result<()>;
 
     fn flush(

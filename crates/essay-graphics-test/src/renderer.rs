@@ -1,7 +1,5 @@
 use essay_graphics_api::{
-    form::{Form, FormId, Matrix4}, 
-    renderer::{Canvas, Drawable, Result, RenderErr, Renderer}, 
-    Bounds, FontStyle, FontTypeId, ImageId, Path, PathOpt, Point, TextStyle, TextureId
+    form::{Form, FormId, Matrix4, Shape, ShapeId}, renderer::{Canvas, Drawable, RenderErr, Renderer, Result}, Affine2d, Bounds, FontStyle, FontTypeId, ImageId, Path, PathOpt, Point, TextStyle, TextureId
 };
 use essay_tensor::Tensor;
 
@@ -151,6 +149,21 @@ impl Renderer for TestRenderer {
         &mut self,
         _form: FormId,
         _camera: &Matrix4,
+    ) -> Result<(), RenderErr> {
+        todo!()
+    }
+
+    fn create_shape(
+        &mut self,
+        _shape: &Shape,
+    ) -> ShapeId {
+        todo!()
+    }
+
+    fn draw_shape(
+        &mut self,
+        _shape: ShapeId,
+        _camera: &Affine2d,
     ) -> Result<(), RenderErr> {
         todo!()
     }

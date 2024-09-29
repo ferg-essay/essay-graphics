@@ -5,6 +5,7 @@ mod main_loop;
 mod render;
 mod shape2d;
 mod shape2d_texture;
+mod shape2d_tex2;
 mod triangle2d;
 mod form3d;
 mod triangulate;
