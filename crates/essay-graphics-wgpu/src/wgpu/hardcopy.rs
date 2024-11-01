@@ -1,6 +1,6 @@
 use std::{fs::File, io::BufWriter, ops::Deref};
 
-use essay_graphics_api::renderer::Drawable;
+use essay_graphics_api::renderer::{Drawable, Renderer};
 use wgpu::BufferView;
 use image::{ImageBuffer, Rgba};
 
@@ -73,6 +73,10 @@ impl WgpuHardcopy {
         }
     }
 
+    pub fn scale_factor(&mut self, scale_factor: f32) {
+        self.canvas.set_scale_factor(scale_factor);
+    }
+
     pub fn add_surface(&mut self) -> SurfaceId {
         /*
         let texture_desc = wgpu::TextureDescriptor {
@@ -142,28 +146,26 @@ impl WgpuHardcopy {
     }
 
     pub fn draw(&mut self, drawable: &mut dyn Drawable) {
-            /*
-        let view = self.surfaces[id.0]
-            .texture
-            .create_view(&wgpu::TextureViewDescriptor::default());
-        */
         let view = self.texture
             .create_view(&wgpu::TextureViewDescriptor::default());
 
         self.clear_screen(&view);
 
-        // let pos = self.canvas.bounds().clone();
-    
+        self.canvas.clear();
+        self.canvas.request_redraw(true);
+
         let mut plot_renderer = PlotRenderer::new(
             &mut self.canvas, 
             &self.device, 
             Some(&self.queue), 
             Some(&view)
         );
-    
-        // drawable.event(&mut plot_renderer, &Event::Resize(pos.clone()));
-    
+
+        let pos = plot_renderer.pos().clone();
+        drawable.resize(&mut plot_renderer, &pos);
+        //self.canvas.draw(drawable, &self.device, &self.queue, &view);
         drawable.draw(&mut plot_renderer).unwrap();
+        plot_renderer.flush();
     }
 
     pub fn copy_into_buffer(
@@ -279,21 +281,23 @@ impl WgpuHardcopy {
 
     pub fn save(
         &mut self, 
-        _id: SurfaceId,
-        _path: impl AsRef<std::path::Path>,
-        _dpi: usize,
+        id: SurfaceId,
+        path: impl AsRef<std::path::Path>,
+        dpi: usize,
     ) {
-        /*
-        save_png(
-            path, 
-            self.texture_size.width, 
-            self.texture_size.height, 
-            dpi,
-            &self.read_buffer(id),
-        );
-        */
+        let width = self.texture_size.width;
+        let height = self.texture_size.height;
 
-        // pollster::block_on(self.extract_buffer(path, dpi));
+        self.copy_into_buffer(id);
+
+        self.read_into(id, |data| {
+            // TODO: test for .png
+            if true {
+                save_png(path, width, height, dpi, &data);
+            } else {
+                data.save(path).unwrap();
+            }
+        });
     }
 
     /*
@@ -437,12 +441,12 @@ async fn wgpu_device() -> (wgpu::Device, wgpu::Queue) {
         .expect("Failed to create device")
 }
 
-fn _save_png(
+fn save_png(
     path: impl AsRef<std::path::Path>, 
     width: u32, 
     height: u32, 
     dpi: usize, 
-    data: &ImageBuffer<image::Rgba<u8>, wgpu::BufferView>,
+    data: &ImageBuffer<image::Rgba<u8>, &[u8]>,
 ) {
     let file = File::create(path).unwrap();
     let ref mut w = BufWriter::new(file);

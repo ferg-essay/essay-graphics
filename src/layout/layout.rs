@@ -136,26 +136,17 @@ impl Drawable for Layout {
         Ok(())
     }
 
+    fn resize(&mut self, renderer: &mut dyn Renderer, pos: &Bounds<Canvas>) -> Bounds<Canvas> {
+        self.layout(renderer, pos);
+
+        pos.clone()
+    }
+
     fn event(&mut self, renderer: &mut dyn Renderer, event: &Event) {
-        match event {
-            Event::Resize(bounds) => {
-                self.layout(renderer, bounds);
-
-                //for view in &mut self.views {
-                //    for ptr in &mut view.ptrs {
-                //        ptr.event(renderer, &Event::Resize(view.pos_canvas.clone()));
-                //    }
-                //}
-            },
-            _ => {
-                // let point = event.point();
-
-                for view in &mut self.views {
-                    if event.in_bounds(&view.pos_canvas) {
-                        for ptr in &mut view.ptrs {
-                            ptr.event(renderer, event);
-                        }
-                    }
+        for view in &mut self.views {
+            if event.in_bounds(&view.pos_canvas) {
+                for ptr in &mut view.ptrs {
+                    ptr.event(renderer, event);
                 }
             }
         }

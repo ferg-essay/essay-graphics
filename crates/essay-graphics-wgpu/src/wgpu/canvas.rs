@@ -58,7 +58,7 @@ impl PlotCanvas {
 
         // let texture_store = TextureCache::new();
         
-        Self {
+        let mut canvas = Self {
             bounds: Bounds::from([width as f32, height as f32]),
             scale_factor: 1.,
 
@@ -77,7 +77,11 @@ impl PlotCanvas {
             to_gpu: Affine2d::eye(),
 
             is_request_redraw: false,
-        }
+        };
+
+        canvas.resize(&device, width, height);
+
+        canvas
     }
 
     pub(crate) fn is_request_redraw(&self) -> bool {
@@ -722,17 +726,14 @@ impl PlotCanvas {
 
     pub(crate) fn draw(
         &mut self,
-        figure: &mut Box<dyn Drawable>,
+        figure: &mut dyn Drawable,
         device: &wgpu::Device,
         queue: &wgpu::Queue,
         view: &wgpu::TextureView,
     ) -> Result<()> {
         let mut renderer = self.renderer(device, queue, Some(view));
 
-        //figure.draw(&mut renderer, &draw_bounds);
         figure.draw(&mut renderer)
-
-        // renderer.flush_inner(&Clip::None);
     }
 
     pub fn renderer<'a>(

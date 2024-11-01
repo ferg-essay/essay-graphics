@@ -168,7 +168,8 @@ fn run_event_loop(
                 // canvas.set_scale_factor()
                 canvas.request_redraw(true);
                 let mut renderer = PlotRenderer::new(&mut canvas, &device, Some(&queue), None);
-                drawable.event(&mut renderer, &Event::Resize(bounds));
+                //drawable.event(&mut renderer, &Event::Resize(bounds));
+                drawable.resize(&mut renderer, &bounds);
             }
             event::Event::WindowEvent {
                 event: WindowEvent::MouseInput {
@@ -416,7 +417,7 @@ fn main_render(
 
     queue.submit(Some(encoder.finish()));
 
-    canvas.draw(drawable, device, queue, &view).unwrap();
+    canvas.draw(drawable.as_mut(), device, queue, &view).unwrap();
 
     frame.present();
 }

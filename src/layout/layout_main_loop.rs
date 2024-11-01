@@ -1,4 +1,4 @@
-use essay_graphics_wgpu::WgpuBackend;
+use essay_graphics_wgpu::{WgpuBackend, WgpuHardcopy};
 
 use essay_graphics_api::{
     renderer::{Backend, Drawable},
@@ -53,16 +53,14 @@ impl LayoutMainLoop {
         self.dpi
     }
 
-    pub fn save(&mut self, _path: impl AsRef<std::path::Path>, _dpi: f32) {
-        todo!();
-        /*
-        crate::wgpu::draw_hardcopy(
-            self.get_width() * dpi,
-            self.get_height() * dpi,
-            dpi,
-            &mut self.layout, 
-            path
-        );
-        */    
+    pub fn save(&mut self, path: impl AsRef<std::path::Path>, dpi: f32) {
+        let width = self.get_width() * dpi;
+        let height = self.get_height() * dpi;
+        let mut hardcopy = WgpuHardcopy::new(width as u32, height as u32);
+        hardcopy.scale_factor(dpi / 100.);
+    
+        let surface = hardcopy.add_surface();
+        hardcopy.draw(&mut self.layout);
+        hardcopy.save(surface, path, dpi as usize);
     }
 }

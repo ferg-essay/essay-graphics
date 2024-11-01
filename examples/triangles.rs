@@ -1,4 +1,4 @@
-use renderer::{Canvas, Drawable, Event, Renderer};
+use renderer::{Canvas, Drawable, Renderer};
 use essay_graphics::{layout::LayoutMainLoop, prelude::*};
 use essay_tensor::Tensor;
 
@@ -24,26 +24,6 @@ impl TriangleView {
             triangles: Tensor::from(Vec::<[u32; 3]>::new()),
         }
     }
-
-    fn resize(&mut self, pos: &Bounds<Canvas>) {
-        let (x0, y0) = (pos.xmin(), pos.ymin());
-        let (w, h) = (pos.width(), pos.height());
-        let (x1, y1) = (x0 + w, y0 + h);
-
-        let mut vertices = Vec::<[f32; 2]>::new();
-        let mut triangles = Vec::<[u32; 3]>::new();
-
-        vertices.push([x0, y0]);
-        vertices.push([x1, y0]);
-        vertices.push([x0, y1]);
-        vertices.push([x1, y1]);
-
-        triangles.push([0, 1, 2]);
-        triangles.push([2, 3, 1]);
-
-        self.vertices = Tensor::from(vertices);
-        self.triangles = Tensor::from(triangles);
-    }
 }
 
 impl Drawable for TriangleView {
@@ -61,13 +41,30 @@ impl Drawable for TriangleView {
         let colors = Tensor::from(colors);
 
         renderer.draw_triangles(self.vertices.clone(), colors.clone(), self.triangles.clone())?;
-
+        println!("Draw");
         Ok(())
     }
 
-    fn event(&mut self, _renderer: &mut dyn Renderer, event: &Event) {
-        if let Event::Resize(pos) = event {
-            self.resize(pos);
-        }
+    fn resize(&mut self, _renderer: &mut dyn Renderer, pos: &Bounds<Canvas>) -> Bounds<Canvas> {
+        println!("Resize {:?}", pos);
+        let (x0, y0) = (pos.xmin(), pos.ymin());
+        let (w, h) = (pos.width(), pos.height());
+        let (x1, y1) = (x0 + w, y0 + h);
+
+        let mut vertices = Vec::<[f32; 2]>::new();
+        let mut triangles = Vec::<[u32; 3]>::new();
+
+        vertices.push([x0, y0]);
+        vertices.push([x1, y0]);
+        vertices.push([x0, y1]);
+        vertices.push([x1, y1]);
+
+        triangles.push([0, 1, 2]);
+        triangles.push([2, 3, 1]);
+
+        self.vertices = Tensor::from(vertices);
+        self.triangles = Tensor::from(triangles);
+
+        pos.clone()
     }
 }
