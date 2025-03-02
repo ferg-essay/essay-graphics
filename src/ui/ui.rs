@@ -1,6 +1,6 @@
 use essay_graphics_api::{renderer::{self, Canvas, Drawable, Event, Renderer}, Bounds, Point};
 
-use super::{label::UiLabel, style::UiStyle};
+use super::{button::UiButton, label::UiLabel, style::UiStyle};
 
 pub struct Ui {
     items: Vec<Box<dyn UiItem>>,
@@ -16,6 +16,13 @@ impl Ui {
     pub fn label(&mut self, label: &str) -> &mut Self {
         let pos = Point::from((100., 100.));
         self.items.push(Box::new(UiLabel::new(pos, label)));
+
+        self
+    }
+
+    pub fn button(&mut self, label: &str) -> &mut Self {
+        let pos = Point::from((100., 100.));
+        self.items.push(Box::new(UiButton::new(pos, label)));
 
         self
     }
@@ -37,7 +44,7 @@ pub(crate) struct UiRoot {
 impl UiRoot {
     fn new(item: Box<dyn UiItem>) -> Self {
         let mut style = UiStyle::new();
-        style.label.color("red");
+        style.button_press.color("red");
 
         Self {
             item,
@@ -46,7 +53,7 @@ impl UiRoot {
     }
 
     pub(crate) fn is_dirty(&self) -> bool {
-        true
+        false
     }
 }
 
@@ -63,8 +70,10 @@ impl Drawable for UiRoot {
         bounds.clone()
     }
 
-    fn event(&mut self, _renderer: &mut dyn Renderer, event: &Event) {
-        println!("Event {:?}", event);
+    fn event(&mut self, renderer: &mut dyn Renderer, event: &Event) {
+        let pos = renderer.pos().clone();
+        renderer.request_redraw(&pos);
+        self.item.event(event).unwrap();
     }
 }
 
@@ -73,6 +82,11 @@ pub trait UiItem : Send + 'static {
         &mut self, 
         renderer: &mut dyn Renderer,
         style: &UiStyle,
+    ) -> renderer::Result<()>;
+
+    fn event(
+        &mut self,
+        event: &Event,
     ) -> renderer::Result<()>;
 }
 
@@ -83,6 +97,13 @@ impl UiItem for UiNull {
         &mut self, 
         _renderer: &mut dyn Renderer,
         _style: &UiStyle
+    ) -> renderer::Result<()> {
+        Ok(())
+    }
+
+    fn event(
+        &mut self, 
+        _event: &Event,
     ) -> renderer::Result<()> {
         Ok(())
     }

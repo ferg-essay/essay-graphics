@@ -24,4 +24,11 @@ impl UiItem for UiLabel {
     ) -> renderer::Result<()> {
         renderer.draw_text(self.pos, &self.label, 0., &style.label, &style.label_text)
     }
+    
+    fn event(
+        &mut self,
+        _event: &renderer::Event,
+    ) -> renderer::Result<()> {
+        Ok(())
+    }
 }

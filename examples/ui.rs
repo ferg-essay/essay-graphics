@@ -5,7 +5,7 @@ fn main() {
     let mut figure = LayoutMainLoop::new();
 
     figure.view((0.2, 0.2, 2., 2.) , UiView::new(|ui| {
-        ui.label("hello");
+        ui.button("hello");
     }));
 
     figure.show();

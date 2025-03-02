@@ -1,5 +1,6 @@
-mod style;
+mod button;
 mod label;
+mod style;
 mod ui;
 mod ui_view;
 
