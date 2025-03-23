@@ -1,49 +1,37 @@
-use essay_graphics_api::{renderer::{self, Renderer}, Point};
+use essay_graphics_api::{renderer, Point};
 
-use super::{style::UiStyle, ui::UiItem};
+use crate::Ui;
+
+use super::ui::Widget;
 
 pub(crate) struct UiButton {
-    pos: Point,
     label: String,
     press: bool,
 }
 
 impl UiButton {
-    pub(crate) fn new(pos: Point, label: &str) -> Self {
+    pub(crate) fn new(label: &str) -> Self {
         Self {
-            pos,
             label: String::from(label),
             press: false,
         }
     }
 }
 
-impl UiItem for UiButton {
-    fn draw(
-        &mut self, 
-        renderer: &mut dyn Renderer, 
-        style: &UiStyle
-    ) -> renderer::Result<()> {
+impl Widget for UiButton {
+    fn ui(&mut self, ui: &mut Ui) -> renderer::Result<()> {
+        let bounds = ui.allocate_rect(Point(100., 30.));
+        let pos = bounds.p0();
+
         if self.press { 
-            renderer.draw_text(self.pos, &self.label, 0., &style.button_press, &style.button_text)
+            let button_press = ui.style().button_press.clone();
+            let button_text = ui.style().button_text.clone();
+            ui.renderer().draw_text(pos, &self.label, 0., &button_press, &button_text)
         } else {
-            renderer.draw_text(self.pos, &self.label, 0., &style.button, &style.button_text)
-        }
-    }
-    
-    fn event(
-        &mut self,
-        event: &renderer::Event,
-    ) -> renderer::Result<()> {
-        match event {
-            renderer::Event::MouseLeftPress(_) => {
-                self.press = !self.press;
-            }
-            _ => {
+            let button = ui.style().button.clone();
+            let button_text = ui.style().button_text.clone();
 
-            }
+            ui.renderer().draw_text(pos, &self.label, 0., &button, &button_text)
         }
-
-        Ok(())
     }
 }

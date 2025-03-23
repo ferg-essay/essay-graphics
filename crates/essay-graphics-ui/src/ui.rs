@@ -1,11 +1,11 @@
-use essay_graphics_api::{renderer::{self, Event, Renderer}, Point};
+use essay_graphics_api::{renderer::{self, Canvas, Renderer}, Bounds, Point};
 
 use super::{button::UiButton, label::UiLabel, style::UiStyle};
 
 pub struct Ui<'a> {
     renderer: &'a mut dyn Renderer,
-    // items: Vec<Box<dyn UiItem>>,
     style: UiStyle,
+    cursor: Cursor,
 }
 
 impl<'a> Ui<'a> {
@@ -14,48 +14,72 @@ impl<'a> Ui<'a> {
         style.button_press.color("red");
 
         Self {
+            cursor: Cursor::new(renderer.pos().clone()),
             renderer,
-            style
+            style,
         }
     }
 
-    pub fn add(&mut self, mut item: impl UiItem) {
-        item.draw(self.renderer, &self.style).unwrap();
+    pub fn renderer(&mut self) -> &mut dyn Renderer {
+        self.renderer
+    }
+
+    pub fn style(&mut self) -> &UiStyle {
+        &self.style
+    }
+
+    pub fn allocate_rect(&mut self, size: Point) -> Bounds<Canvas> {
+        let rect = Bounds::<Canvas>::new(
+            (self.cursor.pos.x(), self.cursor.pos.y() - size.y()),
+            (self.cursor.pos.x() + size.x(), self.cursor.pos.y()),
+        );
+
+        self.cursor.pos = Point(self.cursor.pos.x(), self.cursor.pos.y() - size.y());
+
+        rect
+    }
+
+    pub fn add(&mut self, mut widget: impl Widget) {
+        widget.ui(self).unwrap();
     }
 
     pub fn label(&mut self, label: &str) -> &mut Self {
-        let pos = Point::from((100., 100.));
-
-        let label = UiLabel::new(pos, label);
+        let label = UiLabel::new(label);
 
         self.add(label);
-
-        // self.items.push(Box::new(UiLabel::new(pos, label)));
 
         self
     }
 
     pub fn button(&mut self, label: &str) -> &mut Self {
-        let pos = Point::from((100., 100.));
+        let button = UiButton::new(label);
 
-        let button = UiButton::new(pos, label);
-
-        self.add( button);
+        self.add(button);
 
         self
     }
 }
 
+pub struct Cursor {
+    _bounds: Bounds<Canvas>,
+    pos: Point,
+}
 
-pub trait UiItem : Send + 'static {
-    fn draw(
+impl Cursor {
+    fn new(bounds: Bounds<Canvas>) -> Self {
+        let pos = (bounds.xmin(), bounds.ymax());
+        Self {
+            _bounds: bounds,
+            pos: pos.into(),
+        }
+    }
+}
+
+
+
+pub trait Widget : Send + 'static {
+    fn ui(
         &mut self, 
-        renderer: &mut dyn Renderer,
-        style: &UiStyle,
-    ) -> renderer::Result<()>;
-
-    fn event(
-        &mut self,
-        event: &Event,
+        ui: &mut Ui,
     ) -> renderer::Result<()>;
 }

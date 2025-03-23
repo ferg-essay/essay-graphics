@@ -1,4 +1,4 @@
-use essay_graphics_api::{PathStyleBase, TextStyle};
+use essay_graphics_api::{HorizAlign, PathStyleBase, TextStyle};
 
 pub struct UiStyle {
     pub label: PathStyleBase,
@@ -11,13 +11,16 @@ pub struct UiStyle {
 
 impl UiStyle {
     pub(crate) fn new()->Self {
+        let mut text = TextStyle::new();
+        text.halign(HorizAlign::Left);
+        
         Self {
             label: PathStyleBase::new(),
-            label_text: TextStyle::new(),
+            label_text: text.clone(),
 
             button: PathStyleBase::new(),
             button_press: PathStyleBase::new(),
-            button_text: TextStyle::new(),
+            button_text: text.clone(),
         }
     }
 }

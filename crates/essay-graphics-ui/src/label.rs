@@ -1,34 +1,36 @@
-use essay_graphics_api::{renderer::{self, Renderer}, Point};
+use essay_graphics_api::{renderer, Point};
 
-use super::{style::UiStyle, ui::UiItem};
+use crate::Ui;
+
+use super::ui::Widget;
 
 pub(crate) struct UiLabel {
-    pos: Point,
     label: String,
 }
 
 impl UiLabel {
-    pub(crate) fn new(pos: Point, label: &str) -> Self {
+    pub(crate) fn new(label: &str) -> Self {
         Self {
-            pos,
             label: String::from(label),
         }
     }
 }
 
-impl UiItem for UiLabel {
-    fn draw(
+impl Widget for UiLabel {
+    fn ui(
         &mut self, 
-        renderer: &mut dyn Renderer, 
-        style: &UiStyle
+        ui: &mut Ui, 
     ) -> renderer::Result<()> {
-        renderer.draw_text(self.pos, &self.label, 0., &style.label, &style.label_text)
-    }
-    
-    fn event(
-        &mut self,
-        _event: &renderer::Event,
-    ) -> renderer::Result<()> {
-        Ok(())
+        let pos = ui.allocate_rect(Point(100., 20.));
+        let style = ui.style().label.clone();
+        let style_text = ui.style().label_text.clone();
+
+        ui.renderer().draw_text(
+            pos.p0(), 
+            &self.label, 
+            0., 
+            &style,
+            &style_text
+        )
     }
 }
