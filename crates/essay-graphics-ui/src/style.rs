@@ -1,6 +1,6 @@
 use essay_graphics_api::{PathStyleBase, TextStyle};
 
-pub(crate) struct UiStyle {
+pub struct UiStyle {
     pub label: PathStyleBase,
     pub label_text: TextStyle,
 

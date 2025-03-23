@@ -1,4 +1,4 @@
-use essay_graphics::ui::UiView;
+use essay_graphics_ui::UiView;
 use essay_graphics::layout::LayoutMainLoop;
 
 fn main() { 
@@ -6,6 +6,7 @@ fn main() {
 
     figure.view((0.2, 0.2, 2., 2.) , UiView::new(|ui| {
         ui.button("hello");
+        ui.button("there");
     }));
 
     figure.show();
