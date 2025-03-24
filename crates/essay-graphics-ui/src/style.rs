@@ -1,5 +1,6 @@
 use essay_graphics_api::{HorizAlign, PathStyleBase, TextStyle};
 
+#[derive(Clone)]
 pub struct UiStyle {
     pub label: PathStyleBase,
     pub label_text: TextStyle,

@@ -1,4 +1,4 @@
-use essay_graphics_api::{renderer, Point};
+use essay_graphics_api::renderer;
 
 use crate::Ui;
 
@@ -20,16 +20,16 @@ impl UiButton {
 
 impl Widget for UiButton {
     fn ui(&mut self, ui: &mut Ui) -> renderer::Result<()> {
-        let bounds = ui.allocate_rect(Point(100., 30.));
+        let button_text = ui.style().button_text.clone();
+        let size = ui.text_size(&self.label, &button_text);
+        let bounds = ui.allocate_rect(size);
         let pos = bounds.p0();
 
         if self.press { 
             let button_press = ui.style().button_press.clone();
-            let button_text = ui.style().button_text.clone();
             ui.renderer().draw_text(pos, &self.label, 0., &button_press, &button_text)
         } else {
             let button = ui.style().button.clone();
-            let button_text = ui.style().button_text.clone();
 
             ui.renderer().draw_text(pos, &self.label, 0., &button, &button_text)
         }

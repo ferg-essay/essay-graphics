@@ -1,5 +1,5 @@
 use bytemuck_derive::{Zeroable, Pod};
-use essay_graphics_api::{Point, Color, Affine2d, HorizAlign, VertAlign};
+use essay_graphics_api::{Affine2d, Color, HorizAlign, Point, Size, VertAlign};
 use wgpu::util::DeviceExt;
 
 use super::{text_texture::TextTexture, text_cache::{TextCache, FontId}};
@@ -202,6 +202,44 @@ impl TextRender {
         });
         self.style_vec[self.style_offset] = GpuTextStyle::new(&affine, color.to_rgba());
         self.style_offset += 1;
+    }
+
+    ///
+    /// draw a text item
+    /// 
+    pub fn text_size(
+        &mut self, 
+        text: &str, 
+        font_id: FontId, 
+        size: f32,
+    ) -> Size {
+        // TODO: proper spacing and kerning
+        let text_size = (size + 0.5) as u16;
+
+        let s = self.text_cache.glyph(font_id, text_size, ' ');
+        let w_space = s.w + s.dx.max(0.);
+        let w_inside = w_space * 0.3;
+
+        // let w_inside = size * 0.07;
+        let w_space = size * 0.4;
+        
+        let mut x = 0.;
+        // let mut y = 0.;
+
+        for ch in text.chars() {
+            let r = self.text_cache.glyph(font_id, text_size, ch);
+            
+            if r.is_none() || ch == ' ' {
+                x += w_space;
+            } else {
+                x += w_inside;
+                x += r.w;
+            }
+        }
+
+        let descent = 0.; // 0.3 * size; // TODO
+
+        Size(x, size + descent)
     }
 
     pub fn flush(

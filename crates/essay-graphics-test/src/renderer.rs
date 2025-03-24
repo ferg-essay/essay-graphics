@@ -1,5 +1,5 @@
 use essay_graphics_api::{
-    form::{Form, FormId, Matrix4, Shape, ShapeId}, renderer::{Canvas, Drawable, RenderErr, Renderer, Result}, Affine2d, Bounds, FontStyle, FontTypeId, ImageId, Path, PathOpt, Point, TextStyle, TextureId
+    form::{Form, FormId, Matrix4, Shape, ShapeId}, renderer::{Canvas, Drawable, RenderErr, Renderer, Result}, Affine2d, Bounds, FontStyle, FontTypeId, ImageId, Path, PathOpt, Point, Size, TextStyle, TextureId
 };
 use essay_tensor::Tensor;
 
@@ -81,22 +81,33 @@ impl Renderer for TestRenderer {
         todo!()
     }
 
+    #[allow(unused_variables)]
     fn draw_text(
         &mut self, 
-        _xy: Point, // location in Canvas coordinates
-        _text: &str,
-        _angle: f32,
-        _style: &dyn PathOpt, 
-        _text_style: &TextStyle,
+        xy: Point, // location in Canvas coordinates
+        text: &str,
+        angle: f32,
+        style: &dyn PathOpt, 
+        text_style: &TextStyle,
     ) -> Result<(), RenderErr> {
         todo!()
     }
 
+    #[allow(unused_variables)]
+    fn text_size(
+        &mut self,
+        text: &str,
+        text_style: &TextStyle,
+    ) -> Size {
+        todo!()
+    }
+
+    #[allow(unused_variables)]
     fn draw_triangles(
         &mut self,
-        _vertices: Tensor<f32>,  // Nx2 x,y in canvas coordinates
-        _colors: Tensor<u32>,    // N in rgba
-        _triangles: Tensor<u32>, // Mx3 vertex indices
+        vertices: Tensor<f32>,  // Nx2 x,y in canvas coordinates
+        colors: Tensor<u32>,    // N in rgba
+        triangles: Tensor<u32>, // Mx3 vertex indices
     ) -> Result<(), RenderErr> {
         todo!()
     }

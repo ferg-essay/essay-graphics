@@ -1,17 +1,18 @@
-pub mod form;
 pub mod affine2d;
-mod image;
-mod clip;
-mod instance;
-mod point;
-mod coord;
 mod bounds;
+mod clip;
 mod color;
 mod color_data;
+mod coord;
+pub mod form;
+mod image;
+mod instance;
+mod point;
 pub mod renderer;
 mod path;
 pub mod path_opt;
 pub mod path_style;
+mod size;
 mod text;
 
 pub use affine2d::Affine2d;
@@ -27,6 +28,8 @@ pub use coord::Coord;
 pub use path::{
     Path, PathCode,
 };
+
+pub use size::Size;
 
 pub use instance::Instance;
 

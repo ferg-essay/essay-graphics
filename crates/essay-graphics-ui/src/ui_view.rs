@@ -1,5 +1,7 @@
 use essay_graphics_api::{renderer::{self, Canvas, Drawable, Event, Renderer}, Bounds};
 
+use crate::ui::Cursor;
+
 use super::Ui;
 
 pub struct UiView {
@@ -18,7 +20,8 @@ impl UiView {
 
 impl Drawable for UiView {
     fn draw(&mut self, renderer: &mut dyn Renderer) -> renderer::Result<()> {
-        let mut ui = Ui::new(renderer);
+        let cursor = Cursor::new(renderer.pos().clone());
+        let mut ui = Ui::new(renderer, cursor);
         (self.builder)(&mut ui);
 
         Ok(())

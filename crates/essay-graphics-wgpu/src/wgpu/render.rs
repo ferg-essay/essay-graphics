@@ -1,7 +1,7 @@
 use std::mem;
 
 use essay_graphics_api::{
-    form::{Form, FormId, Matrix4, Shape, ShapeId}, renderer::{Canvas, Drawable, RenderErr, Renderer, Result}, Affine2d, Bounds, FontStyle, FontTypeId, ImageId, Path, PathOpt, Point, TextStyle, TextureId
+    form::{Form, FormId, Matrix4, Shape, ShapeId}, renderer::{Canvas, Drawable, RenderErr, Renderer, Result}, Affine2d, Bounds, FontStyle, FontTypeId, ImageId, Path, PathOpt, Point, Size, TextStyle, TextureId
 };
 use essay_tensor::Tensor;
 
@@ -146,6 +146,14 @@ impl<'a> Renderer for PlotRenderer<'a> {
         text_style: &TextStyle,
     ) -> Result<(), RenderErr> {
         self.canvas.draw_text(xy, text, angle, style, text_style)
+    }
+
+    fn text_size(
+        &mut self, 
+        text: &str,
+        text_style: &TextStyle,
+    ) -> Size {
+        self.canvas.text_size(text, text_style)
     }
 
     fn draw_triangles(

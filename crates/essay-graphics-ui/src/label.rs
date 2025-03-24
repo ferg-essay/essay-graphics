@@ -1,4 +1,4 @@
-use essay_graphics_api::{renderer, Point};
+use essay_graphics_api::renderer;
 
 use crate::Ui;
 
@@ -21,9 +21,12 @@ impl Widget for UiLabel {
         &mut self, 
         ui: &mut Ui, 
     ) -> renderer::Result<()> {
-        let pos = ui.allocate_rect(Point(100., 20.));
+
         let style = ui.style().label.clone();
         let style_text = ui.style().label_text.clone();
+        let size = ui.text_size(&self.label, &style_text);
+        let pos = ui.allocate_rect(size);
+        println!("Size {:?}", &size);
 
         ui.renderer().draw_text(
             pos.p0(), 

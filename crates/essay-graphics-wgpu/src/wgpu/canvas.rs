@@ -1,7 +1,5 @@
 use essay_graphics_api::{
-    form::{Form, FormId, Matrix4, Shape, ShapeId}, 
-    renderer::{Canvas, Drawable, RenderErr, Result}, 
-    Affine2d, Bounds, CapStyle, Clip, Color, FontStyle, FontTypeId, HorizAlign, ImageId, JoinStyle, LineStyle, Path, PathCode, PathOpt, Point, TextStyle, TextureId, VertAlign
+    form::{Form, FormId, Matrix4, Shape, ShapeId}, renderer::{Canvas, Drawable, RenderErr, Result}, Affine2d, Bounds, CapStyle, Clip, Color, FontStyle, FontTypeId, HorizAlign, ImageId, JoinStyle, LineStyle, Path, PathCode, PathOpt, Point, Size, TextStyle, TextureId, VertAlign
 };
 use essay_tensor::Tensor;
 
@@ -548,7 +546,6 @@ impl PlotCanvas {
         style: &dyn PathOpt, 
         text_style: &TextStyle,
     ) -> Result<(), RenderErr> {
-
         let color = match style.get_face_color() {
             Some(color) => *color,
             None => Color(0x000000ff),
@@ -590,6 +587,26 @@ impl PlotCanvas {
         );
  
         Ok(())
+    }
+
+    pub fn text_size(
+        &mut self,
+        text: &str,
+        text_style: &TextStyle,
+    ) -> Size {
+        let size = text_style.get_size().map_or(10., |s| s);
+        let size = self.to_px(size);
+
+        let font_id = text_style.get_font().map_or(
+            self.font_id_default,
+            |id| FontId(id.0)
+        );
+
+        self.text_render.text_size(
+            text,
+            font_id,
+            size
+        )
     }
 
     pub fn draw_triangles(

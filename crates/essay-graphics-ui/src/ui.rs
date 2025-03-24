@@ -1,4 +1,4 @@
-use essay_graphics_api::{renderer::{self, Canvas, Renderer}, Bounds, Point};
+use essay_graphics_api::{renderer::{self, Canvas, Renderer}, Bounds, Point, Size, TextStyle};
 
 use super::{button::UiButton, label::UiLabel, style::UiStyle};
 
@@ -6,17 +6,22 @@ pub struct Ui<'a> {
     renderer: &'a mut dyn Renderer,
     style: UiStyle,
     cursor: Cursor,
+    update: CursorUpdate,
 }
 
 impl<'a> Ui<'a> {
-    pub(super) fn new(renderer: &'a mut dyn Renderer) -> Self {
+    pub(super) fn new(
+        renderer: &'a mut dyn Renderer,
+        cursor: Cursor,
+    ) -> Self {
         let mut style = UiStyle::new();
         style.button_press.color("red");
 
         Self {
-            cursor: Cursor::new(renderer.pos().clone()),
+            cursor,
             renderer,
             style,
+            update: CursorUpdate::Vertical,
         }
     }
 
@@ -28,15 +33,8 @@ impl<'a> Ui<'a> {
         &self.style
     }
 
-    pub fn allocate_rect(&mut self, size: Point) -> Bounds<Canvas> {
-        let rect = Bounds::<Canvas>::new(
-            (self.cursor.pos.x(), self.cursor.pos.y() - size.y()),
-            (self.cursor.pos.x() + size.x(), self.cursor.pos.y()),
-        );
-
-        self.cursor.pos = Point(self.cursor.pos.x(), self.cursor.pos.y() - size.y());
-
-        rect
+    pub fn allocate_rect(&mut self, size: Size) -> Bounds<Canvas> {
+        self.update.alloc(size, &mut self.cursor)
     }
 
     pub fn add(&mut self, mut widget: impl Widget) {
@@ -58,19 +56,95 @@ impl<'a> Ui<'a> {
 
         self
     }
+
+    pub fn horizontal(&mut self, builder: impl FnOnce(&mut Ui)) -> &mut Self {
+        let pos = self.cursor.pos;
+
+        let mut child = Ui {
+            renderer: self.renderer,
+            cursor: Cursor::new(Bounds::<Canvas>::from(pos)),
+            style: self.style.clone(),
+            update: CursorUpdate::Horizontal,
+        };
+
+        (builder)(&mut child);
+
+        self.cursor.bounds = self.cursor.bounds.union(&child.cursor.bounds);
+        self.cursor.pos = Point(self.cursor.pos.x(), self.cursor.bounds.ymin());
+
+        self
+    }
+
+    pub fn vertical(&mut self, builder: impl FnOnce(&mut Ui)) -> &mut Self {
+        let pos = self.cursor.pos;
+
+        let mut child = Ui {
+            renderer: self.renderer,
+            cursor: Cursor::new(Bounds::<Canvas>::from(pos)),
+            style: self.style.clone(),
+            update: CursorUpdate::Vertical,
+        };
+
+        (builder)(&mut child);
+
+        self.cursor.bounds = self.cursor.bounds.union(&child.cursor.bounds);
+        self.cursor.pos = Point(self.cursor.bounds.xmax(), self.cursor.pos.y());
+
+        self
+    }
+    
+    pub fn text_size(&mut self, label: &str, style_text: &TextStyle) -> Size {
+        self.renderer.text_size(label, style_text)
+    }
 }
 
+#[derive(Clone, Debug)]
 pub struct Cursor {
-    _bounds: Bounds<Canvas>,
+    bounds: Bounds<Canvas>,
     pos: Point,
 }
 
 impl Cursor {
-    fn new(bounds: Bounds<Canvas>) -> Self {
-        let pos = (bounds.xmin(), bounds.ymax());
-        Self {
-            _bounds: bounds,
-            pos: pos.into(),
+    pub(crate) fn new(pos: Bounds<Canvas>) -> Cursor {
+        let pos = Point(pos.xmin(), pos.ymax());
+
+        Cursor {
+            pos,
+            bounds: Bounds::from(pos),
+        }
+    }
+}
+
+enum CursorUpdate {
+    Vertical,
+    Horizontal,
+}
+
+impl CursorUpdate {
+    fn alloc(&self, size: Size, cursor: &mut Cursor) -> Bounds<Canvas> {
+        match self {
+            CursorUpdate::Vertical => {
+                let rect = Bounds::<Canvas>::new(
+                    (cursor.pos.x(), cursor.pos.y() - size.height()),
+                    (cursor.pos.x() + size.width(), cursor.pos.y()),
+                );
+        
+                cursor.pos = Point(cursor.pos.x(), cursor.pos.y() - size.height());
+                cursor.bounds = cursor.bounds.union(&rect);
+
+                rect
+            },
+            CursorUpdate::Horizontal => {
+                let rect = Bounds::<Canvas>::new(
+                    (cursor.pos.x(), cursor.pos.y() - size.height()),
+                    (cursor.pos.x() + size.width(), cursor.pos.y()),
+                );
+        
+                cursor.pos = Point(cursor.pos.x() + size.width(), cursor.pos.y());
+                cursor.bounds = cursor.bounds.union(&rect);
+
+                rect
+            }
         }
     }
 }

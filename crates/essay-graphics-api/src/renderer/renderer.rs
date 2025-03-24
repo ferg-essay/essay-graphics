@@ -1,7 +1,9 @@
 use essay_tensor::Tensor;
 
 use crate::{
-    form::{Form, FormId, Matrix4, Shape, ShapeId}, Affine2d, Bounds, FontStyle, FontTypeId, ImageId, Path, PathOpt, Point, TextStyle, TextureId
+    form::{Form, FormId, Matrix4, Shape, ShapeId}, 
+    Affine2d, Bounds, FontStyle, FontTypeId, ImageId, Path, PathOpt, Point, 
+    Size, TextStyle, TextureId
 };
 
 use super::{Canvas, Drawable};
@@ -51,6 +53,12 @@ pub trait Renderer {
         style: &dyn PathOpt, 
         text_style: &TextStyle,
     ) -> Result<()>;
+
+    fn text_size(
+        &mut self,
+        text: &str,
+        text_style: &TextStyle
+    ) -> Size;
 
     fn draw_triangles(
         &mut self,

@@ -1,3 +1,4 @@
+mod row;
 mod button;
 mod label;
 mod style;
