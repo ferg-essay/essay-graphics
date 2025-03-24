@@ -1,9 +1,12 @@
 use essay_graphics_api::{renderer::{self, Canvas, Renderer}, Bounds, Point, Size, TextStyle};
 
+use crate::ui_view::UiInput;
+
 use super::{button::UiButton, label::UiLabel, style::UiStyle};
 
 pub struct Ui<'a> {
     renderer: &'a mut dyn Renderer,
+    input: &'a UiInput,
     style: UiStyle,
     cursor: Cursor,
     update: CursorUpdate,
@@ -13,6 +16,7 @@ impl<'a> Ui<'a> {
     pub(super) fn new(
         renderer: &'a mut dyn Renderer,
         cursor: Cursor,
+        input: &'a UiInput,
     ) -> Self {
         let mut style = UiStyle::new();
         style.button_press.color("red");
@@ -21,12 +25,17 @@ impl<'a> Ui<'a> {
             cursor,
             renderer,
             style,
+            input,
             update: CursorUpdate::Vertical,
         }
     }
 
     pub fn renderer(&mut self) -> &mut dyn Renderer {
         self.renderer
+    }
+
+    pub fn input(&self) -> &UiInput {
+        self.input
     }
 
     pub fn style(&mut self) -> &UiStyle {
@@ -65,6 +74,7 @@ impl<'a> Ui<'a> {
             cursor: Cursor::new(Bounds::<Canvas>::from(pos)),
             style: self.style.clone(),
             update: CursorUpdate::Horizontal,
+            input: self.input,
         };
 
         (builder)(&mut child);
@@ -83,6 +93,7 @@ impl<'a> Ui<'a> {
             cursor: Cursor::new(Bounds::<Canvas>::from(pos)),
             style: self.style.clone(),
             update: CursorUpdate::Vertical,
+            input: self.input,
         };
 
         (builder)(&mut child);

@@ -201,9 +201,13 @@ fn run_event_loop(
                             mouse.left_press_start = cursor.position;
                             mouse.left_press_last = cursor.position;
                             mouse.left_press_time = now;
-                            window.set_cursor_icon(CursorIcon::Grab);
+                            //window.set_cursor_icon(CursorIcon::Grab);
                         } else {
-                            window.set_cursor_icon(CursorIcon::Default);
+                            drawable.event(
+                                &mut renderer,
+                                &Event::MouseLeftRelease(cursor.position),
+                            );
+                        //window.set_cursor_icon(CursorIcon::Default);
                         }
                     },
                     MouseButton::Right => {
@@ -251,6 +255,13 @@ fn run_event_loop(
             } => {
                 cursor.position = Point(position.x as f32, config.height as f32 - position.y as f32);
                 let mut renderer = PlotRenderer::new(&mut canvas, &device, Some(&queue), None);
+
+                drawable.event(
+                    &mut renderer,
+                    &Event::MouseMove(
+                        cursor.position
+                    ),
+                );
 
                 if mouse.left == ElementState::Pressed 
                     && pan_min <= mouse.left_press_start.dist(&cursor.position) {

@@ -26,7 +26,6 @@ impl Widget for UiLabel {
         let style_text = ui.style().label_text.clone();
         let size = ui.text_size(&self.label, &style_text);
         let pos = ui.allocate_rect(size);
-        println!("Size {:?}", &size);
 
         ui.renderer().draw_text(
             pos.p0(), 

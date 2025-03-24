@@ -6,6 +6,8 @@ use crate::{renderer::Canvas, Bounds, Point};
 pub enum Event {
     Resize(Bounds<Canvas>),
 
+    MouseMove(Point),
+
     MouseLeftPress(Point),
     MouseLeftRelease(Point),
     Pan(Point, Point, Point),
@@ -30,6 +32,8 @@ impl Event {
     pub fn point(&self) -> Point {
         match self {
             Event::Resize(_) => Point(0., 0.),
+
+            Event::MouseMove(point) => *point,
 
             Event::MouseLeftPress(point) => *point,
             Event::MouseLeftRelease(point) => *point,
@@ -56,6 +60,7 @@ impl Event {
         match self {
             Event::Resize(_) => true,
 
+            Event::MouseMove(point) => bounds.contains(point),
             Event::MouseLeftPress(point) => bounds.contains(point),
             Event::MouseLeftRelease(point) => bounds.contains(point),
             Event::Pan(point, _, _) => bounds.contains(point),
