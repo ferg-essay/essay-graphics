@@ -1,6 +1,4 @@
-use essay_graphics_api::renderer;
-
-use crate::Ui;
+use crate::{ui::Response, Ui};
 
 use super::ui::Widget;
 
@@ -20,8 +18,7 @@ impl Widget for UiLabel {
     fn ui(
         &mut self, 
         ui: &mut Ui, 
-    ) -> renderer::Result<()> {
-
+    ) -> Response {
         let style = ui.style().label.clone();
         let style_text = ui.style().label_text.clone();
         let size = ui.text_size(&self.label, &style_text);
@@ -33,6 +30,8 @@ impl Widget for UiLabel {
             0., 
             &style,
             &style_text
-        )
+        ).unwrap();
+
+        Response::default()
     }
 }

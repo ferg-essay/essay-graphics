@@ -1,4 +1,7 @@
-use essay_graphics_api::{renderer::{self, Canvas, Renderer}, Bounds, Point, Size, TextStyle};
+use essay_graphics_api::{
+    renderer::{Canvas, Renderer}, 
+    Bounds, Point, Size, TextStyle
+};
 
 use crate::ui_view::UiInput;
 
@@ -46,24 +49,20 @@ impl<'a> Ui<'a> {
         self.update.alloc(size, &mut self.cursor)
     }
 
-    pub fn add(&mut self, mut widget: impl Widget) {
-        widget.ui(self).unwrap();
+    pub fn add(&mut self, mut widget: impl Widget) -> Response {
+        widget.ui(self)
     }
 
-    pub fn label(&mut self, label: &str) -> &mut Self {
+    pub fn label(&mut self, label: &str) -> Response {
         let label = UiLabel::new(label);
 
-        self.add(label);
-
-        self
+        self.add(label)
     }
 
-    pub fn button(&mut self, label: &str) -> &mut Self {
-        let button = UiButton::new(label);
+    pub fn button(&mut self, label: &str, press: bool) -> Response {
+        let button = UiButton::new(label, press);
 
-        self.add(button);
-
-        self
+        self.add(button)
     }
 
     pub fn horizontal(&mut self, builder: impl FnOnce(&mut Ui)) -> &mut Self {
@@ -160,11 +159,39 @@ impl CursorUpdate {
     }
 }
 
+pub struct Response {
+    onclick: bool,
+}
+
+impl Response {
+    pub fn with_onclick(mut self, onclick: bool) -> Self {
+        self.onclick = onclick;
+
+        self
+    }
+
+    pub fn onclick(&self, fun: impl FnOnce()) -> &Self {
+        if self.onclick {
+            (fun)();
+        }
+
+        self
+    }
+}
+
+impl Default for Response {
+    fn default() -> Self {
+        Self {
+            onclick: false,
+        }
+    }
+}
+
 
 
 pub trait Widget : Send + 'static {
     fn ui(
         &mut self, 
         ui: &mut Ui,
-    ) -> renderer::Result<()>;
+    ) -> Response;
 }

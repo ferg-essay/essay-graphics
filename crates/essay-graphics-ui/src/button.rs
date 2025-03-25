@@ -1,25 +1,25 @@
-use essay_graphics_api::{renderer::{self, Canvas}, Color, Path, Point, Size};
+use essay_graphics_api::{renderer::Canvas, Color, Path, Point, Size};
 
-use crate::Ui;
+use crate::{ui::Response, Ui};
 
 use super::ui::Widget;
 
 pub(crate) struct UiButton {
     label: String,
-    _press: bool,
+    press: bool,
 }
 
 impl UiButton {
-    pub(crate) fn new(label: &str) -> Self {
+    pub(crate) fn new(label: &str, press: bool) -> Self {
         Self {
             label: String::from(label),
-            _press: false,
+            press,
         }
     }
 }
 
 impl Widget for UiButton {
-    fn ui(&mut self, ui: &mut Ui) -> renderer::Result<()> {
+    fn ui(&mut self, ui: &mut Ui) -> Response {
         let button_text = ui.style().button_text.clone();
         let size = ui.text_size(&self.label, &button_text);
 
@@ -38,7 +38,8 @@ impl Widget for UiButton {
 
         let over = ui.input().cursor.map_or(false, |p| bounds.contains(p));
         let press = ui.input().left_press.map_or(false, |p| bounds.contains(p));
-
+        let press_one = ui.input().left_press_one.map_or(false, |p| bounds.contains(p));
+        
         let mut style = ui.style().button.clone();
         style.face_color(Color::none());
         if over {
@@ -47,15 +48,21 @@ impl Widget for UiButton {
             style.edge_color("black");
         }
 
+        if press {
+            style.face_color(Color::from("red").set_alpha(0.25));
+        }
+
         ui.renderer().draw_path(&border, &style).unwrap();
 
-        if press { 
+        if self.press ^ press_one { 
             let button_press = ui.style().button_press.clone();
-            ui.renderer().draw_text(pos, &self.label, 0., &button_press, &button_text)
+            ui.renderer().draw_text(pos, &self.label, 0., &button_press, &button_text).unwrap();
         } else {
             let button = ui.style().button.clone();
 
-            ui.renderer().draw_text(pos, &self.label, 0., &button, &button_text)
+            ui.renderer().draw_text(pos, &self.label, 0., &button, &button_text).unwrap();
         }
+
+        Response::default().with_onclick(press_one)
     }
 }

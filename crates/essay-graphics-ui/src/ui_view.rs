@@ -48,7 +48,11 @@ impl Drawable for UiView {
                 self.input.cursor = Some(*p);
             }
             Event::MouseLeftPress(p) => {
+                self.input.left_press_one = Some(*p);
                 self.input.left_press = Some(*p);
+            }
+            Event::MouseLeftRelease(_) => {
+                self.input.left_press = None;
             }
             _ => {}
 
@@ -60,12 +64,13 @@ impl Drawable for UiView {
 #[derive(Clone)]
 pub struct UiInput {
     pub cursor: Option<Point>,
+    pub left_press_one: Option<Point>,
     pub left_press: Option<Point>,
 }
 
 impl UiInput {
     fn update(&mut self) {
-        self.left_press = None;
+        self.left_press_one = None;
     }
 }
 
@@ -73,7 +78,8 @@ impl Default for UiInput {
     fn default() -> Self {
         Self { 
             cursor: Default::default(),
-            left_press: Default::default() 
+            left_press: Default::default(),
+            left_press_one: Default::default(),
         }
     }
 }
