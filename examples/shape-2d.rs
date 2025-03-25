@@ -1,11 +1,10 @@
 use renderer::{Canvas, Drawable, Renderer};
-use essay_graphics::{layout::Layout, prelude::*};
-use essay_graphics_wgpu::WgpuMainLoop;
+use essay_graphics::{layout::{MainLoop, Page}, prelude::*};
 use essay_tensor::Tensor;
 use form::{Shape, ShapeId};
 
 fn main() { 
-    let mut layout = Layout::new();
+    let mut layout = Page::new();
 
     let mut form = Shape::new();
     // let mut vertices = Vec::<[f32; 3]>::new();
@@ -32,7 +31,7 @@ fn main() {
         ]))
     );
 
-    WgpuMainLoop::new().main_loop(Box::new(layout)).unwrap();
+    MainLoop::new().show(layout);
 }
 
 fn square(

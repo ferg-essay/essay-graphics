@@ -1,15 +1,15 @@
 use renderer::{Canvas, Drawable, Renderer};
-use essay_graphics::{layout::LayoutMainLoop, prelude::*};
+use essay_graphics::{layout::{MainLoop, Page}, prelude::*};
 use essay_tensor::Tensor;
 
 fn main() { 
-    let mut figure = LayoutMainLoop::new();
+    let mut page = Page::new();
 
-    figure.view(((0., 0.), [0.5, 0.5]),
+    page.view(((0., 0.), [0.5, 0.5]),
         TriangleView::new()
     );
 
-    figure.show();
+    MainLoop::new().show(page);
 }
 
 struct TriangleView {

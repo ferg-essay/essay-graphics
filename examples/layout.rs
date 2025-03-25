@@ -1,10 +1,10 @@
 use renderer::{Canvas, Drawable, Renderer};
 use essay_graphics::prelude::*;
-use essay_graphics::layout::LayoutMainLoop;
+use essay_graphics::layout::{MainLoop, Page};
 use essay_graphics_api::Coord;
 
 fn main() { 
-    let mut figure = LayoutMainLoop::new();
+    let mut page = Page::new();
 
     let path = Path::<Data>::move_to(0.1, 0.1)
         .line_to(2., 0.1)
@@ -12,7 +12,7 @@ fn main() {
         .to_path();
 
     //figure.view(((0.0, 0.0), [0.25, 0.25]), PathView::new(path.clone()));
-    figure.view((0.2, 0.2, 2., 2.) , PathView::new(path.clone(), "teal"));
+    page.view((0.2, 0.2, 2., 2.) , PathView::new(path.clone(), "teal"));
 
     let path = Path::<Data>::move_to(0.1, 0.1)
         .line_to(0.1, 200.)
@@ -26,12 +26,12 @@ fn main() {
         .to_path();
     */
 
-    let view = figure.view(((0.6, 0.4), [0.25, 0.25]), PathView::new(path, "orange"));
+    let view = page.view(((0.6, 0.4), [0.25, 0.25]), PathView::new(path, "orange"));
     // let view = figure.view((), PathView::new(path));
 
     println!("Path {:?} ", view.read(|t| t.path()));
 
-    figure.show();
+    MainLoop::new().show(page);
 }
 
 struct Data;

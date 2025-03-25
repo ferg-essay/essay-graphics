@@ -1,28 +1,28 @@
 use renderer::{Canvas, Drawable, Event, Renderer};
 use essay_graphics::prelude::*;
-use essay_graphics::layout::LayoutMainLoop;
+use essay_graphics::layout::{MainLoop, Page};
 use essay_graphics_api::Coord;
 
 fn main() { 
-    let mut figure = LayoutMainLoop::new();
+    let mut page = Page::new();
 
     let path = Path::<Data>::move_to(0.25, 0.25)
         .line_to(0.5, 0.25)
         .close_poly(0.25, 0.5)
         .to_path();
 
-    figure.view((), PathView::new(path));
+    page.view((), PathView::new(path));
 
     let path = Path::<Data>::move_to(0.25, 0.25)
         .line_to(0.5, 0.25)
         .close_poly(0.25, 0.5)
         .to_path();
 
-    let view = figure.view((), PathView::new(path));
+    let view = page.view((), PathView::new(path));
 
     println!("Path {:?} ", view.read(|t| t.path()));
 
-    figure.show();
+    MainLoop::new().show(page);
 }
 
 struct Data;

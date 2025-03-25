@@ -1,18 +1,17 @@
 use renderer::{Drawable, Renderer};
 use essay_graphics::prelude::*;
-use essay_graphics::layout::LayoutMainLoop;
+use essay_graphics::layout::{MainLoop, Page};
 use essay_graphics_api::Coord;
 
 fn main() { 
-    let mut figure = LayoutMainLoop::new();
-
     let path = circle()
         .scale::<Data>(0.5, 0.5)
         .translate(0.5, 0.5);
 
-    figure.view((), PathView::new(path));
+    let mut page = Page::new();
+    page.view((), PathView::new(path));
 
-    figure.show();
+    MainLoop::new().show(page);
 }
 
 // Via matplotlib

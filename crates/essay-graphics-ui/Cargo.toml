@@ -9,6 +9,7 @@ log = { version = "0.4.17" }
 essay-graphics-api = { path = "../essay-graphics-api" }
 essay-graphics-test = { path = "../essay-graphics-test" }
 essay-graphics-wgpu = { path = "../essay-graphics-wgpu" }
+# essay-graphics-ui-macros = { path = "macros" }
 
 [lib]
 doctest = false

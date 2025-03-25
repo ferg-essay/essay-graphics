@@ -341,7 +341,7 @@ fn run_event_loop(
                 if canvas.is_request_redraw() {
                     canvas.request_redraw(false);
 
-                    main_render(&device, &queue, &surface, &mut canvas, &mut drawable);
+                    main_render(&device, &queue, &surface, &mut canvas, drawable.as_mut());
                 }
             }
             _ => {}
@@ -392,7 +392,7 @@ fn main_render(
     queue: &wgpu::Queue, 
     surface: &wgpu::Surface,
     canvas: &mut PlotCanvas,
-    drawable: &mut Box<dyn Drawable>
+    drawable: &mut dyn Drawable,
 ) {
     let frame = surface.get_current_texture()
         .expect("Failed to get next swap chain texture");
@@ -428,7 +428,7 @@ fn main_render(
 
     queue.submit(Some(encoder.finish()));
 
-    canvas.draw(drawable.as_mut(), device, queue, &view).unwrap();
+    canvas.draw(drawable, device, queue, &view).unwrap();
 
     frame.present();
 }

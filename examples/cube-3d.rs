@@ -1,12 +1,12 @@
 use renderer::{Canvas, Drawable, Event, Renderer};
-use essay_graphics::{layout::Layout, prelude::*};
+use essay_graphics::{layout::Page, prelude::*};
 use essay_graphics_wgpu::{WgpuHardcopy, WgpuMainLoop};
 use essay_tensor::Tensor;
 use form::{Form, FormId, Matrix4};
 use image::Pixel;
 
 fn main() { 
-    let mut layout = Layout::new();
+    let mut layout = Page::new();
 
     let mut form = Form::new();
     // let mut vertices = Vec::<[f32; 3]>::new();

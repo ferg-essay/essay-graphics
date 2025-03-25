@@ -11,7 +11,7 @@ pub mod ui {
 }
 
 pub mod layout {
-    pub use essay_graphics_ui::layout::*;
+    pub use essay_graphics_ui::page::*;
 }
 
 pub mod prelude {

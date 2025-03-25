@@ -1,15 +1,16 @@
 use std::{any::Any, marker::PhantomData, sync::{Arc, Mutex}};
 
 use essay_graphics_api::{
-    renderer::{Result, Canvas, Drawable, Event, Renderer}, Bounds, Coord, Point
+    renderer::{Result, Canvas, Drawable, Event, Renderer}, 
+    Bounds, Coord, Point
 };
 
 #[derive(Clone)]
-pub struct Layout {
+pub struct Page {
     views: Vec<ViewItem>,
 }
 
-impl Layout {
+impl Page {
     pub fn new() -> Self {
         Self {
             views: Vec::new(),
@@ -17,10 +18,10 @@ impl Layout {
     }
 
     ///
-    /// Adds a drawable view in layout coordinates, returning a view handle
+    /// Adds a drawable view in page coordinates, returning a view handle
     /// to the drawable.
     /// 
-    /// Layout coordinates are (0, 0) lower left and (1, 1) upper right,
+    /// Page coordinates are (0, 0) upper left and (1, 1) low right,
     /// but normalized to the minimum and maximum of all added views.
     /// ((1., 1.), (2., 2.)) is allowed, as are negative values.
     /// 
@@ -29,7 +30,7 @@ impl Layout {
     /// 
     pub fn view<T: Drawable + Send + 'static>(
         &mut self, 
-        pos: impl Into<Bounds<Layout>>,
+        pos: impl Into<Bounds<Page>>,
         view: T
     ) -> View<T> {
         let mut pos = pos.into();
@@ -114,7 +115,7 @@ impl Layout {
         }
     }
 
-    fn bounds(&self) -> Bounds<Layout> {
+    fn bounds(&self) -> Bounds<Page> {
         let mut bounds = Bounds::unit();
 
         for item in &self.views {
@@ -125,7 +126,7 @@ impl Layout {
     }
 }
 
-impl Drawable for Layout {
+impl Drawable for Page {
     fn draw(&mut self, renderer: &mut dyn Renderer) -> Result<()> {
         for item in &mut self.views {
             for view in &mut item.ptrs {
@@ -156,18 +157,18 @@ impl Drawable for Layout {
 #[derive(Debug, Clone)]
 pub struct ViewId(usize);
 
-impl Coord for Layout {}
+impl Coord for Page {}
 
 #[derive(Clone)]
 struct ViewItem {
-    pos_grid: Bounds<Layout>,
+    pos_grid: Bounds<Page>,
     pos_canvas: Bounds<Canvas>,
 
     ptrs: Vec<ViewArc>,
 }
 
 impl ViewItem {
-    fn new<T: Drawable + Send + 'static>(pos: Bounds<Layout>, view: T) -> Self {
+    fn new<T: Drawable + Send + 'static>(pos: Bounds<Page>, view: T) -> Self {
         let mut ptrs = Vec::new();
         let view_arc = ViewArc(Arc::new(Mutex::new(ViewPtr::new(view))));
         ptrs.push(view_arc);
@@ -380,19 +381,18 @@ impl Drawable for PosView {
         }
     }
 }
-
 #[cfg(test)]
 mod test {
     use essay_graphics_api::{renderer::{Drawable, Event}, Bounds};
     use essay_graphics_test::TestRenderer;
 
-    use crate::layout::PosView;
+    use crate::page::PosView;
 
-    use super::Layout;
+    use super::Page;
 
     #[test]
     fn layout_basic() {
-        let mut layout = Layout::new();
+        let mut layout = Page::new();
 
         let bounds = Bounds::from([100., 200.]);
         let mut renderer = TestRenderer::new(&bounds);
@@ -404,7 +404,7 @@ mod test {
 
     #[test]
     fn layout_single_pos() {
-        let mut layout = Layout::new();
+        let mut layout = Page::new();
 
         let bounds = Bounds::from([100., 200.]);
         let mut renderer = TestRenderer::new(&bounds);
@@ -420,7 +420,7 @@ mod test {
 
     #[test]
     fn layout_dual_pos() {
-        let mut layout = Layout::new();
+        let mut layout = Page::new();
 
         let bounds = Bounds::from([360., 3600.]);
         let mut renderer = TestRenderer::new(&bounds);
@@ -438,7 +438,7 @@ mod test {
 
     #[test]
     fn layout_pos_group() {
-        let mut layout = Layout::new();
+        let mut layout = Page::new();
 
         let bounds = Bounds::from([360., 3600.]);
         let mut renderer = TestRenderer::new(&bounds);
@@ -464,7 +464,7 @@ mod test {
 
     #[test]
     fn layout_small_pos_ll() {
-        let mut layout = Layout::new();
+        let mut layout = Page::new();
 
         let bounds = Bounds::from([360., 3600.]);
         let mut renderer = TestRenderer::new(&bounds);
@@ -480,7 +480,7 @@ mod test {
 
     #[test]
     fn layout_small_pos_ur() {
-        let mut layout = Layout::new();
+        let mut layout = Page::new();
 
         let bounds = Bounds::from([360., 3600.]);
         let mut renderer = TestRenderer::new(&bounds);
