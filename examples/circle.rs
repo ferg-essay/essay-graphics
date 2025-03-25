@@ -1,6 +1,6 @@
 use renderer::{Drawable, Renderer};
 use essay_graphics::prelude::*;
-use essay_graphics::layout::{MainLoop, Page};
+use essay_graphics::layout::MainLoop;
 use essay_graphics_api::Coord;
 
 fn main() { 
@@ -8,10 +8,7 @@ fn main() {
         .scale::<Data>(0.5, 0.5)
         .translate(0.5, 0.5);
 
-    let mut page = Page::new();
-    page.view((), PathView::new(path));
-
-    MainLoop::new().show(page);
+    MainLoop::new().show(PathView::new(path));
 }
 
 // Via matplotlib

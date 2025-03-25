@@ -1,9 +1,9 @@
-use std::{any::Any, marker::PhantomData, sync::{Arc, Mutex}};
-
 use essay_graphics_api::{
     renderer::{Result, Canvas, Drawable, Event, Renderer}, 
     Bounds, Coord, Point
 };
+
+use super::{view::ViewArc, View};
 
 #[derive(Clone)]
 pub struct Page {
@@ -31,7 +31,7 @@ impl Page {
     pub fn view<T: Drawable + Send + 'static>(
         &mut self, 
         pos: impl Into<Bounds<Page>>,
-        view: T
+        view: impl Into<View<T>>,
     ) -> View<T> {
         let mut pos = pos.into();
 
@@ -48,34 +48,26 @@ impl Page {
             }
         }
 
-        let id = self.views.len();
+        let view = view.into();
 
-        self.views.push(ViewItem::new(pos, view));
+        // let id = self.views.len();
 
-        View {
-            id: ViewId(id),
-            view_arc: self.views[id].ptrs[0].clone(),
-            marker: PhantomData,
-        }
+        self.views.push(ViewItem::new(pos, &view));
+
+        view
     }
 
-    pub fn subview<T: Drawable + Send + 'static>(
+    pub fn _subview<T: Drawable + Send + 'static>(
         &mut self, 
         id: ViewId,
         index: usize,
-        view: T
+        drawable: T
     ) -> View<T> {
         assert!(index > 0);
 
         let view_item = &mut self.views[id.0];
 
-        let view_arc = view_item.insert(index, view);
-
-        View {
-            id,
-            view_arc,
-            marker: PhantomData,
-        }
+        view_item._insert(index, drawable)
     }
 
     fn layout(&mut self, renderer: &mut dyn Renderer, pos: &Bounds<Canvas>) {
@@ -156,9 +148,6 @@ impl Drawable for Page {
 
 #[derive(Debug, Clone)]
 pub struct ViewId(usize);
-
-impl Coord for Page {}
-
 #[derive(Clone)]
 struct ViewItem {
     pos_grid: Bounds<Page>,
@@ -168,10 +157,10 @@ struct ViewItem {
 }
 
 impl ViewItem {
-    fn new<T: Drawable + Send + 'static>(pos: Bounds<Page>, view: T) -> Self {
+    fn new<T: Drawable + Send + 'static>(pos: Bounds<Page>, view: &View<T>) -> Self {
         let mut ptrs = Vec::new();
-        let view_arc = ViewArc(Arc::new(Mutex::new(ViewPtr::new(view))));
-        ptrs.push(view_arc);
+
+        ptrs.push(view.arc().clone());
 
         Self {
             pos_grid: pos,
@@ -180,207 +169,27 @@ impl ViewItem {
         }
     }
 
-    fn insert<T: Drawable + Send + 'static>(&mut self, index: usize, view: T) -> ViewArc {
-        let view_arc = ViewArc(Arc::new(Mutex::new(ViewPtr::new(view))));
-
+    fn _insert<T>(&mut self, index: usize, drawable: T) -> View<T> 
+    where
+        T: Drawable + Send + 'static
+    {
+        // let view = View::new(drawable);
+    
+        /*
         for i in (0..self.ptrs.len()).rev() {
             if self.ptrs[i].index() <= index {
-                self.ptrs.insert(i + 1, view_arc.clone());
+                self.ptrs.insert(i + 1, view.arc().clone());
             }
         }
 
-        view_arc
+        view
+        */
+
+        todo!()
     }
 }
 
-#[derive(Clone)]
-struct ViewArc(Arc<Mutex<ViewPtr>>);
-
-impl ViewArc {
-    fn index(&self) -> usize {
-        self.0.lock().unwrap().index
-    }
-
-    #[inline]
-    fn read<T: 'static, R>(&self, fun: impl FnOnce(&T) -> R) -> R {
-        self.0.lock().unwrap().read(fun)
-    }
-
-    #[inline]
-    fn write<T: 'static, R>(&mut self, fun: impl FnOnce(&mut T) -> R) -> R {
-        self.0.lock().unwrap().write(fun)
-    }
-}
-
-impl Drawable for ViewArc {
-    #[inline]
-    fn draw(&mut self, renderer: &mut dyn Renderer) -> Result<()> {
-        let mut view = self.0.lock().unwrap();
-        
-        view.draw(renderer)
-    }
-
-    #[inline]
-    fn resize(
-        &mut self, 
-        renderer: &mut dyn Renderer, 
-        pos: &Bounds<Canvas>
-    ) -> Bounds<Canvas> {
-        let mut view = self.0.lock().unwrap();
-        
-        view.resize(renderer, pos)
-    }
-
-    #[inline]
-    fn event(&mut self, renderer: &mut dyn Renderer, event: &Event) {
-        let mut view = self.0.lock().unwrap();
-        
-        view.event(renderer, event);
-    }
-}
-
-struct ViewPtr {
-    index: usize,
-    ptr: Box<dyn Any + Send>,
-    handle: Box<dyn ViewHandleTrait>,
-}
-
-impl ViewPtr {
-    fn new<T: Drawable + Send + 'static>(view: T) -> Self {
-        Self {
-            index: 0,
-            ptr: Box::new(view),
-            handle: Box::new(ViewHandle::<T>::new()),
-        }
-    }
-
-    #[inline]
-    fn draw(&mut self, renderer: &mut dyn Renderer) -> Result<()> {
-        self.handle.draw(self.ptr.as_mut(), renderer)
-    }
-
-    #[inline]
-    fn resize(
-        &mut self, 
-        renderer: &mut dyn Renderer, 
-        bounds: &Bounds<Canvas>
-    ) -> Bounds<Canvas> {
-        self.handle.resize(self.ptr.as_mut(), renderer, bounds)
-    }
-
-    #[inline]
-    fn event(&mut self, renderer: &mut dyn Renderer, event: &Event) {
-        self.handle.event(self.ptr.as_mut(), renderer, event);
-    }
-
-    #[inline]
-    fn read<T: 'static, R>(&self, fun: impl FnOnce(&T) -> R) -> R {
-        fun(self.ptr.downcast_ref::<T>().unwrap())
-    }
-
-    #[inline]
-    fn write<T: 'static, R>(&mut self, fun: impl FnOnce(&mut T) -> R) -> R {
-        fun(self.ptr.downcast_mut::<T>().unwrap())
-    }
-}
-
-trait ViewHandleTrait : Send {
-    fn draw(&mut self, any: &mut dyn Any, renderer: &mut dyn Renderer) -> Result<()>;
-    fn resize(&mut self, any: &mut dyn Any, renderer: &mut dyn Renderer, bounds: &Bounds<Canvas>) -> Bounds<Canvas>;
-    fn event(&mut self, any: &mut dyn Any, renderer: &mut dyn Renderer, event: &Event);
-}
-
-struct ViewHandle<T: Drawable> {
-    marker: PhantomData<fn(T)>,
-}
-
-impl<T: Drawable> ViewHandle<T> {
-    fn new() -> Self {
-        Self {
-            marker: PhantomData,
-        }
-    }
-}
-
-impl<V: Drawable + 'static> ViewHandleTrait for ViewHandle<V> {
-    #[inline]
-    fn draw(&mut self, any: &mut dyn Any, renderer: &mut dyn Renderer) -> Result<()> {
-        any.downcast_mut::<V>().unwrap().draw(renderer)
-    }
-
-    #[inline]
-    fn resize(&mut self, any: &mut dyn Any, renderer: &mut dyn Renderer, pos: &Bounds<Canvas>) -> Bounds<Canvas> {
-        any.downcast_mut::<V>().unwrap().resize(renderer, pos)
-    }
-
-    #[inline]
-    fn event(&mut self, any: &mut dyn Any, renderer: &mut dyn Renderer, event: &Event) {
-        any.downcast_mut::<V>().unwrap().event(renderer, event)
-    }
-}
-
-pub struct View<T> {
-    id: ViewId,
-
-    view_arc: ViewArc,
-
-    marker: PhantomData<fn(T)>,
-}
-
-impl<T: 'static> Clone for View<T> {
-    fn clone(&self) -> Self {
-        Self { 
-            id: self.id.clone(),
-            view_arc: self.view_arc.clone(), 
-            marker: PhantomData,
-        }
-    }
-}
-
-impl<T: 'static> View<T> {
-    #[inline]
-    pub fn id(&self) -> ViewId {
-        self.id.clone()
-    }
-
-    #[inline]
-    pub fn read<R>(&self, fun: impl FnOnce(&T) -> R) -> R {
-        self.view_arc.read(fun)
-    }
-
-    #[inline]
-    pub fn write<R>(&mut self, fun: impl FnOnce(&mut T) -> R) -> R {
-        self.view_arc.write(fun)
-    }
-}
-
-pub struct PosView {
-    pos: Bounds<Canvas>,
-}
-
-impl PosView {
-    pub fn new() -> Self {
-        Self {
-            pos: Bounds::none(),
-        }
-    }
-
-    pub fn pos(&self) -> Bounds<Canvas> {
-        self.pos.clone()
-    }
-}
-
-impl Drawable for PosView {
-    fn draw(&mut self, _renderer: &mut dyn Renderer) -> Result<()> {
-        Ok(())
-    }
-
-    fn event(&mut self, _renderer: &mut dyn Renderer, event: &Event) {
-        if let Event::Resize(pos) = event {
-            self.pos = pos.clone();
-        }
-    }
-}
+impl Coord for Page {}
 #[cfg(test)]
 mod test {
     use essay_graphics_api::{renderer::{Drawable, Event}, Bounds};

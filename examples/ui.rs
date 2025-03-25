@@ -1,13 +1,11 @@
 use essay_graphics::ui::UiView;
-use essay_graphics::layout::{MainLoop, Page};
+use essay_graphics::layout::MainLoop;
 
 fn main() { 
-    let mut page = Page::new();
-
     let mut hello = false;
     let mut there = false;
 
-    page.view((0., 0., 2., 2.) , UiView::new(move |ui| {
+    let view = UiView::new(move |ui| {
         ui.button("hello", hello).onclick(|| { hello=!hello; });
         ui.button("there", there).onclick(|| { there=!there; });
         ui.horizontal(|ui| {
@@ -19,7 +17,7 @@ fn main() {
             ui.label("c");
         });
         ui.label("tail");
-    }));
+    });
 
-    MainLoop::new().show(page);
+    MainLoop::new().show(view);
 }
