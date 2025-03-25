@@ -3,9 +3,12 @@ use essay_graphics_api::{
     Bounds, Point, Size, TextStyle
 };
 
-use crate::ui_view::UiInput;
-
-use super::{button::UiButton, label::UiLabel, style::UiStyle};
+use crate::ui::{
+    button::UiButton, 
+    label::UiLabel, 
+    style::UiStyle,
+    ui_view::UiInput,
+};
 
 pub struct Ui<'a> {
     renderer: &'a mut dyn Renderer,

@@ -1,6 +1,6 @@
 use essay_graphics_api::{renderer::Canvas, Color, Path, Point, Size};
 
-use crate::{ui::Response, Ui};
+use crate::ui::{ui::Response, Ui};
 
 use super::ui::Widget;
 

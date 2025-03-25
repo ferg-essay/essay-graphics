@@ -1,4 +1,4 @@
-use crate::{ui::Response, Ui};
+use crate::ui::{ui::Response, Ui};
 
 use super::ui::Widget;
 

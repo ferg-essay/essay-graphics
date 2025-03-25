@@ -1,4 +1,4 @@
-use essay_graphics_ui::UiView;
+use essay_graphics::ui::UiView;
 use essay_graphics::layout::LayoutMainLoop;
 
 fn main() { 

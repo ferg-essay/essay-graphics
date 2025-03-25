@@ -1,8 +1,6 @@
 use essay_graphics_api::{renderer::{self, Canvas, Drawable, Event, Renderer}, Bounds, Point};
 
-use crate::ui::Cursor;
-
-use super::Ui;
+use crate::ui::{ui::Cursor, Ui};
 
 pub struct UiView {
     builder: Box<dyn FnMut(&mut Ui)->() + Send>,
