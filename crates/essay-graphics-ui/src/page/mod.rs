@@ -3,7 +3,7 @@ mod pages;
 mod page;
 mod main_loop;
 
-pub use page::Page;
+pub use page::{Page, PageBuilder};
 
 pub use view::{
     View, PosView,

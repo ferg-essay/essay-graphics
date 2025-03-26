@@ -20,8 +20,8 @@ impl Page {
         builder.build()
     }
 
-    pub fn builder() -> Builder {
-        Builder::new()
+    pub fn builder() -> PageBuilder {
+        PageBuilder::new()
     }
 }
 
@@ -53,14 +53,14 @@ impl Drawable for Page {
     */
 }
 
-pub struct Builder {
+pub struct PageBuilder {
     size: Size,
     view: Option<ViewArc>,
-    children: Vec<Builder>,
+    children: Vec<PageBuilder>,
     update: CursorUpdate,
 }
 
-impl Builder {
+impl PageBuilder {
     fn new() -> Self {
         Self {
             size: Size(1., 1.),
@@ -99,7 +99,7 @@ impl Builder {
         self
     }
 
-    pub fn horizontal(&mut self) -> &mut Builder {
+    pub fn horizontal(&mut self) -> &mut PageBuilder {
         self.horizontal_height(1.)
     }
 
@@ -132,14 +132,14 @@ impl Builder {
         self.children.last_mut().unwrap()
     }
 
-    pub fn build(self) -> Page {
+    pub fn build(&self) -> Page {
         let mut views = Vec::<ViewItem>::new();
 
         let pos = Bounds::from([1., 1.]);
 
         let update = self.update.clone();
 
-        update.build(&mut views, pos, self);
+        update.build(&mut views, pos, &self);
 
         Page {
             views,
@@ -159,13 +159,13 @@ impl CursorUpdate {
         &self, 
         vec: &mut Vec<ViewItem>, 
         pos: Bounds<Page>,
-        mut build: Builder,
+        build: &PageBuilder,
     ) {
         match self {
             CursorUpdate::Single => {
-                let view_arc = build.view.take().unwrap();
-
-                vec.push(ViewItem::new(pos, view_arc));
+                if let Some(view) = &build.view {
+                    vec.push(ViewItem::new(pos, view.clone()));
+                }
             }
             CursorUpdate::Vertical => {
                 let mut height = 0.;
@@ -178,7 +178,7 @@ impl CursorUpdate {
 
                 let mut ymax = pos.ymax();
 
-                for child in build.children.drain(..) {
+                for child in &build.children {
                     let height = factor * child.size.height();
                     let ymin = ymax - height;
 
@@ -188,7 +188,7 @@ impl CursorUpdate {
                     ));
 
                     let update = child.update.clone();
-                    update.build(vec, pos, child);
+                    update.build(vec, pos, &child);
 
                     ymax = ymin;
                 }
@@ -204,7 +204,7 @@ impl CursorUpdate {
 
                 let mut x = pos.xmin();
 
-                for child in build.children.drain(..) {
+                for child in &build.children {
                     let xmax = x + factor * child.size.width();
 
                     let pos = Bounds::from((
