@@ -1,17 +1,14 @@
-use essay_graphics::layout::{MainLoop, Page};
+use essay_graphics::layout::MainLoop;
 use essay_graphics_api::{renderer::{self, Canvas, Drawable, Renderer}, Bounds, Color};
 use essay_tensor::Tensor;
 
 fn main() {
     //let mut gui = WgpuBackend::new();
 
-    let mut page = Page::new();
+    let view = TriangleView::new();
 
-    page.view(((0., 0.), [1., 1.]),
-        TriangleView::new()
-    );
     //figure.view((), PathView::new(path));
-    MainLoop::new().save("../test.png", page, 144.);
+    MainLoop::new().save("../test.png", view, 144.);
     //figure.show();
 }
 

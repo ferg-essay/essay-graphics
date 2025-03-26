@@ -1,12 +1,10 @@
 use essay_tensor::{tensor, tf32, Tensor};
 use renderer::{Drawable, Renderer};
 use essay_graphics::prelude::*;
-use essay_graphics::layout::{MainLoop, Page};
+use essay_graphics::layout::MainLoop;
 use essay_graphics_api::Coord;
 
 fn main() { 
-    let mut page = Page::new();
-
     let path = Path::<Data>::move_to(0.0, 0.0)
         .line_to(0.1, 0.0)
         .close_poly(0.1, 0.1)
@@ -27,9 +25,7 @@ fn main() {
         0.5,
     ]);
 
-    page.view((), PathView::new(path, markers, colors, scale));
-
-    MainLoop::new().show(page);
+    MainLoop::new().show(PathView::new(path, markers, colors, scale));
 }
 
 struct Data;

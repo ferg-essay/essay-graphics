@@ -3,9 +3,7 @@ mod pages;
 mod page;
 mod main_loop;
 
-pub use page::{
-    Page, ViewId,
-};
+pub use page::Page;
 
 pub use view::{
     View, PosView,

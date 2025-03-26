@@ -1,37 +1,36 @@
 use renderer::{Canvas, Drawable, Renderer};
 use essay_graphics::prelude::*;
-use essay_graphics::layout::{MainLoop, Page};
+use essay_graphics::layout::{MainLoop, Page, View};
 use essay_graphics_api::Coord;
 
 fn main() { 
-    let mut page = Page::new();
-
-    let path = Path::<Data>::move_to(0.1, 0.1)
-        .line_to(2., 0.1)
+    let path_a = Path::<Data>::move_to(0., 0.)
+        .line_to(2., 0.)
         .close_poly(2., 2.)
         .to_path();
 
-    //figure.view(((0.0, 0.0), [0.25, 0.25]), PathView::new(path.clone()));
-    page.view((0.2, 0.2, 2., 2.) , PathView::new(path.clone(), "teal"));
-
-    let path = Path::<Data>::move_to(0.1, 0.1)
-        .line_to(0.1, 200.)
+    let path_b = Path::<Data>::move_to(0., 0.)
+        .line_to(0., 200.)
         .close_poly(200., 200.)
         .to_path();
 
-    /*
-    let path = Path::<Data>::move_to(0., 0.)
-        .line_to(2., 2.)
-        .close_poly(0., 2.)
-        .to_path();
-    */
+    let view = View::from(PathView::new(path_b.clone(), "blue"));
 
-    let view = page.view(((0.6, 0.4), [0.25, 0.25]), PathView::new(path, "orange"));
-    // let view = figure.view((), PathView::new(path));
+    let mut builder = Page::builder();
+    // builder.view(view_a.arc().clone());
+    builder.horizontal(|b| {
+        b.view(PathView::new(path_a.clone(), "teal"));
+        b.view(PathView::new(path_b.clone(), "orange"));
+    });
+    builder.horizontal_height(3., |b| {
+        b.view_size((3., 3.), PathView::new(path_a.clone(), "red"));
+        b.view(view.clone());
+    });
+    // builder.view(view_a);
 
     println!("Path {:?} ", view.read(|t| t.path()));
 
-    MainLoop::new().show(page);
+    MainLoop::new().show(builder.build());
 }
 
 struct Data;
@@ -59,7 +58,6 @@ impl PathView {
 
 impl Drawable for PathView {
     fn draw(&mut self, renderer: &mut dyn Renderer) -> renderer::Result<()> {
-        println!("Pos {:?}", renderer.extent());
         let to_canvas = Bounds::<Data>::from([1., 1.]).affine_to(renderer.pos());
 
         let path = self.path_data.transform(&to_canvas);

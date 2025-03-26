@@ -1,11 +1,9 @@
 use renderer::{Canvas, Drawable, Renderer};
-use essay_graphics::{layout::{MainLoop, Page}, prelude::*};
+use essay_graphics::{layout::MainLoop, prelude::*};
 use essay_tensor::Tensor;
 use form::{Shape, ShapeId};
 
 fn main() { 
-    let mut layout = Page::new();
-
     let mut form = Shape::new();
     // let mut vertices = Vec::<[f32; 3]>::new();
     square(&mut form, [
@@ -22,16 +20,14 @@ fn main() {
         [1., 0.5]
     ], 0.3);
 
-    layout.view(((0.5, 0.5), [0.5, 0.5]),
-        ShapeView::new(form, texture_colors(&[
+    let view = ShapeView::new(form, texture_colors(&[
             Color::from("red"),
             Color::from("blue"),
             Color::from("orange"),
             Color::from("teal"),
-        ]))
-    );
+        ]));
 
-    MainLoop::new().show(layout);
+    MainLoop::new().show(view);
 }
 
 fn square(

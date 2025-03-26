@@ -1,13 +1,11 @@
 use renderer::{Canvas, Drawable, Event, Renderer};
-use essay_graphics::{layout::Page, prelude::*};
-use essay_graphics_wgpu::{WgpuHardcopy, WgpuMainLoop};
+use essay_graphics::{layout::{MainLoop, View}, prelude::*};
+use essay_graphics_wgpu::WgpuHardcopy;
 use essay_tensor::Tensor;
 use form::{Form, FormId, Matrix4};
 use image::Pixel;
 
 fn main() { 
-    let mut layout = Page::new();
-
     let mut form = Form::new();
     // let mut vertices = Vec::<[f32; 3]>::new();
     square(&mut form, [
@@ -38,7 +36,7 @@ fn main() {
         [1., 1., 1.]
     ], 0.8);
 
-    layout.view(((0.5, 0.5), [0.5, 0.5]),
+    let view = View::from(
         CubeView::new(form, texture_colors(&[
             Color::from("red"),
             Color::from("blue"),
@@ -48,16 +46,16 @@ fn main() {
     );
 
     if true {
-        WgpuMainLoop::new().main_loop(Box::new(layout)).unwrap();
+        MainLoop::new().show(view.drawable());
     } else {
         let mut hardcopy = WgpuHardcopy::new(16, 16);
         //let camera = Camera::new();
 
         let id = hardcopy.add_surface();
-        hardcopy.draw(&mut layout);
+        hardcopy.draw(&mut view.drawable());
         hardcopy.copy_into_buffer(id);
 
-        hardcopy.draw(&mut layout);
+        hardcopy.draw(&mut view.drawable());
         hardcopy.copy_into_buffer(id);
 
         let vec = hardcopy.read_into(id, |buf| {

@@ -33,6 +33,10 @@ impl<T: Drawable + Send + 'static> View<T> {
         &self.view_arc
     }
 
+    pub fn drawable(&self) -> ViewArc {
+        self.view_arc.clone()
+    }
+
     #[inline]
     pub fn read<R>(&self, fun: impl FnOnce(&T) -> R) -> R {
         self.view_arc.0.lock().unwrap().read(fun)
@@ -59,6 +63,30 @@ impl<T: Drawable + Send + 'static> From<T> for View<T> {
         View::new(drawable)
     }
 }
+
+/*
+impl<T: Drawable + Send + 'static> Drawable for View<T> {
+    #[inline]
+    fn draw(&mut self, renderer: &mut dyn Renderer) -> Result<()> {
+        self.view_arc.draw(renderer)
+    }
+
+    #[inline]
+    fn resize(
+        &mut self, 
+        renderer: &mut dyn Renderer, 
+        pos: &Bounds<Canvas>
+    ) -> Bounds<Canvas> {
+        self.view_arc.resize(renderer, pos)
+    }
+
+    #[inline]
+    fn event(&mut self, renderer: &mut dyn Renderer, event: &Event) {
+        self.view_arc.event(renderer, event);
+    }
+}
+    */
+
 
 #[derive(Clone)]
 pub struct ViewArc(Arc<Mutex<ViewPtr>>);

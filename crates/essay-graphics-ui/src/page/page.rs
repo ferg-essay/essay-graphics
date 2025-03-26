@@ -1,6 +1,6 @@
 use essay_graphics_api::{
-    renderer::{Result, Canvas, Drawable, Event, Renderer}, 
-    Bounds, Coord, Point
+    renderer::{Drawable, Renderer, Result}, 
+    Bounds, Coord, Size
 };
 
 use super::{view::ViewArc, View};
@@ -11,187 +11,281 @@ pub struct Page {
 }
 
 impl Page {
-    pub fn new() -> Self {
-        Self {
-            views: Vec::new(),
-        }
+    pub fn new<T>(view: impl Into<View<T>>) -> Page 
+    where
+        T: Drawable + Send + 'static
+    {
+        let mut builder = Self::builder();
+        builder.view(view);
+        builder.build()
     }
 
-    ///
-    /// Adds a drawable view in page coordinates, returning a view handle
-    /// to the drawable.
-    /// 
-    /// Page coordinates are (0, 0) upper left and (1, 1) low right,
-    /// but normalized to the minimum and maximum of all added views.
-    /// ((1., 1.), (2., 2.)) is allowed, as are negative values.
-    /// 
-    /// If the position is unassigned, the new position will be a unit
-    /// box below any current box, such as ((0., -1), (0., 0.))
-    /// 
-    pub fn view<T: Drawable + Send + 'static>(
-        &mut self, 
-        pos: impl Into<Bounds<Page>>,
-        view: impl Into<View<T>>,
-    ) -> View<T> {
-        let mut pos = pos.into();
-
-        // If unassigned, layout below all other views
-        if pos.is_zero() || pos.is_none() {
-            if self.views.len() == 0 {
-                pos = Bounds::from([1., 1.])
-            } else {
-                let layout = self.bounds();
-                pos = Bounds::new(
-                    Point(0., layout.ymin() - 1.),
-                    Point(1., layout.ymin()),
-                );
-            }
-        }
-
-        let view = view.into();
-
-        // let id = self.views.len();
-
-        self.views.push(ViewItem::new(pos, &view));
-
-        view
-    }
-
-    pub fn _subview<T: Drawable + Send + 'static>(
-        &mut self, 
-        id: ViewId,
-        index: usize,
-        drawable: T
-    ) -> View<T> {
-        assert!(index > 0);
-
-        let view_item = &mut self.views[id.0];
-
-        view_item._insert(index, drawable)
-    }
-
-    fn layout(&mut self, renderer: &mut dyn Renderer, pos: &Bounds<Canvas>) {
-        let bounds = self.bounds();
-
-        let p_x0 = pos.xmin().min(0.);
-        let p_y0 = pos.ymin().min(0.);
-
-        let h = pos.height();
-        let w = pos.width();
-
-        let l_x0 = bounds.xmin().min(0.);
-        let l_y0 = bounds.ymin().min(0.);
-
-        let dw = w / bounds.width().max(1.);
-        let dh = h / bounds.height().max(1.);
-
-        for item in &mut self.views {
-            let (x0, y0) = item.pos_grid.min();
-            let (x1, y1) = item.pos_grid.max();
-
-            let pos = Bounds::new(
-                Point(p_x0 + dw * (x0 - l_x0), p_y0 + dh * (y0 - l_y0)),
-                Point(p_x0 + dw * (x1 - l_x0), p_y0 + dh * (y1 - l_y0)),
-            );
-
-            item.pos_canvas = item.ptrs[0].resize(renderer, &pos);
-
-            for ptr in item.ptrs.iter_mut().skip(1) {
-                ptr.resize(renderer, &item.pos_canvas);
-            }
-
-            // TODO: remove?
-            for ptr in &mut item.ptrs {
-                ptr.event(renderer, &Event::Resize(item.pos_canvas.clone()));
-            }
-        }
-    }
-
-    fn bounds(&self) -> Bounds<Page> {
-        let mut bounds = Bounds::unit();
-
-        for item in &self.views {
-            bounds = bounds.union(&item.pos_grid);
-        }
-
-        bounds
+    pub fn builder() -> Builder {
+        Builder::new()
     }
 }
 
 impl Drawable for Page {
     fn draw(&mut self, renderer: &mut dyn Renderer) -> Result<()> {
         for item in &mut self.views {
-            for view in &mut item.ptrs {
-                renderer.draw_with(&item.pos_canvas, view)?;
-            }
+            item.draw(renderer)?;
         }
 
         Ok(())
     }
 
+    /*
     fn resize(&mut self, renderer: &mut dyn Renderer, pos: &Bounds<Canvas>) -> Bounds<Canvas> {
         self.layout(renderer, pos);
 
         pos.clone()
     }
+    */
 
+    /*
     fn event(&mut self, renderer: &mut dyn Renderer, event: &Event) {
         for view in &mut self.views {
             if event.in_bounds(&view.pos_canvas) {
-                for ptr in &mut view.ptrs {
-                    ptr.event(renderer, event);
-                }
+                 ptr.event(renderer, event);
             }
         }
     }
+    */
 }
 
-#[derive(Debug, Clone)]
-pub struct ViewId(usize);
-#[derive(Clone)]
-struct ViewItem {
-    pos_grid: Bounds<Page>,
-    pos_canvas: Bounds<Canvas>,
-
-    ptrs: Vec<ViewArc>,
+pub struct Builder {
+    size: Size,
+    view: Option<ViewArc>,
+    children: Vec<Builder>,
+    update: CursorUpdate,
 }
 
-impl ViewItem {
-    fn new<T: Drawable + Send + 'static>(pos: Bounds<Page>, view: &View<T>) -> Self {
-        let mut ptrs = Vec::new();
-
-        ptrs.push(view.arc().clone());
-
+impl Builder {
+    fn new() -> Self {
         Self {
-            pos_grid: pos,
-            pos_canvas: Bounds::none(),
-            ptrs,
+            size: Size(1., 1.),
+            view: None,
+            children: Vec::new(),
+            update: CursorUpdate::Vertical,
         }
     }
 
-    fn _insert<T>(&mut self, index: usize, drawable: T) -> View<T> 
+    pub fn size(&mut self, size: impl Into<Size>) -> &mut Self {
+        if let Some(child) = self.children.last_mut() {
+            child.size = size.into();
+        }
+
+        self
+    }
+
+    pub fn width(&mut self, width: f32) -> &mut Self {
+        if let Some(child) = self.children.last_mut() {
+            child.size = Size(width, child.size.height());
+        }
+
+        self
+    }
+
+    pub fn height(&mut self, height: f32) -> &mut Self {
+        if let Some(child) = self.children.last_mut() {
+            child.size = Size(child.size.width(), height);
+        }
+
+        self
+    }
+
+    pub fn view<T>(&mut self, view: impl Into<View<T>>) -> View<T>
     where
         T: Drawable + Send + 'static
     {
-        // let view = View::new(drawable);
-    
-        /*
-        for i in (0..self.ptrs.len()).rev() {
-            if self.ptrs[i].index() <= index {
-                self.ptrs.insert(i + 1, view.arc().clone());
-            }
-        }
+        self.view_size(Size(1., 1.), view)
+    }
+
+    pub fn view_size<T>(
+        &mut self, 
+        size: impl Into<Size>,
+        view: impl Into<View<T>>
+    ) -> View<T>
+    where
+        T: Drawable + Send + 'static
+    {
+        let view = view.into();
+
+        self.children.push(Self {
+            size: size.into(),
+            view: Some(view.arc().clone()),
+            children: Vec::new(),
+            update: CursorUpdate::Single,
+        });
 
         view
-        */
+    }
 
-        todo!()
+    pub fn horizontal(&mut self, builder: impl FnOnce(&mut Builder)) -> &mut Self {
+        self.horizontal_height(1., builder)
+    }
+
+    pub fn horizontal_height(
+        &mut self, 
+        height: f32, 
+        builder: impl FnOnce(&mut Builder)
+    ) -> &mut Self {
+        self.children.push(Self {
+            size: Size(1., height),
+            view: None,
+            children: Vec::new(),
+            update: CursorUpdate::Horizontal,
+        });
+
+        (builder)(self.children.last_mut().unwrap());
+
+        self
+    }
+
+    pub fn vertical(&mut self, builder: impl FnOnce(&mut Builder)) {
+        self.vertical_width(1., builder)
+    }
+
+    pub fn vertical_width(
+        &mut self, 
+        width: f32, 
+        builder: impl FnOnce(&mut Builder)
+    ) {
+        self.children.push(Self {
+            size: Size(width, 1.),
+            view: None,
+            children: Vec::new(),
+            update: CursorUpdate::Vertical,
+        });
+
+        (builder)(self.children.last_mut().unwrap());
+    }
+
+    pub fn build(self) -> Page {
+        let mut views = Vec::<ViewItem>::new();
+
+        let pos = Bounds::from([1., 1.]);
+
+        let update = self.update.clone();
+
+        update.build(&mut views, pos, self);
+
+        Page {
+            views,
+        }
+    }
+}
+
+#[derive(Clone)]
+enum CursorUpdate {
+    Single,
+    Vertical,
+    Horizontal,
+}
+
+impl CursorUpdate {
+    fn build(
+        &self, 
+        vec: &mut Vec<ViewItem>, 
+        pos: Bounds<Page>,
+        mut build: Builder,
+    ) {
+        match self {
+            CursorUpdate::Single => {
+                let view_arc = build.view.take().unwrap();
+
+                vec.push(ViewItem::new(pos, view_arc));
+            }
+            CursorUpdate::Vertical => {
+                let mut height = 0.;
+
+                for item in &build.children {
+                    height += item.size.height();
+                }
+
+                let factor = pos.height() / height.max(1e-6);
+
+                let mut ymax = pos.ymax();
+
+                for child in build.children.drain(..) {
+                    let height = factor * child.size.height();
+                    let ymin = ymax - height;
+
+                    let pos = Bounds::from((
+                        pos.xmin(), ymin,
+                        pos.xmax(), ymax,
+                    ));
+
+                    let update = child.update.clone();
+                    update.build(vec, pos, child);
+
+                    ymax = ymin;
+                }
+            },
+            CursorUpdate::Horizontal => {
+                let mut width = 0.;
+
+                for item in &build.children {
+                    width += item.size.width();
+                }
+
+                let factor = pos.width() / width.max(1e-6);
+
+                let mut x = pos.xmin();
+
+                for child in build.children.drain(..) {
+                    let xmax = x + factor * child.size.width();
+
+                    let pos = Bounds::from((
+                        x, pos.ymin(),
+                        xmax, pos.ymax(),
+                    ));
+
+                    let update = child.update.clone();
+
+                    update.build(vec, pos, child);
+
+                    x = xmax;
+                }
+            },
+        }
+    }
+}
+
+#[derive(Clone)]
+struct ViewItem {
+    pos: Bounds<Page>,
+
+    view: ViewArc,
+}
+
+impl ViewItem {
+    fn new(pos: Bounds<Page>, view: ViewArc) -> Self {
+        Self {
+            pos,
+            view,
+        }
+    }
+
+    fn draw(&mut self, renderer: &mut dyn Renderer) -> Result<()> {
+        let pos = renderer.pos().clone();
+
+        let pos = (
+            pos.xmin() + self.pos.xmin() * pos.width(),
+            pos.ymin() + self.pos.ymin() * pos.height(),
+            pos.xmin() + self.pos.xmax() * pos.width(),
+            pos.ymin() + self.pos.ymax() * pos.height(),
+        ).into();
+
+        renderer.draw_with(&pos, &mut self.view)
+
     }
 }
 
 impl Coord for Page {}
 #[cfg(test)]
 mod test {
+    /*
     use essay_graphics_api::{renderer::{Drawable, Event}, Bounds};
     use essay_graphics_test::TestRenderer;
 
@@ -302,4 +396,5 @@ mod test {
 
         assert_eq!(view.read(|v| v.pos()), Bounds::from(((270., 1800.), [90., 1800.])));
     }
+    */
 }
