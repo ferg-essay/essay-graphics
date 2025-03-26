@@ -70,42 +70,20 @@ impl Builder {
         }
     }
 
-    pub fn size(&mut self, size: impl Into<Size>) -> &mut Self {
-        if let Some(child) = self.children.last_mut() {
-            child.size = size.into();
-        }
-
-        self
-    }
-
-    pub fn width(&mut self, width: f32) -> &mut Self {
-        if let Some(child) = self.children.last_mut() {
-            child.size = Size(width, child.size.height());
-        }
-
-        self
-    }
-
-    pub fn height(&mut self, height: f32) -> &mut Self {
-        if let Some(child) = self.children.last_mut() {
-            child.size = Size(child.size.width(), height);
-        }
-
-        self
-    }
-
-    pub fn view<T>(&mut self, view: impl Into<View<T>>) -> View<T>
+    pub fn view<T>(&mut self, view: impl Into<View<T>>) -> &mut Self
     where
         T: Drawable + Send + 'static
     {
-        self.view_size(Size(1., 1.), view)
+        self.view_size(Size(1., 1.), view);
+
+        self
     }
 
     pub fn view_size<T>(
         &mut self, 
         size: impl Into<Size>,
         view: impl Into<View<T>>
-    ) -> View<T>
+    ) -> &mut Self
     where
         T: Drawable + Send + 'static
     {
@@ -118,18 +96,14 @@ impl Builder {
             update: CursorUpdate::Single,
         });
 
-        view
+        self
     }
 
-    pub fn horizontal(&mut self, builder: impl FnOnce(&mut Builder)) -> &mut Self {
-        self.horizontal_height(1., builder)
+    pub fn horizontal(&mut self) -> &mut Builder {
+        self.horizontal_height(1.)
     }
 
-    pub fn horizontal_height(
-        &mut self, 
-        height: f32, 
-        builder: impl FnOnce(&mut Builder)
-    ) -> &mut Self {
+    pub fn horizontal_height(&mut self, height: f32) -> &mut Self {
         self.children.push(Self {
             size: Size(1., height),
             view: None,
@@ -137,20 +111,17 @@ impl Builder {
             update: CursorUpdate::Horizontal,
         });
 
-        (builder)(self.children.last_mut().unwrap());
-
-        self
+        self.children.last_mut().unwrap()
     }
 
-    pub fn vertical(&mut self, builder: impl FnOnce(&mut Builder)) {
-        self.vertical_width(1., builder)
+    pub fn vertical(&mut self) -> &mut Self {
+        self.vertical_width(1.)
     }
 
     pub fn vertical_width(
         &mut self, 
         width: f32, 
-        builder: impl FnOnce(&mut Builder)
-    ) {
+    ) -> &mut Self {
         self.children.push(Self {
             size: Size(width, 1.),
             view: None,
@@ -158,7 +129,7 @@ impl Builder {
             update: CursorUpdate::Vertical,
         });
 
-        (builder)(self.children.last_mut().unwrap());
+        self.children.last_mut().unwrap()
     }
 
     pub fn build(self) -> Page {

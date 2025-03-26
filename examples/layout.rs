@@ -18,14 +18,14 @@ fn main() {
 
     let mut builder = Page::builder();
     // builder.view(view_a.arc().clone());
-    builder.horizontal(|b| {
-        b.view(PathView::new(path_a.clone(), "teal"));
-        b.view(PathView::new(path_b.clone(), "orange"));
-    });
-    builder.horizontal_height(3., |b| {
-        b.view_size((3., 3.), PathView::new(path_a.clone(), "red"));
-        b.view(view.clone());
-    });
+    builder.horizontal()
+        .view(PathView::new(path_a.clone(), "teal"))
+        .view(PathView::new(path_b.clone(), "orange"));
+
+    builder.horizontal_height(3.)
+        .view_size((3., 3.), PathView::new(path_a.clone(), "red"))
+        .view(view.clone());
+
     // builder.view(view_a);
 
     println!("Path {:?} ", view.read(|t| t.path()));
