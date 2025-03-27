@@ -22,7 +22,7 @@ fn main() {
         .view(PathView::new(path_a.clone(), "teal"))
         .view(PathView::new(path_b.clone(), "orange"));
 
-    builder.horizontal_height(3.)
+    builder.horizontal_size(3.)
         .view_size((3., 3.), PathView::new(path_a.clone(), "red"))
         .view(view.clone());
 

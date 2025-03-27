@@ -67,7 +67,7 @@ pub struct UiInput {
 }
 
 impl UiInput {
-    fn update(&mut self) {
+    pub(crate) fn update(&mut self) {
         self.left_press_one = None;
     }
 }

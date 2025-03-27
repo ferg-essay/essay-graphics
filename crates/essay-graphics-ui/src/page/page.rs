@@ -33,24 +33,6 @@ impl Drawable for Page {
 
         Ok(())
     }
-
-    /*
-    fn resize(&mut self, renderer: &mut dyn Renderer, pos: &Bounds<Canvas>) -> Bounds<Canvas> {
-        self.layout(renderer, pos);
-
-        pos.clone()
-    }
-    */
-
-    /*
-    fn event(&mut self, renderer: &mut dyn Renderer, event: &Event) {
-        for view in &mut self.views {
-            if event.in_bounds(&view.pos_canvas) {
-                 ptr.event(renderer, event);
-            }
-        }
-    }
-    */
 }
 
 pub struct PageBuilder {
@@ -97,12 +79,12 @@ impl PageBuilder {
     }
 
     pub fn horizontal(&mut self) -> &mut PageBuilder {
-        self.horizontal_height(1.)
+        self.horizontal_size(1.)
     }
 
-    pub fn horizontal_height(&mut self, height: f32) -> &mut Self {
+    pub fn horizontal_size(&mut self, size: f32) -> &mut Self {
         self.children.push(Self {
-            size: Size(1., height),
+            size: Size(size, size),
             view: None,
             children: Vec::new(),
             update: CursorUpdate::Horizontal,
@@ -112,15 +94,15 @@ impl PageBuilder {
     }
 
     pub fn vertical(&mut self) -> &mut Self {
-        self.vertical_width(1.)
+        self.vertical_size(1.)
     }
 
-    pub fn vertical_width(
+    pub fn vertical_size(
         &mut self, 
-        width: f32, 
+        size: f32, 
     ) -> &mut Self {
         self.children.push(Self {
-            size: Size(width, 1.),
+            size: Size(size, size),
             view: None,
             children: Vec::new(),
             update: CursorUpdate::Vertical,

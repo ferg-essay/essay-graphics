@@ -1,5 +1,5 @@
 use essay_graphics_api::{
-    renderer::{Canvas, Renderer}, 
+    renderer::{self, Canvas, Event, Renderer}, 
     Bounds, Point, Size, TextStyle
 };
 
@@ -108,6 +108,52 @@ impl<'a> Ui<'a> {
     
     pub fn text_size(&mut self, label: &str, style_text: &TextStyle) -> Size {
         self.renderer.text_size(label, style_text)
+    }
+}
+
+pub struct UiState {
+    input: UiInput,
+}
+
+impl UiState {
+    pub fn new() -> Self {
+        Self {
+            input: UiInput::default(),
+        }
+    }
+
+    pub fn draw(
+        &mut self, 
+        renderer: &mut dyn Renderer,
+        f: impl FnOnce(&mut Ui)
+    ) -> renderer::Result<()> {
+        let cursor = Cursor::new(renderer.pos().clone());
+        
+        let input = self.input.clone();
+        let mut ui = Ui::new(renderer, cursor, &input);
+        (f)(&mut ui);
+
+        self.input.update();
+
+        Ok(())
+    }
+
+    pub fn event(&mut self, renderer: &mut dyn Renderer, event: &Event) {
+        match event {
+            Event::MouseMove(p) => {
+                self.input.cursor = Some(*p);
+            }
+            Event::MouseLeftPress(p) => {
+                self.input.left_press_one = Some(*p);
+                self.input.left_press = Some(*p);
+            }
+            Event::MouseLeftRelease(_) => {
+                self.input.left_press = None;
+            }
+            _ => {}
+
+        }
+        renderer.request_redraw(&Bounds::none());
     }
 }
 
