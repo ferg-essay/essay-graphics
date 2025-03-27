@@ -223,6 +223,33 @@ impl<M: Coord> Bounds<M> {
     pub fn p1(&self) -> Point {
         self.p1
     }
+
+    //
+    // Returns bounds for a sub-area with the specified aspect ratio
+    //
+    pub fn with_aspect(&self, aspect: f32) -> Self {
+        let self_aspect = self.width() / self.height();
+
+        if aspect < self_aspect {
+            let width = self.height() * aspect;
+            let margin = 0.5 * (self.width() - width);
+
+            Self {
+                p0: Point(self.xmin() + margin, self.ymin()),
+                p1: Point(self.xmax() - margin, self.ymax()),
+                marker: Default::default(),
+            }
+        } else {
+            let height = self.width() / aspect;
+            let margin = 0.5 * (self.height() - height);
+
+            Self {
+                p0: Point(self.xmin(), self.ymin() + margin),
+                p1: Point(self.xmax(), self.ymax() - margin),
+                marker: Default::default(),
+            }
+        }
+    }
 }
 
 impl<M: Coord> Clone for Bounds<M> {
