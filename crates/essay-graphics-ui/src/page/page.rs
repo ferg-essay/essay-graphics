@@ -3,7 +3,7 @@ use essay_graphics_api::{
     Bounds, Coord, Size
 };
 
-use super::{view::ViewArc, View};
+use super::{view::{ViewArc, ViewArcDraw}, View};
 
 #[derive(Clone)]
 pub struct Page {
@@ -16,7 +16,7 @@ impl Page {
         T: Drawable + Send + 'static
     {
         let mut builder = Self::builder();
-        builder.view(view);
+        builder.view(view.into().arc().clone());
         builder.build()
     }
 
@@ -70,28 +70,25 @@ impl PageBuilder {
         }
     }
 
-    pub fn view<T>(&mut self, view: impl Into<View<T>>) -> &mut Self
-    where
-        T: Drawable + Send + 'static
-    {
+    pub fn view(&mut self, view: impl Into<ViewArc>) -> &mut Self {
         self.view_size(Size(1., 1.), view);
 
         self
     }
 
-    pub fn view_size<T>(
+    pub fn view_size(
         &mut self, 
         size: impl Into<Size>,
-        view: impl Into<View<T>>
+        view: impl Into<ViewArc>, // <T>>
     ) -> &mut Self
-    where
-        T: Drawable + Send + 'static
+    //where
+    //    T: Drawable + Send + 'static
     {
         let view = view.into();
 
         self.children.push(Self {
             size: size.into(),
-            view: Some(view.arc().clone()),
+            view: Some(view),
             children: Vec::new(),
             update: CursorUpdate::Single,
         });
@@ -227,14 +224,14 @@ impl CursorUpdate {
 struct ViewItem {
     pos: Bounds<Page>,
 
-    view: ViewArc,
+    view: ViewArcDraw,
 }
 
 impl ViewItem {
     fn new(pos: Bounds<Page>, view: ViewArc) -> Self {
         Self {
             pos,
-            view,
+            view: view.drawable(),
         }
     }
 

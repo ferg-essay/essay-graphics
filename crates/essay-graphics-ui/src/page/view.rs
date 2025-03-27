@@ -33,8 +33,8 @@ impl<T: Drawable + Send + 'static> View<T> {
         &self.view_arc
     }
 
-    pub fn drawable(&self) -> ViewArc {
-        self.view_arc.clone()
+    pub fn drawable(&self) -> ViewArcDraw {
+        self.view_arc.drawable()
     }
 
     #[inline]
@@ -64,6 +64,20 @@ impl<T: Drawable + Send + 'static> From<T> for View<T> {
     }
 }
 
+impl<T: Drawable + Send + 'static> From<View<T>> for ViewArc {
+    fn from(view: View<T>) -> Self {
+        view.arc().clone()
+    }
+}
+
+impl<T: Drawable + Send + 'static> From<T> for ViewArc {
+    fn from(drawable: T) -> Self {
+        View::new(drawable).arc().clone()
+    }
+}
+
+
+
 /*
 impl<T: Drawable + Send + 'static> Drawable for View<T> {
     #[inline]
@@ -91,7 +105,16 @@ impl<T: Drawable + Send + 'static> Drawable for View<T> {
 #[derive(Clone)]
 pub struct ViewArc(Arc<Mutex<ViewPtr>>);
 
-impl Drawable for ViewArc {
+impl ViewArc {
+    pub fn drawable(&self) -> ViewArcDraw {
+        ViewArcDraw(self.0.clone())
+    }
+}
+
+#[derive(Clone)]
+pub struct ViewArcDraw(Arc<Mutex<ViewPtr>>);
+
+impl Drawable for ViewArcDraw {
     #[inline]
     fn draw(&mut self, renderer: &mut dyn Renderer) -> Result<()> {
         let mut view = self.0.lock().unwrap();

@@ -6,7 +6,7 @@ mod main_loop;
 pub use page::{Page, PageBuilder};
 
 pub use view::{
-    View, PosView,
+    View, ViewArc, PosView,
 };
 
 pub use main_loop::MainLoop;
