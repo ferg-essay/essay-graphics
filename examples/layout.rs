@@ -16,21 +16,23 @@ fn main() {
 
     let view = View::from(PathView::new(path_b.clone(), "blue"));
 
-    let mut builder = Page::builder();
-    // builder.view(view_a.arc().clone());
-    builder.horizontal()
-        .view(PathView::new(path_a.clone(), "teal"))
-        .view(PathView::new(path_b.clone(), "orange"));
+    let page = Page::build(|ui| {
+        ui.horizontal(|ui| {
+            ui.view(PathView::new(path_a.clone(), "teal"));
+            ui.view(PathView::new(path_b.clone(), "orange"));
+        });
 
-    builder.horizontal_size(3.)
-        .view_size((3., 3.), PathView::new(path_a.clone(), "red"))
-        .view(view.clone());
+        ui.horizontal_size(3., |ui| {
+            ui.view_size((3., 3.), PathView::new(path_a.clone(), "red"));
+            ui.view(view.drawable());
+        });
+    });
 
     // builder.view(view_a);
 
     println!("Path {:?} ", view.read(|t| t.path()));
 
-    MainLoop::new().show(builder.build());
+    MainLoop::new().show(page);
 }
 
 struct Data;

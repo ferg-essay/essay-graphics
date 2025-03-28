@@ -1,27 +1,25 @@
 use essay_graphics_api::{
-    renderer::{Drawable, Renderer, Result}, 
+    renderer::{Canvas, Drawable, Renderer, Result}, 
     Bounds, Coord, Size
 };
 
-use super::{view::{ViewArc, ViewArcDraw}, View};
-
-#[derive(Clone)]
 pub struct Page {
     views: Vec<ViewItem>,
 }
 
 impl Page {
-    pub fn new<T>(view: impl Into<View<T>>) -> Page 
-    where
-        T: Drawable + Send + 'static
+    pub fn new(view: impl Drawable + Send + 'static) -> Page 
     {
-        let mut builder = Self::builder();
-        builder.view(view.into().arc().clone());
-        builder.build()
+        Self::build(|ui| {
+            ui.view(view);
+        })
     }
 
-    pub fn builder() -> PageBuilder {
-        PageBuilder::new()
+    pub fn build(f: impl FnOnce(&mut PageBuilder)) -> Page {
+        let mut builder = PageBuilder::new();
+        (f)(&mut builder);
+
+        builder.build()
     }
 }
 
@@ -35,90 +33,111 @@ impl Drawable for Page {
     }
 }
 
+#[derive(Copy, Clone, PartialEq, Debug)]
+pub struct ViewId(usize);
+
 pub struct PageBuilder {
     size: Size,
-    view: Option<ViewArc>,
+    view: Option<Box<dyn Drawable + Send>>,
     children: Vec<PageBuilder>,
     update: CursorUpdate,
+
+    id: usize,
 }
 
 impl PageBuilder {
-    fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             size: Size(1., 1.),
             view: None,
             children: Vec::new(),
             update: CursorUpdate::Vertical,
+            id: 0,
         }
     }
 
-    pub fn view(&mut self, view: impl Into<ViewArc>) -> &mut Self {
-        self.view_size(Size(1., 1.), view);
-
-        self
+    pub fn view(&mut self, view: impl Drawable + Send + 'static) -> ViewId {
+        self.view_size(Size(1., 1.), view)
     }
 
     pub fn view_size(
         &mut self, 
         size: impl Into<Size>,
-        view: impl Into<ViewArc>, // <T>>
-    ) -> &mut Self
+        view: impl Drawable + Send + 'static, // <T>>
+    ) -> ViewId
     //where
     //    T: Drawable + Send + 'static
     {
-        let view = view.into();
+        let id = ViewId(self.id);
+        self.id += 1;
 
         self.children.push(Self {
             size: size.into(),
-            view: Some(view),
+            view: Some(Box::new(view)),
             children: Vec::new(),
             update: CursorUpdate::Single,
+            id: id.0,
         });
 
-        self
+        id
     }
 
-    pub fn horizontal(&mut self) -> &mut PageBuilder {
-        self.horizontal_size(1.)
+    pub fn horizontal<R>(&mut self, f: impl FnOnce(&mut PageBuilder) -> R) -> R {
+        self.horizontal_size(1., f)
     }
 
-    pub fn horizontal_size(&mut self, size: f32) -> &mut Self {
-        self.children.push(Self {
+    pub fn horizontal_size<R>(&mut self, size: f32, f: impl FnOnce(&mut PageBuilder) -> R) -> R {
+        let mut sub = Self {
             size: Size(size, size),
             view: None,
             children: Vec::new(),
             update: CursorUpdate::Horizontal,
-        });
+            id: self.id,
+        };
 
-        self.children.last_mut().unwrap()
+        let result = (f)(&mut sub);
+
+        self.id = sub.id;
+
+        self.children.push(sub);
+
+        result
     }
 
-    pub fn vertical(&mut self) -> &mut Self {
-        self.vertical_size(1.)
+    pub fn vertical<R>(&mut self, f: impl FnOnce(&mut PageBuilder) -> R) -> R {
+        self.vertical_size(1., f)
     }
 
-    pub fn vertical_size(
+    pub fn vertical_size<R>(
         &mut self, 
         size: f32, 
-    ) -> &mut Self {
-        self.children.push(Self {
+        f: impl FnOnce(&mut PageBuilder) -> R
+    ) -> R {
+        let mut sub = Self {
             size: Size(size, size),
             view: None,
             children: Vec::new(),
             update: CursorUpdate::Vertical,
-        });
+            id: self.id,
+        };
 
-        self.children.last_mut().unwrap()
+        let result = (f)(&mut sub);
+
+        self.id = sub.id;
+
+        self.children.push(sub);
+
+        result
     }
 
-    pub fn build(&self) -> Page {
+    pub fn build(self) -> Page {
         let mut views = Vec::<ViewItem>::new();
 
         let pos = Bounds::from([1., 1.]);
 
         let update = self.update.clone();
-
-        update.build(&mut views, pos, &self);
+        let mut own = self;
+        update.build(&mut views, pos, &mut own);
 
         Page {
             views,
@@ -138,12 +157,12 @@ impl CursorUpdate {
         &self, 
         vec: &mut Vec<ViewItem>, 
         pos: Bounds<Page>,
-        build: &PageBuilder,
+        build: &mut PageBuilder,
     ) {
         match self {
             CursorUpdate::Single => {
-                if let Some(view) = &build.view {
-                    vec.push(ViewItem::new(pos, view.clone()));
+                if let Some(view) = build.view.take() {
+                    vec.push(ViewItem::new(pos, view));
                 }
             }
             CursorUpdate::Vertical => {
@@ -157,7 +176,7 @@ impl CursorUpdate {
 
                 let mut ymax = pos.ymax();
 
-                for child in &build.children {
+                for child in &mut build.children {
                     let height = factor * child.size.height();
                     let ymin = ymax - height;
 
@@ -167,7 +186,7 @@ impl CursorUpdate {
                     ));
 
                     let update = child.update.clone();
-                    update.build(vec, pos, &child);
+                    update.build(vec, pos, child);
 
                     ymax = ymin;
                 }
@@ -183,7 +202,7 @@ impl CursorUpdate {
 
                 let mut x = pos.xmin();
 
-                for child in &build.children {
+                for child in &mut build.children {
                     let xmax = x + factor * child.size.width();
 
                     let pos = Bounds::from((
@@ -202,32 +221,36 @@ impl CursorUpdate {
     }
 }
 
-#[derive(Clone)]
+//#[derive(Clone)]
 struct ViewItem {
     pos: Bounds<Page>,
 
-    view: ViewArcDraw,
+    view: Box<dyn Drawable + Send>,
 }
 
 impl ViewItem {
-    fn new(pos: Bounds<Page>, view: ViewArc) -> Self {
+    fn new(pos: Bounds<Page>, view: Box<dyn Drawable + Send>) -> Self {
         Self {
             pos,
-            view: view.drawable(),
+            view,
         }
     }
 
-    fn draw(&mut self, renderer: &mut dyn Renderer) -> Result<()> {
+    fn pos(&self, renderer: &mut dyn Renderer) -> Bounds::<Canvas> {
         let pos = renderer.pos().clone();
 
-        let pos = (
+        (
             pos.xmin() + self.pos.xmin() * pos.width(),
             pos.ymin() + self.pos.ymin() * pos.height(),
             pos.xmin() + self.pos.xmax() * pos.width(),
             pos.ymin() + self.pos.ymax() * pos.height(),
-        ).into();
+        ).into()
+    }
 
-        renderer.draw_with(&pos, &mut self.view)
+    fn draw(&mut self, renderer: &mut dyn Renderer) -> Result<()> {
+        let pos = self.pos(renderer);
+
+        renderer.draw_with(&pos, self.view.as_mut())
 
     }
 }
