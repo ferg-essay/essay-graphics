@@ -1,5 +1,5 @@
 use essay_graphics_api::{
-    renderer::{self, Canvas, Event, Renderer}, 
+    renderer::{Canvas, Event, Renderer}, 
     Bounds, Point, Size, TextStyle
 };
 
@@ -34,6 +34,19 @@ impl<'a> Ui<'a> {
             input,
             update: CursorUpdate::Vertical,
         }
+    }
+
+    #[inline]
+    pub fn draw<R>(
+        renderer: &'a mut dyn Renderer,
+        input: &'a UiInput,
+        f: impl FnOnce(&mut Ui) -> R
+    ) -> R {
+        let cursor = Cursor::new(renderer.pos().clone());
+
+        let mut ui = Ui::new(renderer, cursor, input);
+
+        (f)(&mut ui)
     }
 
     pub fn renderer(&mut self) -> &mut dyn Renderer {
@@ -117,25 +130,24 @@ pub struct UiState {
 
 impl UiState {
     pub fn new() -> Self {
-        Self {
-            input: UiInput::default(),
-        }
+        Self::default()
     }
 
-    pub fn draw(
+    #[inline]
+    pub fn draw<R>(
         &mut self, 
         renderer: &mut dyn Renderer,
-        f: impl FnOnce(&mut Ui)
-    ) -> renderer::Result<()> {
+        f: impl FnOnce(&mut Ui) -> R
+    ) -> R {
         let cursor = Cursor::new(renderer.pos().clone());
         
         let input = self.input.clone();
         let mut ui = Ui::new(renderer, cursor, &input);
-        (f)(&mut ui);
+        let result = (f)(&mut ui);
 
         self.input.update();
 
-        Ok(())
+        result
     }
 
     pub fn event(&mut self, renderer: &mut dyn Renderer, event: &Event) {
@@ -156,6 +168,15 @@ impl UiState {
         renderer.request_redraw(&Bounds::none());
     }
 }
+
+impl Default for UiState {
+    fn default() -> Self {
+        Self {
+            input: UiInput::default(),
+        }
+    }
+}
+
 
 #[derive(Clone, Debug)]
 pub struct Cursor {

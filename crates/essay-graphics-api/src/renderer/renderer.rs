@@ -123,8 +123,7 @@ pub trait Renderer {
     fn draw_with(
         &mut self, 
         pos: &Bounds<Canvas>, 
-        drawable: 
-        &mut dyn Drawable
+        drawable: &mut dyn Drawable
     ) -> Result<()>;
 
     fn request_redraw(

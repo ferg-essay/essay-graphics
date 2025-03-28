@@ -21,6 +21,49 @@ impl Page {
 
         builder.build()
     }
+
+    pub fn view_bounds(&self, id: ViewId) -> Bounds<Page> {
+        self.views[id.0].pos.clone()
+    }
+
+    pub fn render<R>(
+        &mut self, 
+        id: ViewId, 
+        renderer: &mut dyn Renderer,
+        f: impl FnOnce(&mut dyn Renderer) -> Result<R>
+    ) -> Result<R> {
+        let pos = self.views[id.0].pos(renderer);
+
+        let mut draw = PageDrawable {
+            f: Some(f),
+            result: None,
+        };
+
+        renderer.draw_with(&pos, &mut draw)?;
+
+        Ok(draw.result.take().unwrap())
+    }
+}
+
+struct PageDrawable<R, F>
+where
+    F: FnOnce(&mut dyn Renderer) -> Result<R>
+{
+    f: Option<F>,
+    result: Option<R>,
+}
+
+impl<R, F> Drawable for PageDrawable<R, F>
+where
+    F: FnOnce(&mut dyn Renderer) -> Result<R>
+{
+    fn draw(&mut self, renderer: &mut dyn Renderer) -> Result<()> {
+        let f = self.f.take().unwrap();
+
+        self.result = Some((f)(renderer)?);
+
+        Ok(())
+    }
 }
 
 impl Drawable for Page {
