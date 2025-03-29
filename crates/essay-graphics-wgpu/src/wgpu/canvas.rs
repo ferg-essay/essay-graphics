@@ -1,5 +1,5 @@
 use essay_graphics_api::{
-    form::{Form, FormId, Matrix4, Shape, ShapeId}, renderer::{Canvas, Drawable, RenderErr, Result}, Affine2d, Bounds, CapStyle, Clip, Color, FontStyle, FontTypeId, HorizAlign, ImageId, JoinStyle, LineStyle, Path, PathCode, PathOpt, Point, Size, TextStyle, TextureId, VertAlign
+    form::{Form, FormId, Matrix4, Shape, ShapeId}, renderer::{Canvas, Drawable, Input, RenderErr, Result}, Affine2d, Bounds, CapStyle, Clip, Color, FontStyle, FontTypeId, HorizAlign, ImageId, JoinStyle, LineStyle, Path, PathCode, PathOpt, Point, Size, TextStyle, TextureId, VertAlign
 };
 use essay_tensor::Tensor;
 
@@ -13,6 +13,7 @@ use super::{
 pub struct PlotCanvas {
     bounds: Bounds<Canvas>,
     scale_factor: f32,
+    input: Input,
 
     pub(crate) image_render: ImageRender,
     pub(crate) triangle_render: Triangle2dRenderer,
@@ -59,6 +60,8 @@ impl PlotCanvas {
         let mut canvas = Self {
             bounds: Bounds::from([width as f32, height as f32]),
             scale_factor: 1.,
+
+            input: Input::default(),
 
             image_render,
             shape2d_render,
@@ -152,6 +155,14 @@ impl PlotCanvas {
     #[inline]
     pub fn to_px(&self, size: f32) -> f32 {
         self.scale_factor * size
+    }
+
+    pub fn input(&self) -> &Input {
+        &self.input
+    }
+
+    pub fn input_mut(&mut self) -> &mut Input {
+        &mut self.input
     }
 
     fn fill_path(
@@ -743,14 +754,21 @@ impl PlotCanvas {
 
     pub(crate) fn draw(
         &mut self,
-        figure: &mut dyn Drawable,
+        draw: &mut dyn Drawable,
         device: &wgpu::Device,
         queue: &wgpu::Queue,
         view: &wgpu::TextureView,
     ) -> Result<()> {
-        let mut renderer = self.renderer(device, queue, Some(view));
+        draw.draw(&mut self.renderer(device, queue, Some(view)))?;
 
-        figure.draw(&mut renderer)
+        self.update_input();
+
+        Ok(())
+    }
+
+    fn update_input(&mut self) {
+        self.input.left_press = false;
+        self.input.left_release = false;
     }
 
     pub fn renderer<'a>(

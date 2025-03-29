@@ -5,6 +5,9 @@ use std::f32::consts::{FRAC_PI_2, TAU};
 pub struct Point(pub f32, pub f32);
 
 impl Point {
+    pub const X: Point = Point(1., 0.);
+    pub const Y: Point = Point(0., 1.);
+
     #[inline]
     pub fn x(&self) -> f32 {
         self.0

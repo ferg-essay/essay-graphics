@@ -1,5 +1,7 @@
 use essay_graphics_api::{
-    form::{Form, FormId, Matrix4, Shape, ShapeId}, renderer::{Canvas, Drawable, RenderErr, Renderer, Result}, Affine2d, Bounds, FontStyle, FontTypeId, ImageId, Path, PathOpt, Point, Size, TextStyle, TextureId
+    form::{Form, FormId, Matrix4, Shape, ShapeId}, 
+    renderer::{Canvas, Drawable, Input, RenderErr, Renderer, Result}, 
+    Affine2d, Bounds, FontStyle, FontTypeId, ImageId, Path, PathOpt, Point, Size, TextStyle, TextureId
 };
 use essay_tensor::Tensor;
 
@@ -7,7 +9,7 @@ pub struct TestRenderer {
     bounds: Bounds<Canvas>,
     pos: Bounds<Canvas>,
     scale_factor: f32,
-
+    input: Input,
     vec: Vec<String>,
 }
 
@@ -19,6 +21,7 @@ impl TestRenderer {
             pos: bounds.clone(),
             bounds,
             scale_factor: 1.,
+            input: Input::default(),
             vec: Vec::new(),
         }
     }
@@ -49,6 +52,10 @@ impl Renderer for TestRenderer {
 
     fn pos(&self) -> &Bounds<Canvas> {
         &self.pos
+    }
+
+    fn input(&self) -> &Input {
+        &self.input
     }
 
     fn scale_factor(&self) -> f32 {

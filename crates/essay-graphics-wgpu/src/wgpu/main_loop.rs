@@ -1,6 +1,6 @@
 use std::time::Instant;
 
-use essay_graphics_api::{renderer::{Canvas, DeviceErr, Drawable, Event}, Bounds, Point};
+use essay_graphics_api::{renderer::{Canvas, DeviceErr, Drawable, Event, Input}, Bounds, Point};
 use winit::{
     event::{self, ElementState, MouseButton, WindowEvent }, 
     event_loop::{ControlFlow, EventLoop}, 
@@ -29,7 +29,7 @@ impl WgpuMainLoop {
         self
     }
 
-    pub fn main_loop(&mut self, drawable: Box<dyn Drawable>) -> Result<(), DeviceErr> {
+    pub fn main_loop(&mut self, draw: Box<dyn Drawable>) -> Result<(), DeviceErr> {
         let event_loop = EventLoop::new().unwrap();
         let window = winit::window::Window::new(&event_loop).unwrap();
 
@@ -41,7 +41,7 @@ impl WgpuMainLoop {
 
         let wgpu_device = pollster::block_on(init_wgpu_device(&window));
     
-        run_event_loop(event_loop, window, wgpu_device, drawable);
+        run_event_loop(event_loop, window, wgpu_device, draw);
 
         Ok(())
     }
@@ -179,6 +179,7 @@ fn run_event_loop(
                 },
                 ..
             } => {
+                mouse_input(canvas.input_mut(), &state, &button);
                 let mut renderer = PlotRenderer::new(&mut canvas, &device, Some(&queue), None);
                 match button {
                     MouseButton::Left => {
@@ -254,6 +255,7 @@ fn run_event_loop(
                 ..
             } => {
                 cursor.position = Point(position.x as f32, config.height as f32 - position.y as f32);
+                canvas.input_mut().cursor = Some(cursor.position);
                 let mut renderer = PlotRenderer::new(&mut canvas, &device, Some(&queue), None);
 
                 drawable.event(
@@ -328,6 +330,30 @@ fn run_event_loop(
                 }
             }
             event::Event::WindowEvent {
+                event: WindowEvent::CursorEntered {
+                    ..
+                },
+                ..
+            } => {
+            }
+            event::Event::WindowEvent {
+                event: WindowEvent::CursorLeft {
+                    ..
+                },
+                ..
+            } => {
+            }
+            event::Event::WindowEvent {
+                event: WindowEvent::Focused(is_focus),
+                ..
+            } => {
+                canvas.input_mut().is_focus = is_focus;
+
+                if ! is_focus {
+                    canvas.input_mut().cursor = None;
+                }
+            }
+            event::Event::WindowEvent {
                 event: WindowEvent::RedrawRequested,
                 ..
             } => {
@@ -347,6 +373,26 @@ fn run_event_loop(
             _ => {}
         }
     }).unwrap();
+}
+
+fn mouse_input(
+    input: &mut Input, 
+    state: &ElementState, 
+    button: &MouseButton
+) {
+    match button {
+        MouseButton::Left => {
+            match state {
+                ElementState::Pressed => {
+                    input.left_press = true;
+                }
+                ElementState::Released => {
+                    input.left_release = true;
+                }
+            }
+        },
+        _ => {}
+    }
 }
 
 struct MouseState {
@@ -392,7 +438,7 @@ fn main_render(
     queue: &wgpu::Queue, 
     surface: &wgpu::Surface,
     canvas: &mut PlotCanvas,
-    drawable: &mut dyn Drawable,
+    draw: &mut dyn Drawable,
 ) {
     let frame = surface.get_current_texture()
         .expect("Failed to get next swap chain texture");
@@ -428,7 +474,7 @@ fn main_render(
 
     queue.submit(Some(encoder.finish()));
 
-    canvas.draw(drawable, device, queue, &view).unwrap();
+    canvas.draw(draw, device, queue, &view).unwrap();
 
     frame.present();
 }

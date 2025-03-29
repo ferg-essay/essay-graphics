@@ -3,6 +3,8 @@ use std::{marker::PhantomData, any::type_name};
 
 use essay_tensor::{Tensor, tf32};
 
+use crate::Size;
+
 use super::{Point, Coord, Affine2d};
 
 ///
@@ -16,19 +18,25 @@ pub struct Bounds<M: Coord> {
 }
 
 impl<M: Coord> Bounds<M> {
+    #[must_use]
     pub fn new(p0: impl Into<Point>, p1: impl Into<Point>) -> Self {
+        let Point(x0, y0) = p0.into();
+        let Point(x1, y1) = p1.into();
+
         Self {
-            p0: p0.into(),
-            p1: p1.into(),
-            marker: PhantomData,
+            p0: Point(x0.min(x1), y0.min(y1)),
+            p1: Point(x0.max(x1), y0.max(y1)),
+            marker: PhantomData::<fn(M)>,
         }
     }
 
     #[inline]
+    #[must_use]
     pub fn extent(width: f32, height: f32) -> Self {
         Self::new(Point(0., 0.), Point(width, height))
     }
 
+    #[inline]
     pub fn from_bounds(
         x0: f32, 
         y0: f32, 
@@ -42,6 +50,7 @@ impl<M: Coord> Bounds<M> {
         }
     }
 
+    #[inline]
     pub fn none() -> Bounds<M> {
         Bounds {
             p0: Point(f32::MAX, f32::MAX),
@@ -50,6 +59,7 @@ impl<M: Coord> Bounds<M> {
         }
     }
 
+    #[inline]
     pub fn zero() -> Bounds<M> {
         Bounds {
             p0: Point(0., 0.),
@@ -58,6 +68,7 @@ impl<M: Coord> Bounds<M> {
         }
     }
 
+    #[inline]
     pub fn unit() -> Self {
         Self::new(Point(0., 0.), Point(1., 1.))
     }
@@ -71,6 +82,26 @@ impl<M: Coord> Bounds<M> {
     #[inline]
     pub fn is_zero(&self) -> bool {
         self.p0 == Point(0., 0.) && self.p1 == Point(0., 0.)
+    }
+
+    #[inline]
+    pub fn p0(&self) -> Point {
+        self.p0
+    }
+
+    #[inline]
+    pub fn p1(&self) -> Point {
+        self.p1
+    }
+
+    #[inline]
+    pub fn pos(&self) -> Point {
+        self.p0
+    }
+
+    #[inline]
+    pub fn size(&self) -> Size {
+        Size(self.p1.x() - self.p0.x(), self.p1.y() - self.p0.y())
     }
 
     #[inline]
@@ -95,12 +126,12 @@ impl<M: Coord> Bounds<M> {
 
     #[inline]
     pub fn xmin(&self) -> f32 {
-        self.p0.x().min(self.p1.x())
+        self.p0.x()
     }
 
     #[inline]
     pub fn ymin(&self) -> f32 {
-        self.p0.y().min(self.p1.y())
+        self.p0.y()
     }
 
     #[inline]
@@ -110,12 +141,12 @@ impl<M: Coord> Bounds<M> {
 
     #[inline]
     pub fn xmax(&self) -> f32 {
-        self.p0.x().max(self.p1.x())
+        self.p1.x()
     }
 
     #[inline]
     pub fn ymax(&self) -> f32 {
-        self.p0.y().max(self.p1.y())
+        self.p1.y()
     }
 
     #[inline]
@@ -157,15 +188,11 @@ impl<M: Coord> Bounds<M> {
     #[inline]
     pub fn contains_x(&self, x: f32) -> bool {
         self.x0() <= x && x <= self.x1()
-            || self.x1() <= x && x <= self.x0()
-
     }
 
     #[inline]
     pub fn contains_y(&self, y: f32) -> bool {
         self.y0() <= y && y <= self.y1()
-            || self.y1() <= y && y <= self.y0()
-
     }
 
     pub fn corners(&self) -> Tensor {
@@ -214,19 +241,10 @@ impl<M: Coord> Bounds<M> {
         }
     }
 
-    #[inline]
-    pub fn p0(&self) -> Point {
-        self.p0
-    }
-
-    #[inline]
-    pub fn p1(&self) -> Point {
-        self.p1
-    }
-
     //
     // Returns bounds for a sub-area with the specified aspect ratio
     //
+    #[must_use]
     pub fn with_aspect(&self, aspect: f32) -> Self {
         let self_aspect = self.width() / self.height();
 
@@ -283,8 +301,8 @@ impl<M: Coord> fmt::Debug for Bounds<M> {
             tail,
             self.x0(),
             self.y0(),
-            self.x1() - self.x0(),
-            self.y1() - self.y0()
+            self.width(),
+            self.height()
         )
     }
 }
@@ -320,6 +338,26 @@ impl<M: Coord> From<Point> for Bounds<M> {
         Bounds::new(
             value,
             value,
+        )
+    }
+}
+
+impl<M: Coord> From<Size> for Bounds<M> {
+    #[inline]
+    fn from(value: Size) -> Self {
+        Bounds::new(
+            Point(0., 0.),
+            Point(value.0, value.1),
+        )
+    }
+}
+
+impl<M: Coord> From<(Point, Size)> for Bounds<M> {
+    #[inline]
+    fn from(value: (Point, Size)) -> Self {
+        Bounds::new(
+            value.0,
+            Point(value.0.0 + value.1.0, value.0.1 + value.1.1),
         )
     }
 }

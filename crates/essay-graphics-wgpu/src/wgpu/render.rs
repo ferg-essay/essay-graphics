@@ -1,7 +1,7 @@
 use std::mem;
 
 use essay_graphics_api::{
-    form::{Form, FormId, Matrix4, Shape, ShapeId}, renderer::{Canvas, Drawable, RenderErr, Renderer, Result}, Affine2d, Bounds, FontStyle, FontTypeId, ImageId, Path, PathOpt, Point, Size, TextStyle, TextureId
+    form::{Form, FormId, Matrix4, Shape, ShapeId}, renderer::{Canvas, Drawable, Input, RenderErr, Renderer, Result}, Affine2d, Bounds, FontStyle, FontTypeId, ImageId, Path, PathOpt, Point, Size, TextStyle, TextureId
 };
 use essay_tensor::Tensor;
 
@@ -109,6 +109,10 @@ impl<'a> Renderer for PlotRenderer<'a> {
 
     fn to_px(&self, size: f32) -> f32 {
         self.canvas.to_px(size)
+    }
+
+    fn input(&self) -> &Input {
+        &self.canvas.input()
     }
 
     fn draw_path(

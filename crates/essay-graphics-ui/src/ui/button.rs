@@ -36,20 +36,21 @@ impl Widget for UiButton {
             .close_poly(bounds.xmin() + m2, bounds.ymax() - m2)
             .to_path();
 
-        let over = ui.input().cursor.map_or(false, |p| bounds.contains(p));
+        let mut style = ui.style().button.clone();
+
+        if ui.input().cursor.map_or(false, |p| bounds.contains(p)) {
+            style.color(Color(0xf0f0f0ff));
+            ui.renderer().draw_path(&border, &style).unwrap();
+        }
+
         let press = ui.input().left_press.map_or(false, |p| bounds.contains(p));
         let press_one = ui.input().left_press_one.map_or(false, |p| bounds.contains(p));
         
         let mut style = ui.style().button.clone();
         style.face_color(Color::none());
-        if over {
-            style.edge_color("red");
-        } else {
-            style.edge_color("black");
-        }
 
         if press {
-            style.face_color(Color::from("red").set_alpha(0.25));
+            style.edge_color(Color::from("red").set_alpha(0.25));
         }
 
         ui.renderer().draw_path(&border, &style).unwrap();

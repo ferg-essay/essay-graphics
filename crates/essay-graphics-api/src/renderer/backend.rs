@@ -9,7 +9,5 @@ pub type Result<T, E = DeviceErr> = std::result::Result<T, E>;
 
 
 pub trait Backend {
-    // fn renderer(&mut self) -> &dyn Renderer;
-
-    fn main_loop(&mut self, figure: Box<dyn Drawable>) -> Result<()>;
+    fn main_loop(&mut self, drawable: Box<dyn Drawable>) -> Result<()>;
 }

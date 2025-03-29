@@ -6,7 +6,7 @@ use crate::{
     Size, TextStyle, TextureId
 };
 
-use super::{Canvas, Drawable};
+use super::{Canvas, Drawable, Input, RenderErr, Result};
 
 pub trait Renderer {
     ///
@@ -126,15 +126,10 @@ pub trait Renderer {
         drawable: &mut dyn Drawable
     ) -> Result<()>;
 
+    fn input(&self) -> &Input;
+
     fn request_redraw(
         &mut self,
         bounds: &Bounds<Canvas>
     );
-}
-
-pub type Result<T, E=RenderErr> = std::result::Result<T, E>;
-
-#[derive(Debug)]
-pub enum RenderErr {
-    NotImplemented,
 }
