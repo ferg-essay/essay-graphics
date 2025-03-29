@@ -1,5 +1,4 @@
 mod error;
-mod input;
 mod backend;
 mod canvas;
 mod drawable;
@@ -19,7 +18,5 @@ pub use event::Event;
 pub use error::{
     Result, RenderErr,
 };
-
-pub use input::Input;
 
 pub use renderer::Renderer;

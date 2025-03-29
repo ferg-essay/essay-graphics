@@ -1,9 +1,9 @@
+pub mod input;
 pub mod affine2d;
 mod bounds;
 mod clip;
 mod color;
 mod color_data;
-mod coord;
 pub mod form;
 mod image;
 mod instance;
@@ -17,13 +17,11 @@ mod text;
 
 pub use affine2d::Affine2d;
 
-pub use bounds::Bounds;
+pub use bounds::{Bounds, Coord};
 
 pub use clip::Clip;
 
 pub use color::{Color, Colors};
-
-pub use coord::Coord;
 
 pub use path::{
     Path, PathCode,

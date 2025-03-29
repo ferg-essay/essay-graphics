@@ -5,7 +5,7 @@ use essay_tensor::{Tensor, tf32};
 
 use crate::Size;
 
-use super::{Point, Coord, Affine2d};
+use super::{Point, Affine2d};
 
 ///
 /// Boundary box consisting of two unordered points
@@ -438,6 +438,11 @@ impl<M: Coord> From<Bounds<M>> for Tensor {
         value.corners()
     }
 }
+
+///
+/// The coordinate for bounds
+/// 
+pub trait Coord: 'static {}
 
 #[cfg(test)]
 mod test {
