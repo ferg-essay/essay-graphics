@@ -4,9 +4,7 @@ mod canvas;
 mod drawable;
 mod renderer;
 
-pub use main_loop::{
-    Backend, DeviceErr,
-};
+pub use main_loop::Backend;
 
 pub use canvas::Canvas;
 

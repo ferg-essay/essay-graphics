@@ -1,4 +1,4 @@
-use essay_graphics_api::renderer::{Backend, Drawable, DeviceErr};
+use essay_graphics_api::renderer::{self, Backend, Drawable};
 
 use crate::WgpuMainLoop;
 
@@ -17,7 +17,7 @@ impl WgpuBackend {
 }
 
 impl Backend for WgpuBackend {
-    fn main_loop(&mut self, figure: Box<dyn Drawable>) -> Result<(), DeviceErr> {
+    fn main_loop(&mut self, figure: Box<dyn Drawable>) -> renderer::Result<()> {
         self.main_loop.main_loop(figure)
     }
     /*

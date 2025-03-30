@@ -1,20 +1,17 @@
-use std::time::Instant;
+use std::sync::{Arc, Mutex};
 
 use essay_graphics_api::{
     input::Input,
-    renderer::{Canvas, DeviceErr, Drawable}, 
-    Bounds, Point, Size
+    renderer::{self, Drawable}, 
+    Point, Size
 };
 use winit::{
     event::{self, ElementState, KeyEvent, MouseButton, WindowEvent }, 
     event_loop::{ControlFlow, EventLoop}, 
-    keyboard::{Key, NamedKey}, 
     window::{CursorIcon, Window}
 };
 
 use crate::PlotCanvas;
-
-use super::render::PlotRenderer;
 
 pub struct WgpuMainLoop {
     title: Option<String>,
@@ -33,7 +30,7 @@ impl WgpuMainLoop {
         self
     }
 
-    pub fn main_loop(&mut self, draw: Box<dyn Drawable>) -> Result<(), DeviceErr> {
+    pub fn main_loop(&mut self, draw: Box<dyn Drawable>) -> renderer::Result<()> {
         let event_loop = EventLoop::new().unwrap();
         let window = winit::window::Window::new(&event_loop).unwrap();
 
@@ -44,10 +41,12 @@ impl WgpuMainLoop {
         window.set_cursor_icon(CursorIcon::Default);
 
         let wgpu_device = pollster::block_on(init_wgpu_device(&window));
-    
-        run_event_loop(event_loop, window, wgpu_device, draw);
 
-        Ok(())
+        let mut handle = MainLoopData::new(wgpu_device, draw);
+
+        handle.set_scale_factor(window.scale_factor() as f32);
+
+        run_event_loop(event_loop, handle)
     }
 }
 
@@ -98,23 +97,19 @@ async fn init_wgpu_device(window: &Window) -> MainLoopDevice {
     MainLoopDevice {
         device,
         queue,
-        instance,
-        adapter,
+        // instance,
+        // adapter,
         surface,
         config,
     }
 }
 
-fn run_event_loop(
+pub fn run_event_loop(
     event_loop: EventLoop<()>, 
-    window: Window, 
-    args: MainLoopDevice,
-    drawable: Box<dyn Drawable>,
-) {
-    let mut handle = Box::new(MainLoopData::new(args, drawable));
-
-    handle.set_scale_factor(window.scale_factor() as f32);
-
+    mut handle: impl MainLoopHandle,
+) -> renderer::Result<()> {
+    let result = Arc::new(Mutex::new(ResultHandle::default()));
+    let result_handle = result.clone();
     // let mut cursor = CursorState::new();
     let mut size = Size(0., 0.);
 
@@ -193,23 +188,34 @@ fn run_event_loop(
                 ..
             } => window_target.exit(),
             event::Event::AboutToWait => {
-                handle.about_to_wait();
+                if let Err(err) = handle.about_to_wait() {
+                    result_handle.lock().unwrap().err = Some(err);
+                    window_target.exit();
+                };
             }
             _ => {}
         }
     }).unwrap();
+
+    let err = result.lock().unwrap().take();
+
+    if let Some(err) = err {
+        Err(err)
+    } else {
+        Ok(())
+    }
 }
 
 struct MainLoopDevice {
-    instance: wgpu::Instance,
-    adapter: wgpu::Adapter,
+    // instance: wgpu::Instance,
+    // adapter: wgpu::Adapter,
     device: wgpu::Device,
     queue: wgpu::Queue,
     config: wgpu::SurfaceConfiguration,
     surface: wgpu::Surface,
 }
 
-trait MainLoopHandle {
+pub trait MainLoopHandle {
     fn set_scale_factor(&mut self, scale_factor: f32);
 
     fn resized(&mut self, width: u32, height: u32);
@@ -218,12 +224,12 @@ trait MainLoopHandle {
 
     fn request_redraw(&mut self);
 
-    fn about_to_wait(&mut self);
+    fn about_to_wait(&mut self) -> renderer::Result<()>;
 }
 
 struct MainLoopData {
-    instance: wgpu::Instance,
-    adapter: wgpu::Adapter,
+    // instance: wgpu::Instance,
+    // adapter: wgpu::Adapter,
     device: wgpu::Device,
     queue: wgpu::Queue,
     config: wgpu::SurfaceConfiguration,
@@ -244,8 +250,8 @@ impl MainLoopData {
         );
 
         Self {
-            instance: device.instance,
-            adapter: device.adapter,
+            // instance: device.instance,
+            // adapter: device.adapter,
             device: device.device,
             queue: device.queue,
             config: device.config,
@@ -320,13 +326,15 @@ impl MainLoopHandle for MainLoopData {
         self.canvas.request_redraw(true);
     }
 
-    fn about_to_wait(&mut self) {
+    fn about_to_wait(&mut self) -> renderer::Result<()> {
         if self.canvas.is_request_redraw() {
             self.canvas.request_redraw(false);
 
             self.main_render();
             self.input_mut().update_after_draw();
         }
+
+        Ok(())
     }
 }
 
@@ -358,38 +366,22 @@ fn key_input(
 ) {
 }
 
-struct MouseState {
-    left: ElementState,
-    left_press_start: Point,
-    left_press_last: Point,
-
-    right: ElementState,
-    right_press_start: Point,
-    right_press_time: Instant,
+struct ResultHandle {
+    err: Option<renderer::RenderErr>,
 }
 
-impl MouseState {
-    fn new() -> Self {
-        Self {
-            left: ElementState::Released,
-            left_press_start: Point(0., 0.),
-            left_press_last: Point(0., 0.),
+impl ResultHandle {
+    fn take(&mut self) -> Option<renderer::RenderErr> {
+        self.err.take()
+    }
+}
 
-            right: ElementState::Released,
-            right_press_start: Point(0., 0.),
-            right_press_time: Instant::now(),
+impl Default for ResultHandle {
+    fn default() -> Self {
+        Self { 
+            err: None,
         }
     }
 }
 
-struct CursorState {
-    position: Point,
-}
 
-impl CursorState {
-    fn new() -> Self {
-        Self {
-            position: Point(0., 0.),
-        }
-    }
-}

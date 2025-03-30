@@ -22,6 +22,8 @@ pub use canvas::PlotCanvas;
 
 pub use render::PlotRenderer;
 
-pub use main_loop::WgpuMainLoop;
+pub use main_loop::{
+    WgpuMainLoop, MainLoopHandle, run_event_loop,
+};
 
 pub use hardcopy::WgpuHardcopy;

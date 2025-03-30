@@ -1,13 +1,5 @@
-use super::Drawable;
-
-#[derive(Debug)]
-pub enum DeviceErr {
-    NotImplemented,
-}
-
-pub type Result<T, E = DeviceErr> = std::result::Result<T, E>;
-
+use crate::{renderer, renderer::Drawable};
 
 pub trait Backend {
-    fn main_loop(&mut self, drawable: Box<dyn Drawable>) -> Result<()>;
+    fn main_loop(&mut self, drawable: Box<dyn Drawable>) -> renderer::Result<()>;
 }
