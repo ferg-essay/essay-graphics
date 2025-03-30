@@ -89,14 +89,23 @@ fn digit_color_data() -> Vec<(&'static str, u32)> {
     return vec![
         ("k", 0x000000),
         ("w", 0xffffff),
+        // <div style="background-color: #d62728; width: 10px; padding: 10px; border: 1px solid;"></div>
         ("r", 0xd62728), // xkcd:red
+        // <div style="background-color: #15b01a; width: 10px; padding: 10px"></div>
         ("g", 0x15b01a), // xkcd:green
+        // <div style="background-color: #0343df; width: 10px; padding: 10px"></div>
         ("b", 0x0343df), // xkcd:blue
+        // <div style="background-color: #75bbfd"></div>
         ("c", 0x75bbfd), // xkcd:sky blue
+        // <div style="background-color: #c02078"></div>
         ("m", 0xc02078), // xkcd:magenta
+        // <div style="background-color: #ffdf22"></div>
         ("y", 0xffdf22), // xkcd:sun yellow
+        // <div style="background-color: #f97306"></div>
         ("o", 0xf97306), // xkcd:orange
+        // <div style="background-color: #380282"></div>
         ("i", 0x380282), // xkcd:indigo
+        // <div style="background-color: #9a0eea"></div>
         ("v", 0x9a0eea), // xkcd:violet
     ];
 }
@@ -106,15 +115,25 @@ fn digit_color_data() -> Vec<(&'static str, u32)> {
 ///
 fn _tableau_color_data() -> Vec<(&'static str, u32)> {
     return vec![
+        // <div style="background-color: #1f77b4"></div>
         ("blue", 0x1f77b4),
+        // <div style="background-color: #ff7f0e"></div>
         ("orange", 0xff7f0e),
+        // <div style="background-color: #2ca02c"></div>
         ("green", 0x2ca02c),
+        // <div style="background-color: #d62728"></div>
         ("red", 0xd62728),
+        // <div style="background-color: #9467bd"></div>
         ("purple", 0x9467bd),
+        // <div style="background-color: #8c564b"></div>
         ("brown", 0x8c564b),
+        // <div style="background-color: #e377c2"></div>
         ("pink", 0xe377c2),
+        // <div style="background-color: #7f7f7f"></div>
         ("gray", 0x7f7f7f),
+        // <div style="background-color: #bcbd22"></div>
         ("olive", 0xbcbd22),
+        // <div style="background-color: #17becf"></div>
         ("cyan", 0x17becf),
     ];
 }

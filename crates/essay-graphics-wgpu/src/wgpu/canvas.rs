@@ -765,14 +765,9 @@ impl PlotCanvas {
     ) -> Result<()> {
         draw.draw(&mut self.renderer(device, queue, Some(view)))?;
 
-        self.update_input();
+        self.input.update_after_draw();
 
         Ok(())
-    }
-
-    fn update_input(&mut self) {
-        self.input.left_press = false;
-        self.input.left_release = false;
     }
 
     pub fn renderer<'a>(

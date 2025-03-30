@@ -1,24 +1,21 @@
 use essay_tensor::Tensor;
 
 use crate::{
-    form::{Form, FormId, Matrix4, Shape, ShapeId}, 
-    input::Input,
-    Affine2d, Bounds, FontStyle, FontTypeId, ImageId, Path, PathOpt, Point, 
-    Size, TextStyle, TextureId
+    form::{Form, FormId, Matrix4, Shape, ShapeId}, input::Input, Affine2d, Bounds, Coord, FontStyle, FontTypeId, ImageId, Path, PathOpt, Point, Size, TextStyle, TextureId
 };
 
 use super::{Canvas, Drawable, RenderErr, Result};
 
 pub trait Renderer {
     ///
-    /// Returns the boundary of the full canvas, usually in pixels or points.
-    ///
-    fn extent(&self) -> &Bounds<Canvas>;
-
-    ///
     /// Returns the position of the current view.
     ///
     fn pos(&self) -> &Bounds<Canvas>;
+
+    ///
+    /// Returns the boundary of the full canvas, usually in pixels or points.
+    ///
+    fn extent(&self) -> &Bounds<Canvas>;
 
     fn scale_factor(&self) -> f32;
 

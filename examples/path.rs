@@ -1,4 +1,4 @@
-use renderer::{Canvas, Drawable, Event, Renderer};
+use renderer::{Canvas, Drawable, Renderer};
 use essay_graphics::prelude::*;
 use essay_graphics::layout::{MainLoop, View};
 use essay_graphics_api::Coord;
@@ -38,16 +38,6 @@ impl PathView {
 }
 
 impl Drawable for PathView {
-    fn event(&mut self, _renderer: &mut dyn Renderer, _event: &Event) {
-        /*
-        if let Event::Resize(pos) = event {
-            let to_canvas = Bounds::<Data>::new((0., 0.), (1., 1.)).affine_to(pos);
-
-            self.path = self.path_data.transform(&to_canvas);
-        }
-        */
-    }
-
     fn draw(&mut self, renderer: &mut dyn Renderer) -> renderer::Result<()> {
         println!("Pos {:?}", renderer.extent());
         let to_canvas = Bounds::<Data>::new((0., 0.), (1., 1.)).affine_to(renderer.extent());

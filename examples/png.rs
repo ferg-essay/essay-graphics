@@ -24,29 +24,9 @@ impl TriangleView {
             triangles: Tensor::from(Vec::<[u32; 3]>::new()),
         }
     }
-}
 
-impl Drawable for TriangleView {
-    fn draw(&mut self, renderer: &mut dyn Renderer) -> renderer::Result<()> {
-        let mut colors = Vec::<u32>::new();
-
-        colors.push(Color::from("teal").to_rgba());
-        colors.push(Color::from("red").to_rgba());
-        colors.push(Color::from("blue").to_rgba());
-        colors.push(Color::from("orange").to_rgba());
-
-        let colors = Tensor::from(colors);
-
-        renderer.draw_triangles(
-            self.vertices.clone(), 
-            colors.clone(), 
-            self.triangles.clone()
-        )?;
-        
-        Ok(())
-    }
-
-    fn resize(&mut self, _renderer: &mut dyn Renderer, pos: &Bounds<Canvas>) -> Bounds<Canvas> {
+    fn resize(&mut self, renderer: &mut dyn Renderer) {
+        let pos = renderer.pos();
         let (x0, y0) = (pos.xmin(), pos.ymin());
         let (w, h) = (pos.width(), pos.height());
         let (x1, y1) = (x0 + w, y0 + h);
@@ -64,7 +44,28 @@ impl Drawable for TriangleView {
 
         self.vertices = Tensor::from(vertices);
         self.triangles = Tensor::from(triangles);
+    }
+}
 
-        pos.clone()
+impl Drawable for TriangleView {
+    fn draw(&mut self, renderer: &mut dyn Renderer) -> renderer::Result<()> {
+        self.resize(renderer);
+
+        let mut colors = Vec::<u32>::new();
+
+        colors.push(Color::from("teal").to_rgba());
+        colors.push(Color::from("red").to_rgba());
+        colors.push(Color::from("blue").to_rgba());
+        colors.push(Color::from("orange").to_rgba());
+
+        let colors = Tensor::from(colors);
+
+        renderer.draw_triangles(
+            self.vertices.clone(), 
+            colors.clone(), 
+            self.triangles.clone()
+        )?;
+        
+        Ok(())
     }
 }

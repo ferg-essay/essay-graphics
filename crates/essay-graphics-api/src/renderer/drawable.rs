@@ -1,6 +1,4 @@
-use crate::Bounds;
-
-use super::{Canvas, Event, Renderer, Result};
+use super::{Renderer, Result};
 
 pub trait Drawable {
     ///
@@ -16,25 +14,6 @@ pub trait Drawable {
     /// need to store the position.
     /// 
     fn draw(&mut self, renderer: &mut dyn Renderer) -> Result<()>;
-
-    ///
-    /// Called to inform the drawable when the canvas resizes
-    /// 
-    #[allow(unused_variables)]
-    fn resize(
-        &mut self, 
-        renderer: &mut dyn Renderer, 
-        bounds: &Bounds<Canvas>
-    ) -> Bounds<Canvas> {
-        bounds.clone()
-    }
-
-    ///
-    /// Called to inform the drawable when an event occurs in the drawable.
-    /// 
-    #[allow(unused_variables)]
-    fn event(&mut self, renderer: &mut dyn Renderer, event: &Event) {
-    }
 }
 
 impl<F> Drawable for F

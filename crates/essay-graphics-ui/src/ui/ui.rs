@@ -1,18 +1,15 @@
 use essay_graphics_api::{
-    renderer::{Canvas, Event, Renderer}, 
-    Bounds, Point, Size, TextStyle
+    input::Input, renderer::{Canvas, Renderer}, Bounds, Point, Size, TextStyle
 };
 
 use crate::ui::{
     button::UiButton, 
     label::UiLabel, 
     style::UiStyle,
-    ui_view::UiInput,
 };
 
 pub struct Ui<'a> {
     renderer: &'a mut dyn Renderer,
-    input: &'a UiInput,
     style: UiStyle,
     cursor: Cursor,
     update: CursorUpdate,
@@ -22,7 +19,6 @@ impl<'a> Ui<'a> {
     pub(super) fn new(
         renderer: &'a mut dyn Renderer,
         cursor: Cursor,
-        input: &'a UiInput,
     ) -> Self {
         let mut style = UiStyle::new();
         style.button_press.color("red");
@@ -31,7 +27,6 @@ impl<'a> Ui<'a> {
             cursor,
             renderer,
             style,
-            input,
             update: CursorUpdate::Vertical,
         }
     }
@@ -39,22 +34,17 @@ impl<'a> Ui<'a> {
     #[inline]
     pub fn draw<R>(
         renderer: &'a mut dyn Renderer,
-        input: &'a UiInput,
         f: impl FnOnce(&mut Ui) -> R
     ) -> R {
         let cursor = Cursor::new(renderer.pos().clone());
 
-        let mut ui = Ui::new(renderer, cursor, input);
+        let mut ui = Ui::new(renderer, cursor);
 
         (f)(&mut ui)
     }
 
     pub fn renderer(&mut self) -> &mut dyn Renderer {
         self.renderer
-    }
-
-    pub fn input(&self) -> &UiInput {
-        self.input
     }
 
     pub fn style(&mut self) -> &UiStyle {
@@ -89,7 +79,6 @@ impl<'a> Ui<'a> {
             cursor: Cursor::new(Bounds::<Canvas>::from(pos)),
             style: self.style.clone(),
             update: CursorUpdate::Horizontal,
-            input: self.input,
         };
 
         (builder)(&mut child);
@@ -108,7 +97,6 @@ impl<'a> Ui<'a> {
             cursor: Cursor::new(Bounds::<Canvas>::from(pos)),
             style: self.style.clone(),
             update: CursorUpdate::Vertical,
-            input: self.input,
         };
 
         (builder)(&mut child);
@@ -122,10 +110,14 @@ impl<'a> Ui<'a> {
     pub fn text_size(&mut self, label: &str, style_text: &TextStyle) -> Size {
         self.renderer.text_size(label, style_text)
     }
+    
+    #[inline]
+    pub fn input(&self) -> &Input {
+        self.renderer.input()
+    }
 }
 
 pub struct UiState {
-    input: UiInput,
 }
 
 impl UiState {
@@ -141,38 +133,14 @@ impl UiState {
     ) -> R {
         let cursor = Cursor::new(renderer.pos().clone());
         
-        let input = self.input.clone();
-        let mut ui = Ui::new(renderer, cursor, &input);
-        let result = (f)(&mut ui);
-
-        self.input.update();
-
-        result
-    }
-
-    pub fn event(&mut self, renderer: &mut dyn Renderer, event: &Event) {
-        match event {
-            Event::MouseMove(p) => {
-                self.input.cursor = Some(*p);
-            }
-            Event::MouseLeftPress(p) => {
-                self.input.left_press_one = Some(*p);
-                self.input.left_press = Some(*p);
-            }
-            Event::MouseLeftRelease(_) => {
-                self.input.left_press = None;
-            }
-            _ => {}
-
-        }
-        renderer.request_redraw(&Bounds::none());
+        let mut ui = Ui::new(renderer, cursor);
+        (f)(&mut ui)
     }
 }
 
 impl Default for UiState {
     fn default() -> Self {
         Self {
-            input: UiInput::default(),
         }
     }
 }

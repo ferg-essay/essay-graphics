@@ -1,5 +1,5 @@
 use std::{collections::HashMap, fmt, hash::{Hash, Hasher}};
-use essay_graphics_api::renderer::{Drawable, Event, Renderer, Result};
+use essay_graphics_api::renderer::{Drawable, Renderer, Result};
 
 use crate::util::DynLabel;
 
@@ -8,34 +8,34 @@ use super::Page;
 pub struct Pages {
     pages: Vec<Page>,
 
-    page_label: HashMap<Box<dyn PageLabel>, usize>,
+    _page_label: HashMap<Box<dyn PageLabel>, usize>,
 
     current: Option<usize>,
 }
 
 impl Pages {
-    pub fn new() -> Self {
+    pub fn _new() -> Self {
         Self {
             pages: Vec::new(),
-            page_label: HashMap::new(),
+            _page_label: HashMap::new(),
             current: None,
         }
     }
 
-    pub fn add(&mut self, label: impl PageLabel, page: Page) {
+    pub fn _add(&mut self, label: impl PageLabel, page: Page) {
         let id = self.pages.len();
 
         self.pages.push(page);
 
-        self.page_label.insert(label.box_clone(), id);
+        self._page_label.insert(label.box_clone(), id);
 
         if self.current.is_none() {
             self.current = Some(id);
         }
     }
 
-    pub fn activate(&mut self, label: impl PageLabel) {
-        if let Some(id) = self.page_label.get(&label.box_clone()) {
+    pub fn _activate(&mut self, label: impl PageLabel) {
+        if let Some(id) = self._page_label.get(&label.box_clone()) {
             self.current = Some(*id);
         } else {
             self.current = None;
@@ -49,12 +49,6 @@ impl Drawable for Pages {
             self.pages[current].draw(renderer)
         } else {
             Ok(())
-        }
-    }
-
-    fn event(&mut self, renderer: &mut dyn Renderer, event: &Event) {
-        if let Some(current) = self.current {
-            self.pages[current].event(renderer, event);
         }
     }
 }

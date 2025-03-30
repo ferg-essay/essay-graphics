@@ -43,8 +43,8 @@ impl Widget for UiButton {
             ui.renderer().draw_path(&border, &style).unwrap();
         }
 
-        let press = ui.input().left_press.map_or(false, |p| bounds.contains(p));
-        let press_one = ui.input().left_press_one.map_or(false, |p| bounds.contains(p));
+        let press = ui.input().left_press && ui.input().cursor_in(&bounds);
+        let press_one = ui.input().left_click && ui.input().cursor_in(&bounds);
         
         let mut style = ui.style().button.clone();
         style.face_color(Color::none());

@@ -1,7 +1,7 @@
 use std::{any::Any, marker::PhantomData, sync::{Arc, Mutex}};
 
 use essay_graphics_api::{
-    renderer::{Result, Canvas, Drawable, Event, Renderer}, 
+    renderer::{Result, Canvas, Drawable, Renderer}, 
     Bounds,
 };
 
@@ -121,24 +121,6 @@ impl Drawable for ViewArcDraw {
         
         view.draw(renderer)
     }
-
-    #[inline]
-    fn resize(
-        &mut self, 
-        renderer: &mut dyn Renderer, 
-        pos: &Bounds<Canvas>
-    ) -> Bounds<Canvas> {
-        let mut view = self.0.lock().unwrap();
-        
-        view.resize(renderer, pos)
-    }
-
-    #[inline]
-    fn event(&mut self, renderer: &mut dyn Renderer, event: &Event) {
-        let mut view = self.0.lock().unwrap();
-        
-        view.event(renderer, event);
-    }
 }
 
 struct ViewPtr {
@@ -160,20 +142,6 @@ impl ViewPtr {
     }
 
     #[inline]
-    fn resize(
-        &mut self, 
-        renderer: &mut dyn Renderer, 
-        bounds: &Bounds<Canvas>
-    ) -> Bounds<Canvas> {
-        self.handle.resize(self.ptr.as_mut(), renderer, bounds)
-    }
-
-    #[inline]
-    fn event(&mut self, renderer: &mut dyn Renderer, event: &Event) {
-        self.handle.event(self.ptr.as_mut(), renderer, event);
-    }
-
-    #[inline]
     fn read<T: 'static, R>(&self, fun: impl FnOnce(&T) -> R) -> R {
         fun(self.ptr.downcast_ref::<T>().unwrap())
     }
@@ -186,8 +154,6 @@ impl ViewPtr {
 
 trait ViewHandleTrait : Send {
     fn draw(&mut self, any: &mut dyn Any, renderer: &mut dyn Renderer) -> Result<()>;
-    fn resize(&mut self, any: &mut dyn Any, renderer: &mut dyn Renderer, bounds: &Bounds<Canvas>) -> Bounds<Canvas>;
-    fn event(&mut self, any: &mut dyn Any, renderer: &mut dyn Renderer, event: &Event);
 }
 
 struct ViewHandle<T: Drawable> {
@@ -206,16 +172,6 @@ impl<V: Drawable + 'static> ViewHandleTrait for ViewHandle<V> {
     #[inline]
     fn draw(&mut self, any: &mut dyn Any, renderer: &mut dyn Renderer) -> Result<()> {
         any.downcast_mut::<V>().unwrap().draw(renderer)
-    }
-
-    #[inline]
-    fn resize(&mut self, any: &mut dyn Any, renderer: &mut dyn Renderer, pos: &Bounds<Canvas>) -> Bounds<Canvas> {
-        any.downcast_mut::<V>().unwrap().resize(renderer, pos)
-    }
-
-    #[inline]
-    fn event(&mut self, any: &mut dyn Any, renderer: &mut dyn Renderer, event: &Event) {
-        any.downcast_mut::<V>().unwrap().event(renderer, event)
     }
 }
 
@@ -238,11 +194,5 @@ impl PosView {
 impl Drawable for PosView {
     fn draw(&mut self, _renderer: &mut dyn Renderer) -> Result<()> {
         Ok(())
-    }
-
-    fn event(&mut self, _renderer: &mut dyn Renderer, event: &Event) {
-        if let Event::Resize(pos) = event {
-            self.pos = pos.clone();
-        }
     }
 }

@@ -2,7 +2,7 @@ use std::time::Instant;
 
 use essay_graphics_api::{
     input::Input,
-    renderer::{Canvas, DeviceErr, Drawable, Event}, 
+    renderer::{Canvas, DeviceErr, Drawable}, 
     Bounds, Point
 };
 use winit::{
@@ -165,15 +165,12 @@ fn run_event_loop(
                 config.height = size.height;
                 surface.configure(&device, &config);
                 // figure_renderer.set_canvas_bounds(config.width, config.height);
-                let bounds = Bounds::<Canvas>::from([size.width as f32, size.height as f32]);
+                //let bounds = Bounds::<Canvas>::from([size.width as f32, size.height as f32]);
                 // drawable.update(&mut renderer, &bounds);
                 canvas.set_scale_factor(window.scale_factor() as f32);
                 canvas.resize(&device, size.width, size.height);
                 // canvas.set_scale_factor()
                 canvas.request_redraw(true);
-                let mut renderer = PlotRenderer::new(&mut canvas, &device, Some(&queue), None);
-                //drawable.event(&mut renderer, &Event::Resize(bounds));
-                drawable.resize(&mut renderer, &bounds);
             }
             event::Event::WindowEvent {
                 event: WindowEvent::MouseInput {
@@ -190,29 +187,9 @@ fn run_event_loop(
                         mouse.left = state;
 
                         if state == ElementState::Pressed {
-                            drawable.event(
-                                &mut renderer,
-                                &Event::MouseLeftPress(cursor.position),
-                            );
-                            let now = Instant::now();
-
-                            if now.duration_since(mouse.left_press_time).as_millis() < dbl_click {
-                                drawable.event(
-                                    &mut renderer,
-                                    &Event::ResetView(cursor.position),
-                                )
-                            }
-
                             mouse.left_press_start = cursor.position;
                             mouse.left_press_last = cursor.position;
-                            mouse.left_press_time = now;
-                            //window.set_cursor_icon(CursorIcon::Grab);
-                        } else {
-                            drawable.event(
-                                &mut renderer,
-                                &Event::MouseLeftRelease(cursor.position),
-                            );
-                        //window.set_cursor_icon(CursorIcon::Default);
+                            // mouse.left_press_time = now;
                         }
                     },
                     MouseButton::Right => {
@@ -220,30 +197,11 @@ fn run_event_loop(
 
                         match state {
                             ElementState::Pressed => {
-                                drawable.event(
-                                    &mut renderer,
-                                    &Event::MouseRightPress(cursor.position),
-                                );
-
                                 mouse.right_press_start = cursor.position;
                                 mouse.right_press_time = Instant::now();
                                 window.set_cursor_icon(CursorIcon::Crosshair);
                             }
                             ElementState::Released => {
-                                drawable.event(
-                                    &mut renderer,
-                                    &Event::MouseRightRelease(cursor.position),
-                                );
-
-                                if zoom_min <= mouse.right_press_start.dist(&cursor.position) {
-                                    drawable.event(
-                                        &mut renderer,
-                                        &Event::ZoomBounds(
-                                            mouse.right_press_start, 
-                                            cursor.position
-                                        )
-                                    );
-                                }
                                 window.set_cursor_icon(CursorIcon::Default);
                             }
                         }
@@ -260,35 +218,6 @@ fn run_event_loop(
             } => {
                 cursor.position = Point(position.x as f32, config.height as f32 - position.y as f32);
                 canvas.input_mut().cursor = Some(cursor.position);
-                let mut renderer = PlotRenderer::new(&mut canvas, &device, Some(&queue), None);
-
-                drawable.event(
-                    &mut renderer,
-                    &Event::MouseMove(
-                        cursor.position
-                    ),
-                );
-
-                if mouse.left == ElementState::Pressed 
-                    && pan_min <= mouse.left_press_start.dist(&cursor.position) {
-                    drawable.event(
-                        &mut renderer,
-                        &Event::Pan(
-                            mouse.left_press_start, 
-                            mouse.left_press_last, 
-                            cursor.position
-                        ),
-                    );
-
-                    mouse.left_press_last = cursor.position;
-                }
-                if mouse.right == ElementState::Pressed
-                    && pan_min <= mouse.left_press_start.dist(&cursor.position) {
-                        drawable.event(
-                            &mut renderer,
-                            &Event::MouseRightDrag(mouse.left_press_start, cursor.position),
-                    );
-                }
             }
             event::Event::WindowEvent {
                 event: WindowEvent::KeyboardInput { event, .. },
@@ -301,31 +230,39 @@ fn run_event_loop(
                     match event.logical_key {
                         Key::Character(key) => {
                             let ch = key.chars().next().unwrap();
+                            /*
                             drawable.event(
                                 &mut renderer,
                                 &Event::KeyPress(pos, ch)
                             );
+                            */
                         }
                         Key::Named(NamedKey::Space) => {
                             // TODO: replace with KeyPressNamed
+                            /*
                             drawable.event(
                                 &mut renderer,
                                 &Event::KeyPress(pos, ' ')
                             );
+                            */
                         },
                         Key::Named(NamedKey::Tab) => {
                             // TODO: replace with KeyPressNamed
+                            /*
                             drawable.event(
                                 &mut renderer,
                                 &Event::KeyPress(pos, '\r')
                             );
+                            */
                         },
                         Key::Named(NamedKey::Enter) => {
                             // TODO: replace with KeyPressNamed
+                            /*
                             drawable.event(
                                 &mut renderer,
                                 &Event::KeyPress(pos, '\n')
                             );
+                            */
                         },
                         Key::Named(_) => {},
                         Key::Unidentified(_) => {},
@@ -389,9 +326,11 @@ fn mouse_input(
             match state {
                 ElementState::Pressed => {
                     input.left_press = true;
+                    input.left_click = true;
                 }
                 ElementState::Released => {
                     input.left_release = true;
+                    input.left_press = false;
                 }
             }
         },
@@ -403,7 +342,6 @@ struct MouseState {
     left: ElementState,
     left_press_start: Point,
     left_press_last: Point,
-    left_press_time: Instant,
 
     right: ElementState,
     right_press_start: Point,
@@ -416,7 +354,6 @@ impl MouseState {
             left: ElementState::Released,
             left_press_start: Point(0., 0.),
             left_press_last: Point(0., 0.),
-            left_press_time: Instant::now(),
 
             right: ElementState::Released,
             right_press_start: Point(0., 0.),

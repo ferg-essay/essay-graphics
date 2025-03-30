@@ -1,4 +1,4 @@
-use renderer::{Canvas, Drawable, Event, Renderer};
+use renderer::{Canvas, Drawable, Renderer};
 use essay_graphics::{layout::{MainLoop, View}, prelude::*};
 use essay_graphics_wgpu::WgpuHardcopy;
 use essay_tensor::Tensor;
@@ -170,6 +170,7 @@ impl Drawable for CubeView {
         Ok(())
     }
 
+    /*
     fn event(&mut self, renderer: &mut dyn Renderer, event: &Event) {
         match event {
             Event::KeyPress(_, 'w') => {
@@ -209,6 +210,7 @@ impl Drawable for CubeView {
             _ => {}
         }
     }
+    */
 }
 
 struct Camera {

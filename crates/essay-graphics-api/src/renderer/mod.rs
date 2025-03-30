@@ -1,19 +1,16 @@
 mod error;
-mod backend;
+mod main_loop;
 mod canvas;
 mod drawable;
 mod renderer;
-mod event;
 
-pub use backend::{
+pub use main_loop::{
     Backend, DeviceErr,
 };
 
 pub use canvas::Canvas;
 
 pub use drawable::Drawable;
-
-pub use event::Event;
 
 pub use error::{
     Result, RenderErr,
