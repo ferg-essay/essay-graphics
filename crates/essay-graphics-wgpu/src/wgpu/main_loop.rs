@@ -3,10 +3,10 @@ use std::time::Instant;
 use essay_graphics_api::{
     input::Input,
     renderer::{Canvas, DeviceErr, Drawable}, 
-    Bounds, Point
+    Bounds, Point, Size
 };
 use winit::{
-    event::{self, ElementState, MouseButton, WindowEvent }, 
+    event::{self, ElementState, KeyEvent, MouseButton, WindowEvent }, 
     event_loop::{ControlFlow, EventLoop}, 
     keyboard::{Key, NamedKey}, 
     window::{CursorIcon, Window}
@@ -105,72 +105,29 @@ async fn init_wgpu_device(window: &Window) -> MainLoopDevice {
     }
 }
 
-struct MainLoopDevice {
-    instance: wgpu::Instance,
-    adapter: wgpu::Adapter,
-    device: wgpu::Device,
-    queue: wgpu::Queue,
-    config: wgpu::SurfaceConfiguration,
-    surface: wgpu::Surface,
-}
-
 fn run_event_loop(
     event_loop: EventLoop<()>, 
     window: Window, 
     args: MainLoopDevice,
     drawable: Box<dyn Drawable>,
 ) {
-    let MainLoopDevice {
-        instance,
-        adapter,
-        mut config,
-        device,
-        surface,
-        queue,
-    } = args;
+    let mut handle = Box::new(MainLoopData::new(args, drawable));
 
-    let mut drawable = drawable;
+    handle.set_scale_factor(window.scale_factor() as f32);
 
-    let mut canvas = PlotCanvas::new(
-        &device,
-        &queue,
-        config.format,
-        config.width,
-        config.height,
-    );
-
-    canvas.set_scale_factor(window.scale_factor() as f32);
-
-    let pan_min = 20.;
-    let zoom_min = 20.;
-
-    // TODO: is double clicking not recommended?
-    let dbl_click = 500; // time in millis
-
-    let mut cursor = CursorState::new();
-    let mut mouse = MouseState::new();
+    // let mut cursor = CursorState::new();
+    let mut size = Size(0., 0.);
 
     event_loop.run(move |event, window_target| {
-        let _ = (&instance, &adapter, &drawable);
-
-        // let mut renderer = PlotRenderer::new(&mut canvas, &device, Some(&queue), None);
-
         window_target.set_control_flow(ControlFlow::Wait);
+
         match event {
             event::Event::WindowEvent {
-                event: WindowEvent::Resized(size),
+                event: WindowEvent::Resized(new_size),
                 ..
             } => {
-                config.width = size.width;
-                config.height = size.height;
-                surface.configure(&device, &config);
-                // figure_renderer.set_canvas_bounds(config.width, config.height);
-                //let bounds = Bounds::<Canvas>::from([size.width as f32, size.height as f32]);
-                // drawable.update(&mut renderer, &bounds);
-                canvas.set_scale_factor(window.scale_factor() as f32);
-                canvas.resize(&device, size.width, size.height);
-                // canvas.set_scale_factor()
-                canvas.request_redraw(true);
+                handle.resized(new_size.width, new_size.height);
+                size = Size(new_size.width as f32, new_size.height as f32);
             }
             event::Event::WindowEvent {
                 event: WindowEvent::MouseInput {
@@ -180,34 +137,8 @@ fn run_event_loop(
                 },
                 ..
             } => {
-                mouse_input(canvas.input_mut(), &state, &button);
-                let mut renderer = PlotRenderer::new(&mut canvas, &device, Some(&queue), None);
-                match button {
-                    MouseButton::Left => {
-                        mouse.left = state;
-
-                        if state == ElementState::Pressed {
-                            mouse.left_press_start = cursor.position;
-                            mouse.left_press_last = cursor.position;
-                            // mouse.left_press_time = now;
-                        }
-                    },
-                    MouseButton::Right => {
-                        mouse.right = state;
-
-                        match state {
-                            ElementState::Pressed => {
-                                mouse.right_press_start = cursor.position;
-                                mouse.right_press_time = Instant::now();
-                                window.set_cursor_icon(CursorIcon::Crosshair);
-                            }
-                            ElementState::Released => {
-                                window.set_cursor_icon(CursorIcon::Default);
-                            }
-                        }
-                    },
-                    _ => {}
-                }
+                mouse_input(handle.input_mut(), &state, &button);
+                handle.request_redraw();
             }
             event::Event::WindowEvent {
                 event: WindowEvent::CursorMoved {
@@ -216,59 +147,16 @@ fn run_event_loop(
                 },
                 ..
             } => {
-                cursor.position = Point(position.x as f32, config.height as f32 - position.y as f32);
-                canvas.input_mut().cursor = Some(cursor.position);
+                let pos = Point(position.x as f32, size.height() - position.y as f32);
+                
+                handle.input_mut().cursor = Some(pos);
+                handle.request_redraw();
             }
             event::Event::WindowEvent {
                 event: WindowEvent::KeyboardInput { event, .. },
                 ..
             } => {
-                let mut renderer = PlotRenderer::new(&mut canvas, &device, Some(&queue), None);
-                if event.state == ElementState::Pressed {
-                    let pos = Point(0., 0.);
-
-                    match event.logical_key {
-                        Key::Character(key) => {
-                            let ch = key.chars().next().unwrap();
-                            /*
-                            drawable.event(
-                                &mut renderer,
-                                &Event::KeyPress(pos, ch)
-                            );
-                            */
-                        }
-                        Key::Named(NamedKey::Space) => {
-                            // TODO: replace with KeyPressNamed
-                            /*
-                            drawable.event(
-                                &mut renderer,
-                                &Event::KeyPress(pos, ' ')
-                            );
-                            */
-                        },
-                        Key::Named(NamedKey::Tab) => {
-                            // TODO: replace with KeyPressNamed
-                            /*
-                            drawable.event(
-                                &mut renderer,
-                                &Event::KeyPress(pos, '\r')
-                            );
-                            */
-                        },
-                        Key::Named(NamedKey::Enter) => {
-                            // TODO: replace with KeyPressNamed
-                            /*
-                            drawable.event(
-                                &mut renderer,
-                                &Event::KeyPress(pos, '\n')
-                            );
-                            */
-                        },
-                        Key::Named(_) => {},
-                        Key::Unidentified(_) => {},
-                        Key::Dead(_) => {},
-                    }
-                }
+                key_input(handle.input_mut(), &event);
             }
             event::Event::WindowEvent {
                 event: WindowEvent::CursorEntered {
@@ -288,32 +176,158 @@ fn run_event_loop(
                 event: WindowEvent::Focused(is_focus),
                 ..
             } => {
-                canvas.input_mut().is_focus = is_focus;
+                handle.input_mut().is_focus = is_focus;
 
                 if ! is_focus {
-                    canvas.input_mut().cursor = None;
+                    handle.input_mut().cursor = None;
                 }
             }
             event::Event::WindowEvent {
                 event: WindowEvent::RedrawRequested,
                 ..
             } => {
-                canvas.request_redraw(true);
+                handle.request_redraw();
             },
             event::Event::WindowEvent {
                 event: WindowEvent::CloseRequested,
                 ..
             } => window_target.exit(),
             event::Event::AboutToWait => {
-                if canvas.is_request_redraw() {
-                    canvas.request_redraw(false);
-
-                    main_render(&device, &queue, &surface, &mut canvas, drawable.as_mut());
-                }
+                handle.about_to_wait();
             }
             _ => {}
         }
     }).unwrap();
+}
+
+struct MainLoopDevice {
+    instance: wgpu::Instance,
+    adapter: wgpu::Adapter,
+    device: wgpu::Device,
+    queue: wgpu::Queue,
+    config: wgpu::SurfaceConfiguration,
+    surface: wgpu::Surface,
+}
+
+trait MainLoopHandle {
+    fn set_scale_factor(&mut self, scale_factor: f32);
+
+    fn resized(&mut self, width: u32, height: u32);
+
+    fn input_mut(&mut self) -> &mut Input;
+
+    fn request_redraw(&mut self);
+
+    fn about_to_wait(&mut self);
+}
+
+struct MainLoopData {
+    instance: wgpu::Instance,
+    adapter: wgpu::Adapter,
+    device: wgpu::Device,
+    queue: wgpu::Queue,
+    config: wgpu::SurfaceConfiguration,
+    surface: wgpu::Surface,
+
+    canvas: PlotCanvas,
+    drawable: Box<dyn Drawable>,
+}
+
+impl MainLoopData {
+    fn new(device: MainLoopDevice, draw: Box<dyn Drawable>) -> Self {
+        let canvas = PlotCanvas::new(
+            &device.device,
+            &device.queue,
+            device.config.format,
+            device.config.width,
+            device.config.height,
+        );
+
+        Self {
+            instance: device.instance,
+            adapter: device.adapter,
+            device: device.device,
+            queue: device.queue,
+            config: device.config,
+            surface: device.surface,
+
+            canvas,
+            drawable: draw,
+        }
+    }
+
+    fn main_render(&mut self) {
+        let frame = self.surface.get_current_texture()
+            .expect("Failed to get next swap chain texture");
+    
+        let view = frame
+            .texture
+            .create_view(&wgpu::TextureViewDescriptor::default());
+    
+        let mut encoder =
+            self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
+    
+        {
+            let _ = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                label: None,
+                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                    view: &view,
+                    resolve_target: None,
+                    ops: wgpu::Operations {
+                        load: wgpu::LoadOp::Clear(wgpu::Color {
+                            r: 1.0,
+                            g: 1.0,
+                            b: 1.0,
+                            a: 1.0,
+                        }),
+                        store: wgpu::StoreOp::Store,
+                    }
+                })],
+                depth_stencil_attachment: None,
+                timestamp_writes: None,
+                occlusion_query_set: None,
+            });
+        }
+    
+        self.queue.submit(Some(encoder.finish()));
+    
+        self.canvas.draw(self.drawable.as_mut(), &self.device, &self.queue, &view).unwrap();
+    
+        frame.present();
+    }
+}
+
+impl MainLoopHandle for MainLoopData {
+    fn set_scale_factor(&mut self, scale_factor: f32) {
+        self.canvas.set_scale_factor(scale_factor);
+    }
+
+    fn input_mut(&mut self) -> &mut Input {
+        self.canvas.input_mut()
+    }
+
+    fn resized(&mut self, width: u32, height: u32) {
+        self.config.width = width;
+        self.config.height = height;
+        self.surface.configure(&self.device, &self.config);
+        // self.canvas.set_scale_factor(self.window.scale_factor() as f32);
+        self.canvas.resize(&self.device, width, height);
+        // canvas.set_scale_factor()
+        self.canvas.request_redraw(true);
+    }
+
+    fn request_redraw(&mut self) {
+        self.canvas.request_redraw(true);
+    }
+
+    fn about_to_wait(&mut self) {
+        if self.canvas.is_request_redraw() {
+            self.canvas.request_redraw(false);
+
+            self.main_render();
+            self.input_mut().update_after_draw();
+        }
+    }
 }
 
 fn mouse_input(
@@ -336,6 +350,12 @@ fn mouse_input(
         },
         _ => {}
     }
+}
+
+fn key_input(
+    _input: &mut Input, 
+    _key: &KeyEvent,
+) {
 }
 
 struct MouseState {
@@ -372,50 +392,4 @@ impl CursorState {
             position: Point(0., 0.),
         }
     }
-}
-
-fn main_render(
-    device: &wgpu::Device,
-    queue: &wgpu::Queue, 
-    surface: &wgpu::Surface,
-    canvas: &mut PlotCanvas,
-    draw: &mut dyn Drawable,
-) {
-    let frame = surface.get_current_texture()
-        .expect("Failed to get next swap chain texture");
-
-    let view = frame
-        .texture
-        .create_view(&wgpu::TextureViewDescriptor::default());
-
-    let mut encoder =
-        device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
-
-    {
-        let _ = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-            label: None,
-            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                view: &view,
-                resolve_target: None,
-                ops: wgpu::Operations {
-                    load: wgpu::LoadOp::Clear(wgpu::Color {
-                        r: 1.0,
-                        g: 1.0,
-                        b: 1.0,
-                        a: 1.0,
-                    }),
-                    store: wgpu::StoreOp::Store,
-                }
-            })],
-            depth_stencil_attachment: None,
-            timestamp_writes: None,
-            occlusion_query_set: None,
-        });
-    }
-
-    queue.submit(Some(encoder.finish()));
-
-    canvas.draw(draw, device, queue, &view).unwrap();
-
-    frame.present();
 }

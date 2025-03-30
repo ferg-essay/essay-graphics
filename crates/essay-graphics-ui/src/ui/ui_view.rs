@@ -4,7 +4,6 @@ use crate::ui::{ui::Cursor, Ui};
 
 pub struct UiView {
     builder: Box<dyn FnMut(&mut Ui)->() + Send>,
-    // ui: UiRoot,
 }
 
 impl UiView {
