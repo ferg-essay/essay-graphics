@@ -204,10 +204,12 @@ impl<M: Coord> Bounds<M> {
         ])
     }
 
-    pub fn affine_to<N>(&self, box_to: &Bounds<N>) -> Affine2d
+    pub fn affine_to<N>(&self, box_to: impl Into<Bounds<N>>) -> Affine2d
     where
         N: Coord
     {
+        let box_to = box_to.into();
+
         let a_x0 = self.xmin();
         let a_y0 = self.ymin();
 
@@ -227,7 +229,9 @@ impl<M: Coord> Bounds<M> {
             .translate(b_x0, b_y0)
     }
 
-    pub fn union(&self, b: &Bounds<M>) -> Self {
+    pub fn union(&self, b: impl Into<Bounds<M>>) -> Self {
+        let b = b.into();
+
         Self {
             p0: Point(
                 self.xmin().min(b.xmin()),
@@ -278,6 +282,9 @@ impl<M: Coord> Clone for Bounds<M> {
             marker: self.marker.clone() 
         }
     }
+}
+
+impl<M: Coord> Copy for Bounds<M> {
 }
 
 impl<M: Coord> PartialEq for Bounds<M> {

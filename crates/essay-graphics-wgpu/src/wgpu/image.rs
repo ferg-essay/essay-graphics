@@ -191,7 +191,7 @@ impl ImageRender {
     pub fn draw_image(
         &mut self, 
         _device: &wgpu::Device,
-        pos: &Bounds<Canvas>,
+        pos: Bounds<Canvas>,
         image: &ImageId,
         affine: &Affine2d,
     ) {

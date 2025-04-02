@@ -134,17 +134,17 @@ impl fmt::Debug for PathStyleBase {
 }
 
 impl PathOpt for PathStyleBase {
-    fn get_face_color(&self) -> &Option<Color> {
+    fn get_face_color(&self) -> Option<Color> {
         match &self.face_color {
-            Some(_color) => &self.face_color,
-            None => &self.color,
+            Some(_color) => self.face_color,
+            None => self.color,
         }
     }
 
-    fn get_edge_color(&self) -> &Option<Color> {
+    fn get_edge_color(&self) -> Option<Color> {
         match &self.edge_color {
-            Some(_color) => &self.edge_color,
-            None => &self.color,
+            Some(_color) => self.edge_color,
+            None => self.color,
         }
     }
 

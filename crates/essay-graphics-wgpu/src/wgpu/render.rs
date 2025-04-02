@@ -99,12 +99,12 @@ impl<'a> PlotRenderer<'a> {
 }
 
 impl<'a> Renderer for PlotRenderer<'a> {
-    fn extent(&self) -> &Bounds<Canvas> {
+    fn extent(&self) -> Bounds<Canvas> {
         self.canvas.bounds()
     }
 
-    fn pos(&self) -> &Bounds<Canvas> {
-        &self.pos
+    fn pos(&self) -> Bounds<Canvas> {
+        self.pos
     }
 
     fn scale_factor(&self) -> f32 {
@@ -205,14 +205,14 @@ impl<'a> Renderer for PlotRenderer<'a> {
 
     fn request_redraw(
         &mut self,
-        _bounds: &Bounds<Canvas>
+        _bounds: Bounds<Canvas>
     ) {
         self.canvas.request_redraw(true)
     }
 
     fn draw_image(
         &mut self,
-        bounds: &Bounds<Canvas>,
+        bounds: Bounds<Canvas>,
         colors: &Tensor<u8>,
     ) -> Result<(), RenderErr> {
         let image = self.canvas.create_image(self.device, colors);
@@ -243,7 +243,7 @@ impl<'a> Renderer for PlotRenderer<'a> {
 
     fn draw_image_ref(
         &mut self,
-        bounds: &Bounds<Canvas>,
+        bounds: Bounds<Canvas>,
         image: ImageId,
     ) -> Result<(), RenderErr> {
         self.canvas.draw_image_ref(self.device, bounds, image)
@@ -257,12 +257,27 @@ impl<'a> Renderer for PlotRenderer<'a> {
 
     fn draw_with(
         &mut self, 
-        pos: &Bounds<Canvas>, 
+        pos: Bounds<Canvas>, 
         drawable: &mut dyn Drawable
     ) -> Result<()> {
         let push = Push::new(self, pos);
 
         drawable.draw(push.ptr)?;
+
+        //push.ptr.flush_inner(&push.clip);
+        push.ptr.flush_inner();
+
+        Ok(())
+    }
+
+    fn draw_with_closure<'b>(
+        &mut self, 
+        pos: Bounds<Canvas>, 
+        f: Box<dyn FnOnce(&mut dyn Renderer) -> Result<()> + 'b>
+    ) -> Result<()> {
+        let push = Push::new(self, pos);
+
+        (f)(push.ptr)?;
 
         //push.ptr.flush_inner(&push.clip);
         push.ptr.flush_inner();
@@ -278,10 +293,10 @@ struct Push<'a, 'b> {
 }
 
 impl<'a, 'b> Push<'a, 'b> {
-    fn new(renderer: &'a mut PlotRenderer<'b>, pos: &Bounds<Canvas>) -> Self {
+    fn new(renderer: &'a mut PlotRenderer<'b>, pos: Bounds<Canvas>) -> Self {
         let mut push = Self {
             ptr: renderer,
-            pos: pos.clone(),
+            pos,
         };
 
         mem::swap(&mut push.pos, &mut push.ptr.pos);

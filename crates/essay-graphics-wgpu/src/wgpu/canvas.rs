@@ -140,8 +140,8 @@ impl PlotCanvas {
     ///
     /// Returns the boundary of the canvas in pixels
     ///
-    pub fn bounds(&self) -> &Bounds<Canvas> {
-        &self.bounds
+    pub fn bounds(&self) -> Bounds<Canvas> {
+        self.bounds
     }
 
     pub fn set_scale_factor(&mut self, scale_factor: f32) {
@@ -356,7 +356,7 @@ impl PlotCanvas {
             JoinStyle::Round => {
                 let mp = line_intersection(p0, p1, q1, q2);
 
-                if mp != p0 && p0.dist(&p1) > 1. && q1.dist(&q2) > 1. { // non-parallel
+                if mp != p0 && p0.dist(p1) > 1. && q1.dist(q2) > 1. { // non-parallel
                     let mp = clamp_miter(b1, mp, lw2 * 2.);
                     
                     self.bezier_render.draw_bezier_fill(&p1, &mp, &q1);
@@ -416,12 +416,12 @@ impl PlotCanvas {
         // let to_unit = self.to_gpu.matmul(to_device);
 
         let face_color = match style.get_face_color() {
-            Some(color) => *color,
+            Some(color) => color,
             None => Color(0x000000ff)
         };
 
         let edge_color = match style.get_edge_color() {
-            Some(color) => *color,
+            Some(color) => color,
             None => face_color
         };
 
@@ -495,12 +495,12 @@ impl PlotCanvas {
         let path = transform_solid_path(path);
 
         let face_color = match style.get_face_color() {
-            Some(color) => *color,
+            Some(color) => color,
             None => Color(0x000000ff)
         };
 
         let edge_color = match style.get_edge_color() {
-            Some(color) => *color,
+            Some(color) => color,
             None => face_color
         };
 
@@ -562,7 +562,7 @@ impl PlotCanvas {
         text_style: &TextStyle,
     ) -> Result<(), RenderErr> {
         let color = match style.get_face_color() {
-            Some(color) => *color,
+            Some(color) => color,
             None => Color(0x000000ff),
         };
 
@@ -748,7 +748,7 @@ impl PlotCanvas {
     pub fn draw_image_ref(
         &mut self,
         device: &wgpu::Device,
-        pos: &Bounds<Canvas>,  // Nx2 x,y in canvas coordinates
+        pos: Bounds<Canvas>,  // Nx2 x,y in canvas coordinates
         image: ImageId,    // N in rgba
     ) -> Result<(), RenderErr> {
         self.image_render.draw_image(device, pos, &image, &self.to_gpu);

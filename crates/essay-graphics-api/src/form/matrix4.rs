@@ -206,7 +206,7 @@ impl Matrix4 {
             .translate(b_x0, b_y0, 0.)
     }
 
-    pub fn view_to_canvas_unit<N>(pos: &Bounds<N>, canvas: &Bounds<N>) -> Matrix4
+    pub fn view_to_canvas_unit<N>(pos: Bounds<N>, canvas: Bounds<N>) -> Matrix4
     where
         N: Coord
     {

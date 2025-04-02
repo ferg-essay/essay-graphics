@@ -47,12 +47,12 @@ impl TestRenderer {
 }
 
 impl Renderer for TestRenderer {
-    fn extent(&self) -> &Bounds<Canvas> {
-        &self.bounds
+    fn extent(&self) -> Bounds<Canvas> {
+        self.bounds
     }
 
-    fn pos(&self) -> &Bounds<Canvas> {
-        &self.pos
+    fn pos(&self) -> Bounds<Canvas> {
+        self.pos
     }
 
     fn input(&self) -> &Input {
@@ -122,7 +122,7 @@ impl Renderer for TestRenderer {
 
     fn draw_image(
         &mut self,
-        _bounds: &Bounds<Canvas>,
+        _bounds: Bounds<Canvas>,
         _colors: &Tensor<u8>,  // [rows, cols, 4]
     ) -> Result<(), RenderErr> {
         todo!()
@@ -151,7 +151,7 @@ impl Renderer for TestRenderer {
 
     fn draw_image_ref(
         &mut self,
-        _bounds: &Bounds<Canvas>,
+        _bounds: Bounds<Canvas>,
         _image: ImageId,
     ) -> Result<(), RenderErr> {
         todo!()
@@ -194,12 +194,20 @@ impl Renderer for TestRenderer {
 
     fn request_redraw(
         &mut self,
-        _bounds: &Bounds<Canvas>
+        _bounds: Bounds<Canvas>
     ) {
         todo!()
     }
     
-    fn draw_with(&mut self, _pos: &Bounds<Canvas>, _drawable: &mut dyn Drawable) -> Result<()> {
+    fn draw_with(&mut self, _pos: Bounds<Canvas>, _drawable: &mut dyn Drawable) -> Result<()> {
+        todo!()
+    }
+    
+    fn draw_with_closure<'a>(
+        &mut self, 
+        _pos: Bounds<Canvas>, 
+        _f: Box<dyn FnOnce(&'a mut dyn Renderer) -> Result<()> + 'a>,
+    ) -> Result<()> {
         todo!()
     }
 }
@@ -214,7 +222,7 @@ mod test {
     fn bounds() {
         let mut test = TestRenderer::new((1., 2., 30., 40.));
 
-        assert_eq!(test.extent(), &Bounds::<Canvas>::from((1., 2., 30., 40.)));
+        assert_eq!(test.extent(), Bounds::<Canvas>::from((1., 2., 30., 40.)));
         assert_eq!(test.drain(), Vec::<String>::new());
     }
 

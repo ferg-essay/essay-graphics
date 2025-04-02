@@ -440,9 +440,9 @@ pub(crate) fn intersection(p0: Point, p1: Point, q0: Point, q1: Point) -> Point 
 }
 
 fn vertex_height(p0: Point, p1: Point, p2: Point) -> f32 {
-    let a = p0.dist(&p1);
-    let b = p1.dist(&p2);
-    let c = p2.dist(&p0);
+    let a = p0.dist(p1);
+    let b = p1.dist(p2);
+    let c = p2.dist(p0);
     // Heron's formula
     let s = 0.5 * (a + b + c);
     let area = (s * (s - a) * (s - b) * (s - c)).sqrt();

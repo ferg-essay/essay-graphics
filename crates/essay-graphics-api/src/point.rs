@@ -19,7 +19,7 @@ impl Point {
     }
 
     #[inline]
-    pub fn is_below(&self, p0: &Point, p1: &Point) -> bool {
+    pub fn is_below(self, p0: Point, p1: Point) -> bool {
         let Point(x, y) = self;
         let Point(x0, y0) = p0;
         let Point(x1, y1) = p1;
@@ -29,14 +29,14 @@ impl Point {
         } else if x0 <= x && x < x1 || x1 < x && x <= x0 {
             let y_line = (y0 * (x1 - x) + y1 * (x - x0)) / (x1 - x0);
 
-            *y < y_line
+            y < y_line
         } else {
             false
         }
     }
 
     #[inline]
-    pub fn dist(&self, p: &Point) -> f32 {
+    pub fn dist(self, p: Point) -> f32 {
         let dx = self.0 - p.0;
         let dy = self.1 - p.1;
 

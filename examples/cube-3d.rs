@@ -138,7 +138,7 @@ impl CubeView {
         self.form_id = Some(renderer.create_form(&self.form));
     }
 
-    fn camera(&self, renderer: &mut dyn Renderer, pos: &Bounds<Canvas>) -> Matrix4 {
+    fn camera(&self, renderer: &mut dyn Renderer, pos: Bounds<Canvas>) -> Matrix4 {
         let matrix = self.camera.matrix();
         let bounds = renderer.extent();
         let to = Matrix4::view_to_canvas_unit(pos, bounds);
@@ -159,7 +159,7 @@ impl Drawable for CubeView {
 
         if let Some(id) = self.form_id {
             let pos = renderer.pos().clone();
-            let camera = self.camera(renderer, &pos);
+            let camera = self.camera(renderer, pos);
 
             renderer.draw_form(
                 id,

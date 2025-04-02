@@ -13,12 +13,12 @@ pub trait Renderer {
     ///
     /// Returns the position of the current view.
     ///
-    fn pos(&self) -> &Bounds<Canvas>;
+    fn pos(&self) -> Bounds<Canvas>;
 
     ///
     /// Returns the boundary of the full canvas, usually in pixels or points.
     ///
-    fn extent(&self) -> &Bounds<Canvas>;
+    fn extent(&self) -> Bounds<Canvas>;
 
     fn scale_factor(&self) -> f32;
 
@@ -70,7 +70,7 @@ pub trait Renderer {
 
     fn draw_image(
         &mut self,
-        bounds: &Bounds<Canvas>,
+        bounds: Bounds<Canvas>,
         colors: &Tensor<u8>,  // [rows, cols, 4]
     ) -> Result<()>;
 
@@ -91,7 +91,7 @@ pub trait Renderer {
 
     fn draw_image_ref(
         &mut self,
-        bounds: &Bounds<Canvas>,
+        bounds: Bounds<Canvas>,
         image: ImageId,
     ) -> Result<()>;
 
@@ -123,14 +123,20 @@ pub trait Renderer {
 
     fn draw_with(
         &mut self, 
-        pos: &Bounds<Canvas>, 
+        pos: Bounds<Canvas>, 
         drawable: &mut dyn Drawable
+    ) -> Result<()>;
+
+    fn draw_with_closure<'a>(
+        &mut self, 
+        pos: Bounds<Canvas>, 
+        f: Box<dyn FnOnce(&mut dyn Renderer) -> Result<()> + 'a>,
     ) -> Result<()>;
 
     fn input(&self) -> &Input;
 
     fn request_redraw(
         &mut self,
-        bounds: &Bounds<Canvas>
+        bounds: Bounds<Canvas>
     );
 }

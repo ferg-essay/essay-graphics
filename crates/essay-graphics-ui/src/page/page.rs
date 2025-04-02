@@ -39,7 +39,7 @@ impl Page {
             result: None,
         };
 
-        renderer.draw_with(&pos, &mut draw)?;
+        renderer.draw_with(pos, &mut draw)?;
 
         Ok(draw.result.take().unwrap())
     }
@@ -293,7 +293,7 @@ impl ViewItem {
     fn draw(&mut self, renderer: &mut dyn Renderer) -> Result<()> {
         let pos = self.pos(renderer);
 
-        renderer.draw_with(&pos, self.view.as_mut())
+        renderer.draw_with(pos, self.view.as_mut())
 
     }
 }
