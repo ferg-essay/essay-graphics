@@ -1,12 +1,12 @@
-use essay_graphics_api::{HorizAlign, PathStyleBase, TextStyle};
+use essay_graphics_api::{HorizAlign, PathStyle, TextStyle};
 
 #[derive(Clone)]
 pub struct UiStyle {
-    pub label: PathStyleBase,
+    pub label: PathStyle,
     pub label_text: TextStyle,
 
-    pub button: PathStyleBase,
-    pub button_press: PathStyleBase,
+    pub button: PathStyle,
+    pub button_press: PathStyle,
     pub button_text: TextStyle,
 }
 
@@ -16,11 +16,11 @@ impl UiStyle {
         text.halign(HorizAlign::Left);
         
         Self {
-            label: PathStyleBase::new(),
+            label: PathStyle::new(),
             label_text: text.clone(),
 
-            button: PathStyleBase::new(),
-            button_press: PathStyleBase::new(),
+            button: PathStyle::new(),
+            button_press: PathStyle::new(),
             button_text: text.clone(),
         }
     }

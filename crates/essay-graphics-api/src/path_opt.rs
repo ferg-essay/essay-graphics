@@ -23,38 +23,38 @@ pub trait PathOpt {
     ///
     /// Dash pattern for the line, defaults to a LineStyle::Solid.
     /// 
-    fn get_line_style(&self) -> &Option<LineStyle>;
+    fn get_line_style(&self) -> Option<LineStyle>;
 
     ///
     /// Line width in logical pixels (points for physical dimensions).
     /// 
-    fn get_line_width(&self) -> &Option<f32>;
+    fn get_line_width(&self) -> Option<f32>;
 
     ///
     /// Style to join two line segments, defaults to JoinStyle::Miter.
     /// 
-    fn get_join_style(&self) -> &Option<JoinStyle>;
+    fn get_join_style(&self) -> Option<JoinStyle>;
 
     ///
     /// Style for a line end, defaults to CapStyle::Butt.
     /// 
-    fn get_cap_style(&self) -> &Option<CapStyle>;
+    fn get_cap_style(&self) -> Option<CapStyle>;
 
     ///
     /// Overriding alpha (transparency) for the path. This alpha will be
     /// multiplied with any alpha in the path's color.
     /// 
-    fn get_alpha(&self) -> &Option<f32>;
+    fn get_alpha(&self) -> Option<f32>;
 
     ///
     /// Hatch used to fill a closed path.
     /// 
-    fn get_hatch(&self) -> &Option<Hatch>;
+    fn get_hatch(&self) -> Option<Hatch>;
 
     ///
     /// Texture used to fill a closed path.
     /// 
-    fn get_texture(&self) -> &Option<TextureId>;
+    fn get_texture(&self) -> Option<TextureId>;
 
     ///
     /// Pushes this style on an option stack. Top styles will override
@@ -65,40 +65,6 @@ pub trait PathOpt {
         Self: Sized
     {
         Stack::new(prev, self)
-    }
-    
-    // hatch (texture)
-    // clip
-    // alpha (forced alpha)
-
-    // antialiased
-    // gapcolor
-    // linestyle
-    // dash_cap_style
-    // solid_cap_style
-}
-
-///
-/// Renderer-specific texture id used to fill paths. The TextureId is
-/// obtained from the renderer when creating the texture, and passed back
-/// at draw time.
-/// 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
-pub struct TextureId(usize);
-
-impl TextureId {
-    pub fn new(index: usize) -> Self {
-        Self(index)
-    }
-
-    #[inline]
-    pub fn index(&self) -> usize {
-        self.0
-    }
-    
-    #[inline]
-    pub fn none() -> TextureId {
-        TextureId(0)
     }
 }
 
@@ -118,66 +84,48 @@ impl<'a> Stack<'a> {
 
 impl PathOpt for Stack<'_> {
     fn get_face_color(&self) -> Option<Color> {
-        match self.next.get_face_color() {
-            Some(_) => self.next.get_face_color(),
-            None => self.prev.get_face_color(),
-        }
+        self.next.get_face_color()
+            .or(self.prev.get_face_color())
     }
 
     fn get_edge_color(&self) -> Option<Color> {
-        match self.next.get_edge_color() {
-            Some(_) => self.next.get_edge_color(),
-            None => self.prev.get_edge_color(),
-        }
+        self.next.get_edge_color()
+            .or(self.prev.get_edge_color())
     }
 
-    fn get_line_style(&self) -> &Option<LineStyle> {
-        match self.next.get_line_style() {
-            Some(_) => self.next.get_line_style(),
-            None => self.prev.get_line_style(),
-        }
+    fn get_line_style(&self) -> Option<LineStyle> {
+        self.next.get_line_style()
+            .or(self.prev.get_line_style())
     }
 
-    fn get_line_width(&self) -> &Option<f32> {
-        match self.next.get_line_width() {
-            Some(_) => self.next.get_line_width(),
-            None => self.prev.get_line_width(),
-        }
+    fn get_line_width(&self) -> Option<f32> {
+        self.next.get_line_width()
+            .or(self.prev.get_line_width())
     }
 
-    fn get_join_style(&self) -> &Option<JoinStyle> {
-        match self.next.get_join_style() {
-            Some(_) => self.next.get_join_style(),
-            None => self.prev.get_join_style(),
-        }
+    fn get_join_style(&self) -> Option<JoinStyle> {
+        self.next.get_join_style()
+            .or(self.prev.get_join_style())
     }
 
-    fn get_cap_style(&self) -> &Option<CapStyle> {
-        match self.next.get_cap_style() {
-            Some(_) => self.next.get_cap_style(),
-            None => self.prev.get_cap_style(),
-        }
+    fn get_cap_style(&self) -> Option<CapStyle> {
+        self.next.get_cap_style()
+            .or(self.prev.get_cap_style())
     }
 
-    fn get_alpha(&self) -> &Option<f32> {
-        match self.next.get_alpha() {
-            Some(_) => self.next.get_alpha(),
-            None => self.prev.get_alpha(),
-        }
+    fn get_alpha(&self) -> Option<f32> {
+        self.next.get_alpha()
+            .or(self.prev.get_alpha())
     }
 
-    fn get_texture(&self) -> &Option<TextureId> {
-        match self.next.get_texture() {
-            Some(_) => self.next.get_texture(),
-            None => self.prev.get_texture(),
-        }
+    fn get_texture(&self) -> Option<TextureId> {
+        self.next.get_texture()
+            .or(self.prev.get_texture())
     }
 
-    fn get_hatch(&self) -> &Option<Hatch> {
-        match self.next.get_hatch() {
-            Some(_) => self.next.get_hatch(),
-            None => self.prev.get_hatch(),
-        }
+    fn get_hatch(&self) -> Option<Hatch> {
+        self.next.get_hatch()
+            .or(self.prev.get_hatch())
     }
 }
 
@@ -288,4 +236,29 @@ impl FromStr for CapStyle {
 pub enum Hatch {
     Vertical,
     Horizontal,
+}
+
+
+///
+/// Renderer-specific texture id used to fill paths. The TextureId is
+/// obtained from the renderer when creating the texture, and passed back
+/// at draw time.
+/// 
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
+pub struct TextureId(usize);
+
+impl TextureId {
+    pub fn new(index: usize) -> Self {
+        Self(index)
+    }
+
+    #[inline]
+    pub fn index(&self) -> usize {
+        self.0
+    }
+    
+    #[inline]
+    pub fn none() -> TextureId {
+        TextureId(0)
+    }
 }

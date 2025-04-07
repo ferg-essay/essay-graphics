@@ -43,7 +43,7 @@ pub use path_opt::{
     PathOpt, JoinStyle, CapStyle, LineStyle, TextureId, Hatch,
 };
 
-pub use path_style::PathStyleBase;
+pub use path_style::PathStyle;
 
 pub use text::{
     TextStyle, VertAlign, HorizAlign, 

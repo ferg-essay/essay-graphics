@@ -3,7 +3,7 @@ use core::fmt;
 use crate::{CapStyle, Color, Hatch, JoinStyle, LineStyle, PathOpt, TextureId};
 
 #[derive(Clone)]
-pub struct PathStyleBase {
+pub struct PathStyle {
     color: Option<Color>,
     face_color: Option<Color>,
     edge_color: Option<Color>,
@@ -20,9 +20,9 @@ pub struct PathStyleBase {
     gap_color: Option<Color>,
 }
 
-impl PathStyleBase {
-    pub fn new() -> PathStyleBase {
-        PathStyleBase::default()
+impl PathStyle {
+    pub fn new() -> PathStyle {
+        PathStyle::default()
     }
 
     pub fn color(&mut self, color: impl Into<Color>) -> &mut Self {
@@ -89,7 +89,7 @@ impl PathStyleBase {
     }
 }
 
-impl fmt::Debug for PathStyleBase {
+impl fmt::Debug for PathStyle {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut fmt = f.debug_struct("PathStyle");
 
@@ -133,51 +133,54 @@ impl fmt::Debug for PathStyleBase {
     }
 }
 
-impl PathOpt for PathStyleBase {
+impl PathOpt for PathStyle {
+    #[inline]
     fn get_face_color(&self) -> Option<Color> {
-        match &self.face_color {
-            Some(_color) => self.face_color,
-            None => self.color,
-        }
+        self.face_color.or(self.color)
     }
 
+    #[inline]
     fn get_edge_color(&self) -> Option<Color> {
-        match &self.edge_color {
-            Some(_color) => self.edge_color,
-            None => self.color,
-        }
+        self.edge_color.or(self.color)
     }
 
-    fn get_line_width(&self) -> &Option<f32> {
-        &self.line_width
+    #[inline]
+    fn get_line_width(&self) -> Option<f32> {
+        self.line_width
     }
 
-    fn get_join_style(&self) -> &Option<JoinStyle> {
-        &self.join_style
+    #[inline]
+    fn get_join_style(&self) -> Option<JoinStyle> {
+        self.join_style
     }
 
-    fn get_cap_style(&self) -> &Option<CapStyle> {
-        &self.cap_style
+    #[inline]
+    fn get_cap_style(&self) -> Option<CapStyle> {
+        self.cap_style
     }
 
-    fn get_line_style(&self) -> &Option<LineStyle> {
-        &self.line_style
+    #[inline]
+    fn get_line_style(&self) -> Option<LineStyle> {
+        self.line_style.as_ref().map(|style| style.clone())
     }
 
-    fn get_alpha(&self) -> &Option<f32> {
-        &self.alpha
+    #[inline]
+    fn get_alpha(&self) -> Option<f32> {
+        self.alpha
     }
 
-    fn get_texture(&self) -> &Option<TextureId> {
-        &self.texture
+    #[inline]
+    fn get_texture(&self) -> Option<TextureId> {
+        self.texture
     }
 
-    fn get_hatch(&self) -> &Option<Hatch> {
-        &self.hatch
+    #[inline]
+    fn get_hatch(&self) -> Option<Hatch> {
+        self.hatch
     }
 }
 
-impl Default for PathStyleBase {
+impl Default for PathStyle {
     fn default() -> Self {
         Self { 
             color: None,

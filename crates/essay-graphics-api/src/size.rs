@@ -19,3 +19,10 @@ impl From<[f32; 2]> for Size {
         Size(value[0], value[1])
     }
 }
+
+impl From<Size> for [f32; 2] {
+    #[inline]
+    fn from(value: Size) -> Self {
+        [value.width(), value.height()]
+    }
+}

@@ -14,7 +14,7 @@ fn main() {
 
         let path = to_canvas.transform_path(&path);
 
-        let style = PathStyleBase::new();
+        let style = PathStyle::new();
         ui.draw_path(&path, &style)
     })
 }

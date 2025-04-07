@@ -217,24 +217,17 @@ impl PlotCanvas {
         path: &Path<Canvas>, 
         style: &dyn PathOpt, 
     ) {
-        let linewidth  = match style.get_line_width() {
-            Some(linewidth) => *linewidth,
-            None => 0.5,
-        };
+        let linewidth  = style.get_line_width().unwrap_or(0.5);
 
         if linewidth <= 0. {
             return;
         }
 
-        let joinstyle  = match style.get_join_style() {
-            Some(joinstyle) => joinstyle.clone(),
-            None => JoinStyle::Bevel,
-        };
+        let joinstyle  = style.get_join_style()
+            .unwrap_or(JoinStyle::Bevel);
 
-        let capstyle  = match style.get_cap_style() {
-            Some(capstyle) => capstyle.clone(),
-            None => CapStyle::Butt,
-        };
+        let capstyle  = style.get_cap_style()
+            .unwrap_or(CapStyle::Butt);
         
         let lw2 = self.to_px(0.5 * linewidth); // / self.canvas.width();
         let lw2 = lw2.max(0.5);
@@ -415,15 +408,11 @@ impl PlotCanvas {
     ) -> Result<(), RenderErr> {
         // let to_unit = self.to_gpu.matmul(to_device);
 
-        let face_color = match style.get_face_color() {
-            Some(color) => color,
-            None => Color(0x000000ff)
-        };
+        let face_color = style.get_face_color()
+            .unwrap_or(Color::black());
 
-        let edge_color = match style.get_edge_color() {
-            Some(color) => color,
-            None => face_color
-        };
+        let edge_color = style.get_edge_color()
+            .unwrap_or(face_color);
 
         let path = match style.get_line_style() {
             Some(LineStyle::Solid) | None => {
@@ -431,7 +420,7 @@ impl PlotCanvas {
             }
             Some(line_style) => {
                 let lw = match style.get_line_width() {
-                    Some(lw) => self.to_px(*lw),
+                    Some(lw) => self.to_px(lw),
                     None => self.to_px(2.),
                 };
                 
@@ -445,7 +434,7 @@ impl PlotCanvas {
             let mut is_texture = true;
 
             if let Some(hatch) = style.get_hatch() {
-                let texture = self.shape2d_texture_render.hatch_texture(*hatch);
+                let texture = self.shape2d_texture_render.hatch_texture(hatch);
 
                 self.fill_texture_path(&path, texture);
 
@@ -454,7 +443,7 @@ impl PlotCanvas {
 
                 is_texture = true;
             } else if let Some(texture) = style.get_texture() {
-                self.fill_texture_path(&path, *texture);
+                self.fill_texture_path(&path, texture);
     
                 self.shape2d_texture_render.draw_style(face_color, &self.to_gpu);
                 self.bezier_render.draw_style(face_color, &self.to_gpu);

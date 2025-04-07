@@ -64,7 +64,7 @@ impl Drawable for PathView {
 
         let path = self.path_data.transform(&to_canvas);
 
-        let mut style = PathStyleBase::new();
+        let mut style = PathStyle::new();
         style.color(self.color);
 
         renderer.draw_path(&path, &style)

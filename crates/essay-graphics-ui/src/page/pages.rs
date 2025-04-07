@@ -27,7 +27,7 @@ impl Pages {
 
         self.pages.push(page);
 
-        self._page_label.insert(label.box_clone(), id);
+        self._page_label.insert(label._box_clone(), id);
 
         if self.current.is_none() {
             self.current = Some(id);
@@ -35,7 +35,7 @@ impl Pages {
     }
 
     pub fn _activate(&mut self, label: impl PageLabel) {
-        if let Some(id) = self._page_label.get(&label.box_clone()) {
+        if let Some(id) = self._page_label.get(&label._box_clone()) {
             self.current = Some(*id);
         } else {
             self.current = None;
@@ -54,7 +54,7 @@ impl Drawable for Pages {
 }
 
 pub trait PageLabel : Send + DynLabel + fmt::Debug {
-    fn box_clone(&self) -> Box<dyn PageLabel>;
+    fn _box_clone(&self) -> Box<dyn PageLabel>;
 }
 
 impl PartialEq for dyn PageLabel {
