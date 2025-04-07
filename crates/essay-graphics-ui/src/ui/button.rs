@@ -50,7 +50,7 @@ impl Widget for UiButton {
         style.face_color(Color::none());
 
         if press {
-            style.edge_color(Color::from("red").set_alpha(0.25));
+            style.edge_color(Color::from("red").with_alpha(0.25));
         }
 
         ui.renderer().draw_path(&border, &style).unwrap();
