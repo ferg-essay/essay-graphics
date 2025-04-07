@@ -1,54 +1,48 @@
-use std::{collections::HashMap, sync::Mutex};
+use std::{collections::HashMap, sync::OnceLock};
 
 use super::Color;
 
-static COLORMAP: Mutex<ColorMap> = Mutex::new(ColorMap { map: None });
-
 pub(crate) fn lookup_color(name: &str) -> Option<Color> {
-    COLORMAP.lock().unwrap().color(name)
+    colormap().color(name)
 }
 
 pub(crate) fn lookup_color_name(color: &Color) -> String {
-    COLORMAP.lock().unwrap().best_name(color)
+    colormap().best_name(color)
 }
 
+fn colormap() -> &'static ColorMap {
+    COLORMAP.get_or_init(|| ColorMap::new())
+}
+
+static COLORMAP: OnceLock<ColorMap> = OnceLock::new();
+
 struct ColorMap {
-    map: Option<HashMap<String, Color>>,
+    map: HashMap<String, Color>,
 }
 
 impl ColorMap {
-    fn color(&mut self, name: &str) -> Option<Color> {
-        match self.get_map() {
-            Some(map) => match map.get(name) {
-                Some(color) => Some(color.clone()),
-                None => None,
-            },
-            None => None,
+    fn new() -> Self {
+        Self {
+            map: build_colormap()
         }
     }
 
-    fn best_name(&mut self, color: &Color) -> String {
+    fn color(&self, name: &str) -> Option<Color> {
+        self.map.get(name).map(|color| color.clone())
+    }
+
+    fn best_name(&self, color: &Color) -> String {
         let mut best_color = Color(0x000000ff);
         let mut best_name = "black";
 
-        if let Some(map) = self.get_map() {
-            for (name, map_color) in map.iter()  {
-                if color_dist(color, map_color) < color_dist(color, &best_color) {
-                    best_color = map_color.clone();
-                    best_name = name;
-                }
+        for (name, map_color) in self.map.iter()  {
+            if color_dist(color, map_color) < color_dist(color, &best_color) {
+                best_color = map_color.clone();
+                best_name = name;
             }
         }
 
         best_name.to_string()
-    }
-
-    fn get_map(&mut self) -> &Option<HashMap<String, Color>> {
-        if self.map.is_none() {
-            self.map = Some(build_colormap());
-        }
-
-        &self.map
     }
 }
 
