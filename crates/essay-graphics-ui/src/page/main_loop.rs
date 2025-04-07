@@ -36,10 +36,13 @@ impl MainLoop {
         self.dpi
     }
 
-    pub fn show(
+    pub fn show<D>(
         self,
-        drawable: impl Drawable + Send + 'static,
-    ) {
+        drawable: D,
+    ) 
+    where
+        D: Drawable + Send + 'static
+    {
         let mut device = self.device;
 
         device.main_loop(Box::new(drawable)).unwrap();

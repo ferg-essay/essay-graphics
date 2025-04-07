@@ -1,6 +1,6 @@
 use essay_graphics::layout::MainLoop;
-use essay_graphics_api::{renderer::{self, Canvas, Drawable, Renderer}, Bounds, Color};
-use essay_tensor::Tensor;
+use essay_graphics_api::{renderer::{self, Drawable, Renderer}, Color};
+use essay_tensor::tensor::Tensor;
 
 fn main() {
     //let mut gui = WgpuBackend::new();

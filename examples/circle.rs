@@ -1,14 +1,22 @@
-use renderer::{Drawable, Renderer};
+use renderer::Renderer;
 use essay_graphics::prelude::*;
 use essay_graphics::layout::MainLoop;
 use essay_graphics_api::Coord;
 
 fn main() { 
-    let path = circle()
+    let path: Path<Data> = circle()
         .scale::<Data>(0.5, 0.5)
         .translate(0.5, 0.5);
 
-    MainLoop::new().show(PathView::new(path));
+    MainLoop::new().show(move |ui: &mut dyn Renderer| {
+        let to_canvas = Bounds::<Data>::new((0., 0.), (1., 1.))
+            .affine_to(ui.extent());
+
+        let path = to_canvas.transform_path(&path);
+
+        let style = PathStyleBase::new();
+        ui.draw_path(&path, &style)
+    })
 }
 
 // Via matplotlib
@@ -67,27 +75,3 @@ fn circle() -> Path<Data> {
 
 struct Data;
 impl Coord for Data {}
-
-struct PathView {
-    path: Path<Data>,
-}
-
-impl PathView {
-    fn new(path: Path<Data>) -> Self {
-        Self {
-            path,
-        }
-    }
-}
-
-impl Drawable for PathView {
-    fn draw(&mut self, renderer: &mut dyn Renderer) -> renderer::Result<()> {
-        let to_canvas = Bounds::<Data>::new((0., 0.), (1., 1.))
-            .affine_to(renderer.extent());
-
-        let path = self.path.transform(&to_canvas);
-
-        let style = PathStyleBase::new();
-        renderer.draw_path(&path, &style)
-    }
-}

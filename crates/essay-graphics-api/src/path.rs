@@ -1,7 +1,7 @@
 use core::fmt;
 use std::marker::PhantomData;
 
-use essay_tensor::prelude::*;
+use essay_tensor::tensor::Tensor;
 
 use crate::{affine2d, Affine2d, Bounds, Coord, Point};
 
@@ -137,20 +137,53 @@ impl<M: Coord> Path<M> {
         Path::new(codes)
     }
 
+    pub fn map<C: Coord>(
+        &self, 
+        f: impl Fn(Point) -> Point
+    ) -> Path<C> {
+        Path::new(self.codes.iter().map(|code| {
+            match code {
+                PathCode::MoveTo(p0) => {
+                    PathCode::MoveTo(f(*p0))
+                }
+                PathCode::LineTo(p1) => {
+                    PathCode::LineTo(f(*p1))
+                }
+                PathCode::Bezier2(p1, p2) => {
+                    PathCode::Bezier2(f(*p1), f(*p2))
+                }
+                PathCode::Bezier3(p1, p2, p3) => {
+                    PathCode::Bezier3(f(*p1), f(*p2), f(*p3))
+                }
+                PathCode::ClosePoly(p1) => {
+                    PathCode::ClosePoly(f(*p1))
+                }
+            }
+        }).collect())
+    }
+
     pub fn translate<C: Coord>(&self, x: f32, y: f32) -> Path<C> {
-        self.transform(&affine2d::translate(x, y))
+        let mat = affine2d::translate(x, y);
+
+        self.map(|pt| mat.transform_point(pt))
     }
 
     pub fn scale<C: Coord>(&self, scale_x: f32, scale_y: f32) -> Path<C> {
-        self.transform(&affine2d::scale(scale_x, scale_y))
+        let mat = affine2d::scale(scale_x, scale_y);
+
+        self.map(|pt| mat.transform_point(pt))
     }
 
     pub fn rotate<C: Coord>(&self, theta: f32) -> Path<C> {
-        self.transform(&affine2d::rotate(theta))
+        let mat = affine2d::rotate(theta);
+
+        self.map(|pt| mat.transform_point(pt))
     }
 
     pub fn rotate_deg<C: Coord>(&self, deg: f32) -> Path<C> {
-        self.transform(&affine2d::rotate_deg(deg))
+        let mat  = affine2d::rotate_deg(deg);
+
+        self.map(|pt| mat.transform_point(pt))
     }
 
     pub fn move_to(x: f32, y: f32) -> PathBuilder<M> {

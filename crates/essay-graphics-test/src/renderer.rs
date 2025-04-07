@@ -4,7 +4,7 @@ use essay_graphics_api::{
     renderer::{Canvas, Drawable, RenderErr, Renderer, Result}, 
     Affine2d, Bounds, FontStyle, FontTypeId, ImageId, Path, PathOpt, Point, Size, TextStyle, TextureId
 };
-use essay_tensor::Tensor;
+use essay_tensor::tensor::Tensor;
 
 pub struct TestRenderer {
     bounds: Bounds<Canvas>,

@@ -1,6 +1,6 @@
+use essay_tensor::tensor::Tensor;
 use renderer::{Canvas, Drawable, Renderer};
 use essay_graphics::{layout::MainLoop, prelude::*};
-use essay_tensor::Tensor;
 use form::{Shape, ShapeId};
 
 fn main() { 

@@ -5,7 +5,7 @@ use essay_graphics_api::{
     Affine2d, Bounds, CapStyle, Clip, Color, FontStyle, FontTypeId, HorizAlign, ImageId, JoinStyle, LineStyle, 
     Path, PathCode, PathOpt, Point, Size, TextStyle, TextureId, VertAlign
 };
-use essay_tensor::Tensor;
+use essay_tensor::tensor::Tensor;
 
 use crate::PlotRenderer;
 
@@ -632,19 +632,19 @@ impl PlotCanvas {
     ) -> Result<(), RenderErr> {
         assert!(vertices.rank() == 2, 
             "vertices must be 2d (rank2) shape={:?}",
-            vertices.shape().as_slice());
+            vertices.shape().as_vec());
         assert!(vertices.cols() == 2, 
             "vertices must be rows of 2 columns (x, y) shape={:?}",
-            vertices.shape().as_slice());
+            vertices.shape().as_vec());
         assert!(rgba.rank() == 1,
             "colors must be a 1D vector shape={:?}",
-            rgba.shape().as_slice());
+            rgba.shape().as_vec());
         assert!(vertices.rows() == rgba.cols(), 
             "number of vertices and colors must match. vertices={:?} colors={:?}",
-            vertices.shape().as_slice(), rgba.shape().as_slice());
+            vertices.shape().as_vec(), rgba.shape().as_vec());
         assert!(triangles.cols() == 3, 
             "triangle indices must have 3 vertices (3 columns) shape={:?}",
-            triangles.shape().as_slice());
+            triangles.shape().as_vec());
 
         self.triangle_render.start_triangles();
 
@@ -705,8 +705,8 @@ impl PlotCanvas {
         colors: &Tensor<u8>,    // N in rgba
         _clip: &Clip,
     ) -> Result<(), RenderErr> {
-        assert!(colors.rank() == 3, "colors rank must be 3 shape={:?}", colors.shape().as_slice());
-        assert!(colors.cols() == 4, "colors must have 4-width columns shape={:?}", colors.shape().as_slice());
+        assert!(colors.rank() == 3, "colors rank must be 3 shape={:?}", colors.shape().as_vec());
+        assert!(colors.cols() == 4, "colors must have 4-width columns shape={:?}", colors.shape().as_vec());
 
         self.image_render._draw(device, bounds, colors, &self.to_gpu);
 
@@ -714,14 +714,14 @@ impl PlotCanvas {
     }
 
     pub fn create_image(&mut self, device: &wgpu::Device, colors: &Tensor<u8>) -> ImageId {
-        assert!(colors.rank() == 3, "colors rank must be 3 shape={:?}", colors.shape().as_slice());
-        assert!(colors.cols() == 4, "colors must have 4-width columns shape={:?}", colors.shape().as_slice());
+        assert!(colors.rank() == 3, "colors rank must be 3 shape={:?}", colors.shape().as_vec());
+        assert!(colors.cols() == 4, "colors must have 4-width columns shape={:?}", colors.shape().as_vec());
 
         self.image_render.create_image(device, colors)
     }
 
     pub fn create_texture(&mut self, image: &Tensor<u8>) -> TextureId {
-        assert!(image.rank() == 2, "colors rank must be 2 shape={:?}", image.shape().as_slice());
+        assert!(image.rank() == 2, "colors rank must be 2 shape={:?}", image.shape().as_vec());
 
         //self.shape2d_render.add_texture(image.rows(), image.cols(), image.as_slice())
         todo!();
@@ -733,8 +733,8 @@ impl PlotCanvas {
         queue: &wgpu::Queue, 
         image: &Tensor<u8>
     ) -> TextureId {
-        assert!(image.rank() == 3, "texture rank must be 3 shape={:?}", image.shape().as_slice());
-        assert!(image.cols() == 4, "texture cols 4 shape={:?}", image.shape().as_slice());
+        assert!(image.rank() == 3, "texture rank must be 3 shape={:?}", image.shape().as_vec());
+        assert!(image.cols() == 4, "texture cols 4 shape={:?}", image.shape().as_vec());
     
         self.texture_store.add_rgba_u8(
             device, 
@@ -912,13 +912,13 @@ fn marker_affine(x: f32, y: f32, i: usize, scale: &Tensor) -> Affine2d {
        affine = match scale.rank() {
             1 => affine.scale(scale[i], scale[i]),
             2 => affine.scale(scale[(i, 0)], scale[(i, 1)]),
-            _ => panic!("Marker scale must be 1 or 2 dimensional {:?}", scale.shape().as_slice())
+            _ => panic!("Marker scale must be 1 or 2 dimensional {:?}", scale.shape().as_vec())
         }
     } else if scale.len() == 1 {
         affine = match scale.cols() {
             1 => affine.scale(scale[0], scale[0]),
             2 => affine.scale(scale[(0, 0)], scale[(0, 1)]),
-            _ => panic!("Marker scale must be 1 or 2 dimensional {:?}", scale.shape().as_slice())
+            _ => panic!("Marker scale must be 1 or 2 dimensional {:?}", scale.shape().as_vec())
         }
     }
 

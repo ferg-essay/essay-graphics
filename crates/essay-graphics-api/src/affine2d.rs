@@ -1,8 +1,8 @@
 use core::fmt;
 
-use essay_tensor::{prelude::*, tensor::TensorUninit};
+use essay_tensor::{ten, tensor::Tensor};
 
-use crate::{Angle, Point};
+use crate::{renderer::Canvas, Angle, Coord, Path, Point};
 
 #[derive(Clone)]
 pub struct Affine2d {
@@ -14,11 +14,11 @@ impl Affine2d {
         a: f32, b: f32, c: f32, 
         d: f32, e: f32, f: f32
     ) -> Affine2d {
-        let mat = tf32!([
+        let mat = ten![
             [a, b, c],
             [d, e, f],
             [0., 0., 1.],
-        ]); 
+        ]; 
 
         Self {
             mat
@@ -31,11 +31,11 @@ impl Affine2d {
 
     pub fn eye() -> Self {
         // TODO: use Tensor::eye
-        let mat = tf32!([
+        let mat = ten![
             [1., 0., 0.],
             [0., 1., 0.],
             [0., 0., 1.],
-        ]); 
+        ]; 
 
         Self {
             mat
@@ -43,11 +43,11 @@ impl Affine2d {
     }
 
     pub fn translate(&self, x: f32, y: f32) -> Self {
-        let translate = tf32!([
+        let translate = ten![
             [1., 0., x],
             [0., 1., y],
             [0., 0., 1.],
-        ]); 
+        ]; 
 
         Self {
             mat: matmul(&translate, &self.mat),
@@ -55,11 +55,11 @@ impl Affine2d {
     }
 
     pub fn scale(&self, sx: f32, sy: f32) -> Self {
-        let scale = tf32!([
+        let scale = ten![
             [sx, 0., 0.],
             [0., sy, 0.],
             [0., 0., 1.],
-        ]); 
+        ]; 
 
         Self {
             mat: matmul(&scale, &self.mat),
@@ -69,11 +69,11 @@ impl Affine2d {
     pub fn rotate(&self, theta: impl Into<Angle>) -> Self {
         let (sin, cos) = theta.into().sin_cos();
 
-        let rot = tf32!([
+        let rot = ten![
             [cos, -sin, 0.],
             [sin,  cos, 0.],
             [0.,   0.,  1.],
-        ]); 
+        ]; 
 
         Self {
             mat: matmul(&rot, &self.mat),
@@ -108,28 +108,17 @@ impl Affine2d {
         assert!(points.rank() == 2);
         assert!(points.cols() == 2);
 
-        let n = points.rows();
+        let mat = self.mat.as_slice();
 
-        unsafe {
-            let mut out = TensorUninit::<f32>::new(2 * n);
+        points.map_row(|point| {
+            let x = point[0];
+            let y = point[1];
 
-            let mat = self.mat.as_slice();
-            let xy = points.as_slice();
-            let o = out.as_mut_slice();
-
-            for i in 0..n {
-                let x = xy[2 * i];
-                let y = xy[2 * i + 1];
-
-                let x1 = x * mat[0] + y * mat[1] + mat[2];
-                let y1 = x * mat[3] + y * mat[4] + mat[5];
-
-                o[2 * i] = x1;
-                o[2 * i + 1] = y1;
-            }
-
-            Tensor::from_uninit(out, points.shape())
-        }
+            [
+                x * mat[0] + y * mat[1] + mat[2],
+                x * mat[3] + y * mat[4] + mat[5],
+            ]
+        })
     }
 
     #[inline]
@@ -142,6 +131,17 @@ impl Affine2d {
             x * mat[0] + y * mat[1] + mat[2],
             x * mat[3] + y * mat[4] + mat[5],
         )
+    }
+    
+    pub fn transform_path<T: Coord>(&self, path: &Path<T>) -> Path<Canvas> {
+        let mat = self.mat.as_slice();
+
+        path.map(|Point(x, y)| {
+            Point(
+                x * mat[0] + y * mat[1] + mat[2],
+                x * mat[3] + y * mat[4] + mat[5]
+            )
+        })
     }
 
     #[inline]
@@ -205,28 +205,29 @@ pub fn rotate_deg(deg: f32) -> Affine2d {
 }
 
 fn matmul(x: &Tensor, y: &Tensor) -> Tensor {
-    assert_eq!(x.shape().as_slice(), &[3, 3]);
-    assert_eq!(y.shape().as_slice(), &[3, 3]);
+    assert_eq!(x.rank(), 2);
+    assert_eq!(x.rows(), 3);
+    assert_eq!(x.cols(), 3);
+    assert_eq!(y.rank(), 2);
+    assert_eq!(y.rows(), 3);
+    assert_eq!(y.cols(), 3);
 
-    unsafe {
-        let mut out = TensorUninit::<f32>::new(9);
+    let x = x.as_slice();
+    let y = y.as_slice();
 
-        let o = out.as_mut_slice();
-        let x = x.as_slice();
-        let y = y.as_slice();
+    let o = [
+        x[0] * y[0] + x[1] * y[3],
+        x[0] * y[1] + x[1] * y[4],
+        x[0] * y[2] + x[1] * y[5] + x[2],
 
-        o[0] = x[0] * y[0] + x[1] * y[3];
-        o[1] = x[0] * y[1] + x[1] * y[4];
-        o[2] = x[0] * y[2] + x[1] * y[5] + x[2];
+        x[3] * y[0] + x[4] * y[3],
+        x[3] * y[1] + x[4] * y[4],
+        x[3] * y[2] + x[4] * y[5] + x[5],
 
-        o[3] = x[3] * y[0] + x[4] * y[3];
-        o[4] = x[3] * y[1] + x[4] * y[4];
-        o[5] = x[3] * y[2] + x[4] * y[5] + x[5];
+        0.,
+        0.,
+        1.,
+    ];
 
-        o[6] = 0.;
-        o[7] = 0.;
-        o[8] = 1.;
-
-        Tensor::from_uninit(out, [3, 3])
-    }
+    Tensor::from(o).reshape([3, 3])
 }

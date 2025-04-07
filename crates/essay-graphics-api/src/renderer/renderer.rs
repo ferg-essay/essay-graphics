@@ -1,4 +1,4 @@
-use essay_tensor::Tensor;
+use essay_tensor::tensor::Tensor;
 
 use crate::{
     form::{Form, FormId, Matrix4, Shape, ShapeId}, 

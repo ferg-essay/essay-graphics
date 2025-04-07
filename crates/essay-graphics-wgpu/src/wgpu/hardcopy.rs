@@ -161,7 +161,6 @@ impl WgpuHardcopy {
             Some(&view)
         );
 
-        let pos = plot_renderer.pos().clone();
         drawable.draw(&mut plot_renderer).unwrap();
         plot_renderer.flush();
     }

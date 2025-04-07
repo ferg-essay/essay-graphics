@@ -1,6 +1,6 @@
 use core::fmt;
 
-use essay_tensor::{prelude::*, tensor::TensorUninit};
+use essay_tensor::{ten, tensor::Tensor};
 
 use crate::{Affine2d, Angle};
 
@@ -16,12 +16,12 @@ impl Affine3d {
         x10: f32, x11: f32, x12: f32, x13: f32,
         x20: f32, x21: f32, x22: f32, x23: f32,
     ) -> Affine3d {
-        let mat = tf32!([
+        let mat = ten![
             [x00, x01, x02, x03],
             [x10, x11, x12, x13],
             [x20, x21, x22, x23],
             [ 0.,  0.,  0.,  1.],
-        ]); 
+        ]; 
 
         Self {
             mat
@@ -36,7 +36,7 @@ impl Affine3d {
     #[inline]
     pub fn eye() -> Self {
         // TODO: use Tensor::eye
-        let mat = tf32!([
+        let mat = ten!([
             [1., 0., 0., 0.],
             [0., 1., 0., 0.],
             [0., 0., 1., 0.],
@@ -50,12 +50,12 @@ impl Affine3d {
 
     #[inline]
     pub fn translate(&self, x: f32, y: f32, z: f32) -> Self {
-        let translate = tf32!([
+        let translate = ten![
             [1., 0., 0.,  x],
             [0., 1., 0.,  y],
             [0., 0., 1.,  z],
             [0., 0., 0., 1.],
-        ]); 
+        ]; 
 
         // TODO: optimize
         Self {
@@ -65,12 +65,12 @@ impl Affine3d {
 
     #[inline]
     pub fn scale(&self, sx: f32, sy: f32, sz: f32) -> Self {
-        let scale = tf32!([
+        let scale = ten![
             [sx, 0., 0., 0.],
             [0., sy, 0., 0.],
             [0., 0., sz, 0.],
             [0., 0., 0., 1.],
-        ]); 
+        ]; 
 
         // TODO: optimize
         Self {
@@ -85,12 +85,12 @@ impl Affine3d {
         let sin = theta.sin();
         let cos = theta.cos();
 
-        let rot = tf32!([
+        let rot = ten![
             [cos, -sin, 0., 0.],
             [sin,  cos, 0., 0.],
             [ 0.,   0., 1., 0.],
             [ 0.,   0., 0., 1.],
-        ]); 
+        ]; 
 
         Self {
             mat: compose(&rot, &self.mat),
@@ -104,12 +104,12 @@ impl Affine3d {
         let sin = theta.sin();
         let cos = theta.cos();
 
-        let rot = tf32!([
+        let rot = ten![
             [cos, 0., -sin, 0.],
             [ 0., 1.,   0., 0.],
             [sin, 0.,  cos, 0.],
             [ 0., 0.,   0., 1.],
-        ]); 
+        ]; 
 
         Self {
             mat: compose(&rot, &self.mat),
@@ -123,12 +123,12 @@ impl Affine3d {
         let sin = theta.sin();
         let cos = theta.cos();
 
-        let rot = tf32!([
+        let rot = ten![
             [1.,  0.,   0., 0.],
             [0., cos, -sin, 0.],
             [0., sin,  cos, 0.],
             [0.,  0.,   0., 1.],
-        ]); 
+        ]; 
 
         Self {
             mat: compose(&rot, &self.mat),
@@ -157,29 +157,19 @@ impl Affine3d {
         assert!(points.rank() == 2);
         assert!(points.cols() == 3);
 
-        let n = points.rows();
+        let mat = self.mat.as_slice();
 
-        unsafe {
-            let mut out = TensorUninit::<f32>::new(3 * n);
+        points.map_row(|point| {
+            let x = point[0];
+            let y = point[1];
+            let z = point[2];
 
-            let mat = self.mat.as_slice();
-            let xyz = points.as_slice();
-            let o = out.as_mut_slice();
-
-            for i in 0..n {
-                let row = 3 * i;
-
-                let x = xyz[row];
-                let y = xyz[row + 1];
-                let z = xyz[row + 2];
-
-                o[row + 0] = x * mat[0] + y * mat[1] + z * mat[2] + mat[3];
-                o[row + 1] = x * mat[4] + y * mat[5] + z * mat[6] + mat[7];
-                o[row + 2] = x * mat[8] + y * mat[9] + z * mat[10] + mat[11];
-            }
-
-            Tensor::from_uninit(out, points.shape())
-        }
+            [
+                x * mat[0] + y * mat[1] + z * mat[2] + mat[3],
+                x * mat[4] + y * mat[5] + z * mat[6] + mat[7],
+                x * mat[8] + y * mat[9] + z * mat[10] + mat[11],
+            ]
+        })
     }
 }
 
@@ -202,36 +192,32 @@ impl From<&Affine2d> for Affine3d {
 }
 
 fn compose(x: &Tensor, y: &Tensor) -> Tensor {
-    assert_eq!(x.shape().as_slice(), &[4, 4]);
-    assert_eq!(y.shape().as_slice(), &[4, 4]);
+    // assert_eq!(x.shape().as_slice(), &[4, 4]);
+    // assert_eq!(y.shape().as_slice(), &[4, 4]);
+    let x = x.as_slice();
+    let y = y.as_slice();
 
-    unsafe {
-        let mut out = TensorUninit::<f32>::new(16);
+    let o = [
+        x[0] * y[0] + x[1] * y[4] + x[2] * y[8],
+        x[0] * y[1] + x[1] * y[5] + x[2] * y[9],
+        x[0] * y[2] + x[1] * y[6] + x[2] * y[10],
+        x[0] * y[3] + x[1] * y[7] + x[2] * y[11] + x[3],
 
-        let o = out.as_mut_slice();
-        let x = x.as_slice();
-        let y = y.as_slice();
+        x[4] * y[0] + x[5] * y[4] + x[6] * y[8],
+        x[4] * y[1] + x[5] * y[5] + x[6] * y[9],
+        x[4] * y[2] + x[5] * y[6] + x[6] * y[10],
+        x[4] * y[3] + x[5] * y[7] + x[6] * y[11] + x[7],
 
-        o[0] = x[0] * y[0] + x[1] * y[4] + x[2] * y[8];
-        o[1] = x[0] * y[1] + x[1] * y[5] + x[2] * y[9];
-        o[2] = x[0] * y[2] + x[1] * y[6] + x[2] * y[10];
-        o[3] = x[0] * y[3] + x[1] * y[7] + x[2] * y[11] + x[3];
+        x[8] * y[0] + x[9] * y[4] + x[10] * y[8],
+        x[8] * y[1] + x[9] * y[5] + x[10] * y[9],
+        x[8] * y[2] + x[9] * y[6] + x[10] * y[10],
+        x[8] * y[3] + x[9] * y[7] + x[10] * y[11] + x[11],
 
-        o[4] = x[4] * y[0] + x[5] * y[4] + x[6] * y[8];
-        o[5] = x[4] * y[1] + x[5] * y[5] + x[6] * y[9];
-        o[6] = x[4] * y[2] + x[5] * y[6] + x[6] * y[10];
-        o[7] = x[4] * y[3] + x[5] * y[7] + x[6] * y[11] + x[7];
+        0.,
+        0.,
+        0.,
+        1.,
+    ];
 
-        o[8]  = x[8] * y[0] + x[9] * y[4] + x[10] * y[8];
-        o[9]  = x[8] * y[1] + x[9] * y[5] + x[10] * y[9];
-        o[10] = x[8] * y[2] + x[9] * y[6] + x[10] * y[10];
-        o[11] = x[8] * y[3] + x[9] * y[7] + x[10] * y[11] + x[11];
-
-        o[12] = 0.;
-        o[13] = 0.;
-        o[14] = 0.;
-        o[15] = 1.;
-
-        Tensor::from_uninit(out, [4, 4])
-    }
+    Tensor::from(o).reshape([4, 4])
 }

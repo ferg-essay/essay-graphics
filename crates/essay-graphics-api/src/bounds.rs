@@ -1,7 +1,7 @@
 use core::fmt;
 use std::{marker::PhantomData, any::type_name};
 
-use essay_tensor::{Tensor, tf32};
+use essay_tensor::{ten, tensor::Tensor};
 
 use crate::Size;
 
@@ -196,12 +196,12 @@ impl<M: Coord> Bounds<M> {
     }
 
     pub fn corners(&self) -> Tensor {
-        tf32!([
+        ten![
             [self.p0.x(), self.p0.y()],
             [self.p0.x(), self.p1.y()],
             [self.p1.x(), self.p1.y()],
             [self.p1.x(), self.p0.y()],
-        ])
+        ]
     }
 
     pub fn affine_to<N>(&self, box_to: impl Into<Bounds<N>>) -> Affine2d
@@ -415,8 +415,8 @@ impl<M: Coord> From<(f32, f32, f32, f32)> for Bounds<M> {
 
 impl<M: Coord> From<&Tensor> for Bounds<M> {
     fn from(value: &Tensor) -> Self {
-        assert!(value.rank() == 2, "Bounds::from Tensor requires a 2d tensor {:?}", value.shape().as_slice());
-        assert!(value.cols() == 2, "Bounds::from Tensor requires a 2d tensor {:?}", value.shape().as_slice());
+        assert!(value.rank() == 2, "Bounds::from Tensor requires a 2d tensor {:?}", value.shape().as_vec());
+        assert!(value.cols() == 2, "Bounds::from Tensor requires a 2d tensor {:?}", value.shape().as_vec());
 
         let mut x0 = f32::MAX;
         let mut y0 = f32::MAX;

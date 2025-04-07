@@ -1,7 +1,7 @@
+use essay_tensor::tensor::Tensor;
 use renderer::{Canvas, Drawable, Renderer};
 use essay_graphics::{layout::{MainLoop, View}, prelude::*};
 use essay_graphics_wgpu::WgpuHardcopy;
-use essay_tensor::Tensor;
 use form::{Form, FormId, Matrix4};
 use image::Pixel;
 

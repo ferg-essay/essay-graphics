@@ -1,6 +1,6 @@
+use essay_tensor::tensor::Tensor;
 use renderer::{Drawable, Renderer};
 use essay_graphics::{layout::MainLoop, prelude::*};
-use essay_tensor::Tensor;
 
 fn main() { 
     MainLoop::new().show(TriangleView::new());
@@ -22,7 +22,6 @@ impl TriangleView {
     fn resize(&mut self, renderer: &mut dyn Renderer) {
         let pos = renderer.pos();
 
-        println!("Resize {:?}", pos);
         let (x0, y0) = (pos.xmin(), pos.ymin());
         let (w, h) = (pos.width(), pos.height());
         let (x1, y1) = (x0 + w, y0 + h);
@@ -57,7 +56,7 @@ impl Drawable for TriangleView {
         let colors = Tensor::from(colors);
 
         renderer.draw_triangles(self.vertices.clone(), colors.clone(), self.triangles.clone())?;
-        println!("Draw");
+        
         Ok(())
     }
 }

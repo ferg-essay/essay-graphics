@@ -1,6 +1,6 @@
 use bytemuck_derive::{Pod, Zeroable};
 use essay_graphics_api::{renderer::Canvas, Affine2d, Bounds, ImageId};
-use essay_tensor::Tensor;
+use essay_tensor::tensor::Tensor;
 use wgpu::util::DeviceExt;
 
 

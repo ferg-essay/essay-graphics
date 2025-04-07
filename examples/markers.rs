@@ -1,5 +1,5 @@
-use essay_tensor::{tensor, tf32, Tensor};
-use renderer::{Drawable, Renderer};
+use essay_tensor::ten;
+use renderer::Renderer;
 use essay_graphics::prelude::*;
 use essay_graphics::layout::MainLoop;
 use essay_graphics_api::Coord;
@@ -10,56 +10,32 @@ fn main() {
         .close_poly(0.1, 0.1)
         .to_path();
 
-    let markers = tf32!([
+    let markers = ten![
         [0.25, 0.25],
         [0.75, 0.75]
-    ]);
+    ];
 
-    let colors = tensor!([
+    let colors = ten![
         Color::from("red").to_rgba(),
         Color::from("teal").to_rgba(),
-    ]);
+    ];
 
-    let scale = tensor!([
+    let scale = ten!([
         1.,
         0.5,
     ]);
 
-    MainLoop::new().show(PathView::new(path, markers, colors, scale));
+    MainLoop::new().show(move |ui: &mut dyn Renderer| {
+        let to_canvas = Bounds::<Data>::new((0., 0.), (1., 1.))
+            .affine_to(ui.extent());
+
+        let path = to_canvas.transform_path(&path);
+        let xy = to_canvas.transform(&markers);
+
+        let style = PathStyleBase::new();
+        ui.draw_markers(&path, &xy, &scale, &colors, &style)
+    })
 }
 
 struct Data;
 impl Coord for Data {}
-
-struct PathView {
-    path: Path<Data>,
-    markers: Tensor,
-    colors: Tensor<u32>,
-    scale: Tensor,
-}
-
-impl PathView {
-    fn new(path: Path<Data>, markers: Tensor, colors: Tensor<u32>, scale: Tensor) -> Self {
-        assert_eq!(markers.rows(), colors.len());
-
-        Self {
-            path,
-            markers,
-            colors,
-            scale,
-        }
-    }
-}
-
-impl Drawable for PathView {
-    fn draw(&mut self, renderer: &mut dyn Renderer) -> renderer::Result<()> {
-        let to_canvas = Bounds::<Data>::new((0., 0.), (1., 1.))
-            .affine_to(renderer.extent());
-
-        let path = self.path.transform(&to_canvas);
-        let xy = to_canvas.transform(&self.markers);
-
-        let style = PathStyleBase::new();
-        renderer.draw_markers(&path, &xy, &self.scale, &self.colors, &style)
-    }
-}
