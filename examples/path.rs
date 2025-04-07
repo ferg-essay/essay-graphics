@@ -40,7 +40,7 @@ impl PathView {
 impl Drawable for PathView {
     fn draw(&mut self, renderer: &mut dyn Renderer) -> renderer::Result<()> {
         println!("Pos {:?}", renderer.extent());
-        let to_canvas = Bounds::<Data>::new((0., 0.), (1., 1.)).affine_to(renderer.extent());
+        let to_canvas = Bounds::<Data>::new([0., 0.], [1., 1.]).affine_to(renderer.extent());
 
         let path = self.path_data.transform(&to_canvas);
 

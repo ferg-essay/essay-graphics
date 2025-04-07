@@ -166,9 +166,9 @@ impl<'a> Renderer for PlotRenderer<'a> {
 
     fn draw_triangles(
         &mut self,
-        vertices: Tensor<f32>,  // Nx2 x,y in canvas coordinates
-        colors: Tensor<u32>,    // N in rgba
-        triangles: Tensor<u32>, // Mx3 vertex indices
+        vertices: &Tensor<f32>,  // Nx2 x,y in canvas coordinates
+        colors: &Tensor<u32>,    // N in rgba
+        triangles: &Tensor<u32>, // Mx3 vertex indices
     ) -> Result<(), RenderErr> {
         self.canvas.draw_triangles(vertices, colors, triangles)
     }

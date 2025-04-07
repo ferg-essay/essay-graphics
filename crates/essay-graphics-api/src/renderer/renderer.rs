@@ -63,9 +63,9 @@ pub trait Renderer {
 
     fn draw_triangles(
         &mut self,
-        vertices: Tensor<f32>,  // Nx2 x,y in canvas coordinates
-        colors: Tensor<u32>,    // N in rgba
-        triangles: Tensor<u32>, // Mx3 vertex indices
+        vertices: &Tensor<f32>,  // Nx2 x,y in canvas coordinates
+        colors: &Tensor<u32>,    // N in rgba
+        triangles: &Tensor<u32>, // Mx3 vertex indices
     ) -> Result<()>;
 
     fn draw_image(
@@ -121,10 +121,10 @@ pub trait Renderer {
         &mut self,
     );
 
-    fn draw_with(
+    fn draw_with<'a>(
         &mut self, 
         pos: Bounds<Canvas>, 
-        drawable: &mut dyn Drawable
+        drawable: &'a mut dyn Drawable
     ) -> Result<()>;
 
     fn draw_with_closure<'a>(

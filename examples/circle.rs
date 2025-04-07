@@ -9,7 +9,7 @@ fn main() {
         .translate(0.5, 0.5);
 
     MainLoop::new().show(move |ui: &mut dyn Renderer| {
-        let to_canvas = Bounds::<Data>::new((0., 0.), (1., 1.))
+        let to_canvas = Bounds::<Data>::from([1., 1.])
             .affine_to(ui.extent());
 
         let path = to_canvas.transform_path(&path);

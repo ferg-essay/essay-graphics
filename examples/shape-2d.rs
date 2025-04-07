@@ -87,7 +87,7 @@ impl Drawable for ShapeView {
 
         if let Some(id) = self.form_id {
             let canvas = renderer.pos().clone();
-            let bounds = Bounds::<Canvas>::from(((0., 0.), [1., 1.]));
+            let bounds = Bounds::<Canvas>::from([1., 1.]);
             let camera = bounds.affine_to(&canvas);
             
             renderer.draw_shape(

@@ -173,8 +173,8 @@ impl CursorUpdate {
         match self {
             CursorUpdate::Vertical => {
                 let rect = Bounds::<Canvas>::new(
-                    (cursor.pos.x(), cursor.pos.y() - size.height()),
-                    (cursor.pos.x() + size.width(), cursor.pos.y()),
+                    [cursor.pos.x(), cursor.pos.y() - size.height()],
+                    [cursor.pos.x() + size.width(), cursor.pos.y()],
                 );
         
                 cursor.pos = Point(cursor.pos.x(), cursor.pos.y() - size.height());
@@ -184,8 +184,8 @@ impl CursorUpdate {
             },
             CursorUpdate::Horizontal => {
                 let rect = Bounds::<Canvas>::new(
-                    (cursor.pos.x(), cursor.pos.y() - size.height()),
-                    (cursor.pos.x() + size.width(), cursor.pos.y()),
+                    [cursor.pos.x(), cursor.pos.y() - size.height()],
+                    [cursor.pos.x() + size.width(), cursor.pos.y()],
                 );
         
                 cursor.pos = Point(cursor.pos.x() + size.width(), cursor.pos.y());

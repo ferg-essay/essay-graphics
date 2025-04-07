@@ -13,9 +13,9 @@ impl Size {
     }
 }
 
-impl From<(f32, f32)> for Size {
+impl From<[f32; 2]> for Size {
     #[inline]
-    fn from(value: (f32, f32)) -> Self {
-        Size(value.0, value.1)
+    fn from(value: [f32; 2]) -> Self {
+        Size(value[0], value[1])
     }
 }

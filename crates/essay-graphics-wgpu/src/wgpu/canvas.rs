@@ -626,9 +626,9 @@ impl PlotCanvas {
 
     pub fn draw_triangles(
         &mut self,
-        vertices: Tensor<f32>,  // Nx2 x,y in canvas coordinates
-        rgba: Tensor<u32>,    // N in rgba
-        triangles: Tensor<u32>, // Mx3 vertex indices
+        vertices: &Tensor<f32>,  // Nx2 x,y in canvas coordinates
+        rgba: &Tensor<u32>,    // N in rgba
+        triangles: &Tensor<u32>, // Mx3 vertex indices
     ) -> Result<(), RenderErr> {
         assert!(vertices.rank() == 2, 
             "vertices must be 2d (rank2) shape={:?}",

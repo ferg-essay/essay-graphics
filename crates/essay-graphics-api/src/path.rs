@@ -139,7 +139,7 @@ impl<M: Coord> Path<M> {
 
     pub fn map<C: Coord>(
         &self, 
-        f: impl Fn(Point) -> Point
+        mut f: impl FnMut(Point) -> Point
     ) -> Path<C> {
         Path::new(self.codes.iter().map(|code| {
             match code {

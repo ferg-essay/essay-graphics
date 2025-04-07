@@ -26,7 +26,7 @@ fn main() {
     ]);
 
     MainLoop::new().show(move |ui: &mut dyn Renderer| {
-        let to_canvas = Bounds::<Data>::new((0., 0.), (1., 1.))
+        let to_canvas = Bounds::<Data>::new([0., 0.], [1., 1.])
             .affine_to(ui.extent());
 
         let path = to_canvas.transform_path(&path);

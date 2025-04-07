@@ -58,10 +58,12 @@ impl From<[f32; 2]> for Point {
     }
 }
 
-impl From<(f32, f32)> for Point {
+impl From<Point> for [f32; 2] {
     #[inline]
-    fn from(value: (f32, f32)) -> Self {
-        Point(value.0, value.1)
+    fn from(value: Point) -> Self {
+        let Point(x, y) = value;
+
+        [x, y]
     }
 }
 

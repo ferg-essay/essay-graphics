@@ -23,7 +23,7 @@ fn main() {
         });
 
         ui.horizontal_size(3., |ui| {
-            ui.view_size((3., 3.), PathView::new(path_a.clone(), "red"));
+            ui.view_size([3., 3.], PathView::new(path_a.clone(), "red"));
             ui.view(view.drawable());
         });
     });

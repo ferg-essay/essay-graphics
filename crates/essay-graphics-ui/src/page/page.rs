@@ -223,10 +223,10 @@ impl CursorUpdate {
                     let height = factor * child.size.height();
                     let ymin = ymax - height;
 
-                    let pos = Bounds::from((
-                        pos.xmin(), ymin,
-                        pos.xmax(), ymax,
-                    ));
+                    let pos = Bounds::from([
+                        [pos.xmin(), ymin],
+                        [pos.xmax(), ymax],
+                    ]);
 
                     let update = child.update.clone();
                     update.build(vec, pos, child);
@@ -248,10 +248,10 @@ impl CursorUpdate {
                 for child in &mut build.children {
                     let xmax = x + factor * child.size.width();
 
-                    let pos = Bounds::from((
-                        x, pos.ymin(),
-                        xmax, pos.ymax(),
-                    ));
+                    let pos = Bounds::from([
+                        [x, pos.ymin()],
+                        [xmax, pos.ymax()],
+                    ]);
 
                     let update = child.update.clone();
 
@@ -282,12 +282,12 @@ impl ViewItem {
     fn pos(&self, renderer: &mut dyn Renderer) -> Bounds::<Canvas> {
         let pos = renderer.pos().clone();
 
-        (
-            pos.xmin() + self.pos.xmin() * pos.width(),
-            pos.ymin() + self.pos.ymin() * pos.height(),
-            pos.xmin() + self.pos.xmax() * pos.width(),
-            pos.ymin() + self.pos.ymax() * pos.height(),
-        ).into()
+        [
+            [pos.xmin() + self.pos.xmin() * pos.width(),
+            pos.ymin() + self.pos.ymin() * pos.height()],
+            [pos.xmin() + self.pos.xmax() * pos.width(),
+            pos.ymin() + self.pos.ymax() * pos.height()],
+        ].into()
     }
 
     fn draw(&mut self, renderer: &mut dyn Renderer) -> Result<()> {

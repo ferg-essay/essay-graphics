@@ -113,9 +113,9 @@ impl Renderer for TestRenderer {
     #[allow(unused_variables)]
     fn draw_triangles(
         &mut self,
-        vertices: Tensor<f32>,  // Nx2 x,y in canvas coordinates
-        colors: Tensor<u32>,    // N in rgba
-        triangles: Tensor<u32>, // Mx3 vertex indices
+        vertices: &Tensor<f32>,  // Nx2 x,y in canvas coordinates
+        colors: &Tensor<u32>,    // N in rgba
+        triangles: &Tensor<u32>, // Mx3 vertex indices
     ) -> Result<(), RenderErr> {
         todo!()
     }
@@ -220,9 +220,9 @@ mod test {
 
     #[test]
     fn bounds() {
-        let mut test = TestRenderer::new((1., 2., 30., 40.));
+        let mut test = TestRenderer::new(([1., 2.], [30., 40.]));
 
-        assert_eq!(test.extent(), Bounds::<Canvas>::from((1., 2., 30., 40.)));
+        assert_eq!(test.extent(), Bounds::<Canvas>::from(([1., 2.], [30., 40.])));
         assert_eq!(test.drain(), Vec::<String>::new());
     }
 

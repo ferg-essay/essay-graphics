@@ -321,30 +321,22 @@ impl<M: Coord> From<&Bounds<M>> for Bounds<M> {
     }
 }
 
-impl<M: Coord> From<()> for Bounds<M> {
+impl<M: Coord> From<(Point, Size)> for Bounds<M> {
     #[inline]
-    fn from(_: ()) -> Self {
-        Bounds::none()
-    }
-}
-
-/// (x0, y0)
-impl<M: Coord> From<(f32, f32)> for Bounds<M> {
-    #[inline]
-    fn from(value: (f32, f32)) -> Self {
+    fn from((Point(x, y), Size(w, h)): (Point, Size)) -> Self {
         Bounds::new(
-            Point(value.0, value.1),
-            Point(value.0, value.1),
+            Point(x, y),
+            Point(x + w, y + h),
         )
     }
 }
 
-impl<M: Coord> From<Point> for Bounds<M> {
+impl<M: Coord> From<Bounds<M>> for (Point, Size) {
     #[inline]
-    fn from(value: Point) -> Self {
-        Bounds::new(
-            value,
-            value,
+    fn from(value: Bounds<M>) -> Self {
+        (
+            value.p0(),
+            value.size()
         )
     }
 }
@@ -359,31 +351,68 @@ impl<M: Coord> From<Size> for Bounds<M> {
     }
 }
 
-impl<M: Coord> From<(Point, Size)> for Bounds<M> {
+impl<M: Coord> From<Option<Size>> for Bounds<M> {
     #[inline]
-    fn from(value: (Point, Size)) -> Self {
-        Bounds::new(
-            value.0,
-            Point(value.0.0 + value.1.0, value.0.1 + value.1.1),
-        )
+    fn from(value: Option<Size>) -> Self {
+        match value {
+            Some(size) => Self::from(size),
+            None => Bounds::none(),
+        }
     }
 }
 
-/// [width, height]
+/// [w, h]
 impl<M: Coord> From<[f32; 2]> for Bounds<M> {
     #[inline]
-    fn from([w, h]: [f32; 2]) -> Self {
+    fn from(value: [f32; 2]) -> Self {
         Bounds::new(
             Point(0., 0.),
-            Point(w, h),
+            Point(value[0], value[1]),
         )
     }
 }
 
-/// ((x, y), [width, height])
-impl<M: Coord> From<((f32, f32), [f32; 2])> for Bounds<M> {
+/// [w, h]
+impl<M: Coord> From<Bounds<M>> for [f32; 2] {
     #[inline]
-    fn from(((x, y), [w, h]): ((f32, f32), [f32; 2])) -> Self {
+    fn from(value: Bounds<M>) -> Self {
+        [value.width(), value.height()]
+    }
+}
+
+impl<M: Coord> From<Point> for Bounds<M> {
+    #[inline]
+    fn from(value: Point) -> Self {
+        Bounds::new(
+            value,
+            value,
+        )
+    }
+}
+
+/// (x0, y0)
+impl<M: Coord> From<([f32; 2], Option<Size>)> for Bounds<M> {
+    #[inline]
+    fn from(value: ([f32; 2], Option<Size>)) -> Self {
+        let [x, y] = value.0;
+
+        match value.1 {
+            Some(size) => Bounds::new(
+                Point(x, y),
+                Point(x + size.width(), y + size.height()),
+            ),
+            None => Bounds::new(
+                Point(x, y),
+                Point(x, y),
+            )
+        }
+    }
+}
+
+/// ([x, y], [width, height])
+impl<M: Coord> From<([f32; 2], [f32; 2])> for Bounds<M> {
+    #[inline]
+    fn from(([x, y], [w, h]): ([f32; 2], [f32; 2])) -> Self {
         Bounds::new(
             Point(x, y),
             Point(x + w, y + h),
@@ -391,24 +420,46 @@ impl<M: Coord> From<((f32, f32), [f32; 2])> for Bounds<M> {
     }
 }
 
-/// [(x0, y0), (x1, y1)]
-impl<M: Coord> From<[(f32, f32); 2]> for Bounds<M> {
+/// ([x, y], [width, height])
+impl<M: Coord> From<Bounds<M>> for ([f32; 2], [f32; 2]) {
     #[inline]
-    fn from([p0, p1]: [(f32, f32); 2]) -> Self {
-        Bounds::new(
-            Point(p0.0, p0.1),
-            Point(p1.0, p1.1),
+    fn from(value: Bounds<M>) -> Self {
+        (
+            [value.xmin(), value.ymin()],
+            [value.width(), value.height()],
         )
     }
 }
 
-/// (x0, y0, x1, y1)
-impl<M: Coord> From<(f32, f32, f32, f32)> for Bounds<M> {
+/// [[x0, y0], [x1, y1]]
+impl<M: Coord> From<Bounds<M>> for [[f32; 2]; 2] {
     #[inline]
-    fn from((x0, y0, x1, y1): (f32, f32, f32, f32)) -> Self {
+    fn from(value: Bounds<M>) -> Self {
+        [
+            [value.xmin(), value.ymin()],
+            [value.xmax(), value.ymax()],
+        ]
+    }
+}
+
+/// [Point, Point]
+impl<M: Coord> From<[Point; 2]> for Bounds<M> {
+    #[inline]
+    fn from(value: [Point; 2]) -> Self {
         Bounds::new(
-            Point(x0, y0),
-            Point(x1, y1),
+            value[0],
+            value[1],
+        )
+    }
+}
+
+/// [[x0, y0], [x1, y1]]
+impl<M: Coord> From<[[f32; 2]; 2]> for Bounds<M> {
+    #[inline]
+    fn from([p0, p1]: [[f32; 2]; 2]) -> Self {
+        Bounds::new(
+            Point(p0[0], p0[1]),
+            Point(p1[0], p1[1]),
         )
     }
 }
@@ -548,25 +599,25 @@ mod test {
     fn bounds_from() {
         let bounds = Bounds::<Test>::new(Point(1., 2.), Point(3., 4.));
 
-        assert_eq!(bounds, Bounds::<Test>::from((1., 2., 3., 4.)));
-        assert_ne!(bounds, Bounds::<Test>::from((3., 4., 1., 2.)));
+        assert_eq!(bounds, Bounds::<Test>::from([[1., 2.], [3., 4.]]));
+        assert_ne!(bounds, Bounds::<Test>::from([[3., 4.], [1., 2.]]));
 
         assert_eq!(
-            Bounds::<Test>::from((1., 2.)),
-            Bounds::<Test>::new((1., 2.), (1., 2.))
+            Bounds::<Test>::from(([1., 2.], None)),
+            Bounds::<Test>::new([1., 2.], [1., 2.])
         );
 
         assert_eq!(
             Bounds::<Test>::from([1., 2.]),
-            Bounds::<Test>::new((0., 0.), (1., 2.))
+            Bounds::<Test>::new([0., 0.], [1., 2.])
         );
 
         assert_eq!(
-            Bounds::<Test>::from(((10., 20.), [1., 2.])),
-            Bounds::<Test>::new((10., 20.), (11., 22.))
+            Bounds::<Test>::from(([10., 20.], [1., 2.])),
+            Bounds::<Test>::new([10., 20.], [11., 22.])
         );
 
-        assert!(Bounds::<Test>::from(()).is_none());
+        assert!(Bounds::<Test>::from(None).is_none());
     }
 
     #[test]
