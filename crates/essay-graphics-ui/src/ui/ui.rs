@@ -3,8 +3,8 @@ use essay_graphics_api::{
 };
 
 use crate::ui::{
-    button::UiButton, 
-    label::UiLabel, 
+    button::Button, 
+    label::Label, 
     style::UiStyle,
 };
 
@@ -43,40 +43,57 @@ impl<'a> Ui<'a> {
         (f)(&mut ui)
     }
 
+    #[inline]
     pub fn renderer(&mut self) -> &mut dyn Renderer {
         self.renderer
     }
 
+    #[inline]
     pub fn style(&mut self) -> &UiStyle {
         &self.style
     }
 
+    #[inline]
     pub fn allocate_rect(&mut self, size: Size) -> Bounds<Canvas> {
         self.update.alloc(size, &mut self.cursor)
     }
 
+    #[inline]
+    pub fn remaining_size(&mut self) -> Size {
+        self.cursor.remaining_size()
+    }
+
+    #[inline]
     pub fn add(&mut self, mut widget: impl Widget) -> Response {
         widget.ui(self)
     }
 
+    #[inline]
     pub fn label(&mut self, label: &str) -> Response {
-        let label = UiLabel::new(label);
+        let label = Label::new(label);
 
         self.add(label)
     }
 
+    #[inline]
     pub fn button(&mut self, label: &str, press: bool) -> Response {
-        let button = UiButton::new(label, press);
+        let button = Button::new(label, press);
 
         self.add(button)
     }
 
     pub fn horizontal(&mut self, builder: impl FnOnce(&mut Ui)) -> &mut Self {
         let pos = self.cursor.pos;
+        let extent = self.cursor.extent;
+
+        let bounds = Bounds::from([
+            [pos.x(), extent.ymin()],
+            [extent.xmax(), pos.y()]
+        ]);
 
         let mut child = Ui {
             renderer: self.renderer,
-            cursor: Cursor::new(Bounds::<Canvas>::from(pos)),
+            cursor: Cursor::new(bounds),
             style: self.style.clone(),
             update: CursorUpdate::Horizontal,
         };
@@ -91,10 +108,15 @@ impl<'a> Ui<'a> {
 
     pub fn vertical(&mut self, builder: impl FnOnce(&mut Ui)) -> &mut Self {
         let pos = self.cursor.pos;
+        let extent = self.cursor.extent;
+        let bounds = Bounds::<Canvas>::from((
+            [pos.x(), extent.ymin()],
+            [extent.xmax() - pos.x(), pos.y() - extent.ymin()]
+        ));
 
         let mut child = Ui {
             renderer: self.renderer,
-            cursor: Cursor::new(Bounds::<Canvas>::from(pos)),
+            cursor: Cursor::new(bounds),
             style: self.style.clone(),
             update: CursorUpdate::Vertical,
         };
@@ -107,6 +129,7 @@ impl<'a> Ui<'a> {
         self
     }
     
+    #[inline]
     pub fn text_size(&mut self, label: &str, style_text: &TextStyle) -> Size {
         self.renderer.text_size(label, style_text)
     }
@@ -148,18 +171,27 @@ impl Default for UiState {
 
 #[derive(Clone, Debug)]
 pub struct Cursor {
-    bounds: Bounds<Canvas>,
     pos: Point,
+    bounds: Bounds<Canvas>, // current bounds allocated by the cursor
+    extent: Bounds<Canvas>, // full extent of the canvas
 }
 
 impl Cursor {
     pub(crate) fn new(pos: Bounds<Canvas>) -> Cursor {
-        let pos = Point(pos.xmin(), pos.ymax());
+        let point = Point(pos.xmin(), pos.ymax());
 
         Cursor {
-            pos,
-            bounds: Bounds::from(pos),
+            pos: point,
+            bounds: Bounds::from(point),
+            extent: pos,
         }
+    }
+
+    pub(crate) fn remaining_size(&self) -> Size {
+        Size(
+            self.extent.xmax() - self.pos.x(),
+            self.pos.y() - self.extent.ymin()
+        )
     }
 }
 
@@ -227,7 +259,7 @@ impl Default for Response {
 
 
 
-pub trait Widget : Send + 'static {
+pub trait Widget {
     fn ui(
         &mut self, 
         ui: &mut Ui,

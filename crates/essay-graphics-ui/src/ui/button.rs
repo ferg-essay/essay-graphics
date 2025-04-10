@@ -1,15 +1,15 @@
-use essay_graphics_api::{renderer::Canvas, Color, Path, Point, Size};
+use essay_graphics_api::{renderer::Canvas, Path, Point, Size};
 
 use crate::ui::{ui::Response, Ui};
 
-use super::ui::Widget;
+use super::{style::State, ui::Widget};
 
-pub(crate) struct UiButton {
+pub(crate) struct Button {
     label: String,
     press: bool,
 }
 
-impl UiButton {
+impl Button {
     pub(crate) fn new(label: &str, press: bool) -> Self {
         Self {
             label: String::from(label),
@@ -18,7 +18,7 @@ impl UiButton {
     }
 }
 
-impl Widget for UiButton {
+impl Widget for Button {
     fn ui(&mut self, ui: &mut Ui) -> Response {
         let button_text = ui.style().button_text.clone();
         let size = ui.text_size(&self.label, &button_text);
@@ -28,41 +28,38 @@ impl Widget for UiButton {
 
         let bounds = ui.allocate_rect(size);
         let pos = Point(bounds.xmin() + margin, bounds.ymin() + margin);
-        let m2 = margin * 0.5;
-
-        let border = Path::<Canvas>::move_to(bounds.xmin() + m2, bounds.ymin() + m2)
-            .line_to(bounds.xmax() - m2, bounds.ymin() + m2)
-            .line_to(bounds.xmax() - m2, bounds.ymax() - m2)
-            .close_poly(bounds.xmin() + m2, bounds.ymax() - m2)
-            .to_path();
 
         let mut style = ui.style().button.clone();
 
-        if ui.input().cursor.map_or(false, |p| bounds.contains(p)) {
-            style.color(Color(0xf0f0f0ff));
-            ui.renderer().draw_path(&border, &style).unwrap();
-        }
+        let background = Path::<Canvas>::from(bounds);
+        //let border = Path::<Canvas>::from(bounds.with_margin(m2));
 
-        let press = ui.input().left_press && ui.input().cursor_in(&bounds);
+        //let press = ui.input().left_press && ui.input().cursor_in(&bounds);
         let press_one = ui.input().left_click && ui.input().cursor_in(&bounds);
-        
-        let mut style = ui.style().button.clone();
-        style.face_color(Color::none());
 
-        if press {
-            style.edge_color(Color::from("red").with_alpha(0.25));
-        }
+        let state = if ui.input().cursor
+            .map_or(false, |p| bounds.contains(p)) {
+            State::Hover
+        } else if self.press ^ press_one { 
+            State::Active
+        } else {
+            State::Inactive
+        };
 
-        ui.renderer().draw_path(&border, &style).unwrap();
+        style.edge_color(ui.style()[state].edge);
+        style.color(ui.style()[state].background);
+
+        ui.renderer().draw_path(&background, &style).unwrap();
 
         if self.press ^ press_one { 
-            let button_press = ui.style().button_press.clone();
-            ui.renderer().draw_text(pos, &self.label, 0., &button_press, &button_text).unwrap();
+            style.edge_color(ui.style()[State::Active].foreground);
+            style.face_color(ui.style()[State::Active].foreground);
         } else {
-            let button = ui.style().button.clone();
-
-            ui.renderer().draw_text(pos, &self.label, 0., &button, &button_text).unwrap();
+            style.edge_color(ui.style()[State::Inactive].foreground);
+            style.face_color(ui.style()[State::Inactive].foreground);
         }
+
+        ui.renderer().draw_text(pos, &self.label, 0., &style, &button_text).unwrap();
 
         Response::default().with_onclick(press_one)
     }

@@ -2,7 +2,7 @@ pub mod input;
 pub mod affine2d;
 mod bounds;
 mod clip;
-mod color;
+pub mod color;
 mod color_data;
 pub mod form;
 mod image;

@@ -74,128 +74,137 @@ impl<M: Coord> Bounds<M> {
     }
 
     #[inline]
-    pub fn is_none(&self) -> bool {
+    pub fn is_none(self) -> bool {
         self.p0 == Point(f32::MAX, f32::MAX)
         && self.p1 == Point(f32::MIN, f32::MIN)
     }
 
     #[inline]
-    pub fn is_zero(&self) -> bool {
+    pub fn or(self, default: Bounds<M>) -> Self {
+        if ! self.is_none() {
+            self.clone()
+        } else {
+            default            
+        }
+    }
+
+    #[inline]
+    pub fn is_zero(self) -> bool {
         self.p0 == Point(0., 0.) && self.p1 == Point(0., 0.)
     }
 
     #[inline]
-    pub fn p0(&self) -> Point {
+    pub fn p0(self) -> Point {
         self.p0
     }
 
     #[inline]
-    pub fn p1(&self) -> Point {
+    pub fn p1(self) -> Point {
         self.p1
     }
 
     #[inline]
-    pub fn pos(&self) -> Point {
+    pub fn pos(self) -> Point {
         self.p0
     }
 
     #[inline]
-    pub fn size(&self) -> Size {
+    pub fn size(self) -> Size {
         Size(self.p1.x() - self.p0.x(), self.p1.y() - self.p0.y())
     }
 
     #[inline]
-    pub fn x0(&self) -> f32 {
+    pub fn x0(self) -> f32 {
         self.p0.x()
     }
 
     #[inline]
-    pub fn y0(&self) -> f32 {
+    pub fn y0(self) -> f32 {
         self.p0.y()
     }
 
     #[inline]
-    pub fn x1(&self) -> f32 {
+    pub fn x1(self) -> f32 {
         self.p1.x()
     }
 
     #[inline]
-    pub fn y1(&self) -> f32 {
+    pub fn y1(self) -> f32 {
         self.p1.y()
     }
 
     #[inline]
-    pub fn xmin(&self) -> f32 {
+    pub fn xmin(self) -> f32 {
         self.p0.x()
     }
 
     #[inline]
-    pub fn ymin(&self) -> f32 {
+    pub fn ymin(self) -> f32 {
         self.p0.y()
     }
 
     #[inline]
-    pub fn min(&self) -> (f32, f32) {
+    pub fn min(self) -> (f32, f32) {
         (self.xmin(), self.ymin())
     }
 
     #[inline]
-    pub fn xmax(&self) -> f32 {
+    pub fn xmax(self) -> f32 {
         self.p1.x()
     }
 
     #[inline]
-    pub fn ymax(&self) -> f32 {
+    pub fn ymax(self) -> f32 {
         self.p1.y()
     }
 
     #[inline]
-    pub fn max(&self) -> (f32, f32) {
+    pub fn max(self) -> (f32, f32) {
         (self.xmax(), self.ymax())
     }
 
     #[inline]
-    pub fn xmid(&self) -> f32 {
+    pub fn xmid(self) -> f32 {
         0.5 * (self.p0.x() + self.p1.x())
     }
 
     #[inline]
-    pub fn ymid(&self) -> f32 {
+    pub fn ymid(self) -> f32 {
         0.5 * (self.p0.y() + self.p1.y())
     }
 
     #[inline]
-    pub fn mid(&self) -> (f32, f32) {
+    pub fn mid(self) -> (f32, f32) {
         (self.xmid(), self.ymid())
     }
 
     #[inline]
-    pub fn width(&self) -> f32 {
+    pub fn width(self) -> f32 {
         self.xmax() - self.xmin()
     }
 
     #[inline]
-    pub fn height(&self) -> f32 {
+    pub fn height(self) -> f32 {
         self.ymax() - self.ymin()
     }
 
     #[inline]
-    pub fn contains(&self, point: impl Into<Point>) -> bool {
+    pub fn contains(self, point: impl Into<Point>) -> bool {
         let point = point.into();
         self.contains_x(point.x()) && self.contains_y(point.y())
     }
 
     #[inline]
-    pub fn contains_x(&self, x: f32) -> bool {
+    pub fn contains_x(self, x: f32) -> bool {
         self.x0() <= x && x <= self.x1()
     }
 
     #[inline]
-    pub fn contains_y(&self, y: f32) -> bool {
+    pub fn contains_y(self, y: f32) -> bool {
         self.y0() <= y && y <= self.y1()
     }
 
-    pub fn corners(&self) -> Tensor {
+    pub fn corners(self) -> Tensor {
         ten![
             [self.p0.x(), self.p0.y()],
             [self.p0.x(), self.p1.y()],
@@ -204,7 +213,7 @@ impl<M: Coord> Bounds<M> {
         ]
     }
 
-    pub fn affine_to<N>(&self, box_to: impl Into<Bounds<N>>) -> Affine2d
+    pub fn affine_to<N>(self, box_to: impl Into<Bounds<N>>) -> Affine2d
     where
         N: Coord
     {
@@ -229,7 +238,7 @@ impl<M: Coord> Bounds<M> {
             .translate(b_x0, b_y0)
     }
 
-    pub fn union(&self, b: impl Into<Bounds<M>>) -> Self {
+    pub fn union(self, b: impl Into<Bounds<M>>) -> Self {
         let b = b.into();
 
         Self {
@@ -249,7 +258,7 @@ impl<M: Coord> Bounds<M> {
     // Returns bounds for a sub-area with the specified aspect ratio
     //
     #[must_use]
-    pub fn with_aspect(&self, aspect: f32) -> Self {
+    pub fn with_aspect(self, aspect: f32) -> Self {
         let self_aspect = self.width() / self.height();
 
         if aspect < self_aspect {
@@ -271,6 +280,34 @@ impl<M: Coord> Bounds<M> {
                 marker: Default::default(),
             }
         }
+    }
+
+    //
+    // Returns bounds for a sub-area with the specified margin
+    //
+    #[must_use]
+    pub fn with_margin(self, margin: f32) -> Self {
+        let Point(x0, y0) = self.p0;
+        let Point(x1, y1) = self.p1;
+
+        Self::new(
+            Point(x0 + margin, y0 + margin),
+            Point(x1 - margin, y1 - margin),
+        )
+    }
+
+    //
+    // Returns bounds for a sub-area with the specified margins
+    //
+    #[must_use]
+    pub fn with_margins(self, top: f32, right: f32, bottom: f32, left: f32) -> Self {
+        let Point(x0, y0) = self.p0;
+        let Point(x1, y1) = self.p1;
+
+        Self::new(
+            Point(x0 + left, y0 + bottom),
+            Point(x1 - right, y1 - top),
+        )
     }
 }
 
@@ -347,6 +384,16 @@ impl<M: Coord> From<Size> for Bounds<M> {
         Bounds::new(
             Point(0., 0.),
             Point(value.0, value.1),
+        )
+    }
+}
+
+impl<M: Coord> From<Bounds<M>> for Size {
+    #[inline]
+    fn from(value: Bounds<M>) -> Self {
+        Size(
+            value.width(),
+            value.height(),
         )
     }
 }

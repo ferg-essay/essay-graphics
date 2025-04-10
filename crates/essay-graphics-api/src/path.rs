@@ -42,8 +42,8 @@ impl<M: Coord> Path<M> {
     pub fn closed_poly(points: impl Into<Tensor>) -> Self {
         let points = points.into();
 
-        assert_eq!(points.rank(), 2);
-        assert_eq!(points.cols(), 2);
+        assert_eq!(points.rank(), 2, "closed_poly requires 2D tensor {:?}", points.shape());
+        assert_eq!(points.cols(), 2, "closed_poly requires 2D tensor {:?}", points.shape());
 
         let mut codes = Vec::<PathCode>::new();
 
@@ -361,5 +361,19 @@ impl<M: Coord> PathBuilder<M> {
 impl<M: Coord> From<PathBuilder<M>> for Path<M> {
     fn from(value: PathBuilder<M>) -> Self {
         value.to_path()
+    }
+}
+
+impl<M: Coord> From<Bounds<M>> for Path<M> {
+    fn from(value: Bounds<M>) -> Self {
+        let Point(x0, y0) = value.p0();
+        let Point(x1, y1) = value.p1();
+
+        Path::new(vec![
+            PathCode::MoveTo(Point(x0, y0)),
+            PathCode::LineTo(Point(x1, y0)),
+            PathCode::LineTo(Point(x1, y1)),
+            PathCode::ClosePoly(Point(x0, y1)),
+        ])
     }
 }

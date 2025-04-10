@@ -105,6 +105,11 @@ impl Color {
     }
 
     #[inline]
+    pub fn to_rgb(&self) -> u32 {
+        self.0 >> 8
+    }
+
+    #[inline]
     pub fn to_rgba(&self) -> u32 {
         self.0
     }
@@ -313,6 +318,23 @@ impl FromStr for Color {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Grey(pub f32);
+
+impl Grey {
+    #[inline]
+    pub fn grey(&self) -> f32 {
+        self.0
+    }
+}
+
+impl From<Grey> for Color {
+    #[inline]
+    fn from(value: Grey) -> Self {
+        Color::from_rgb(value.0, value.0, value.0)
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Rgb(pub f32, pub f32, pub f32);
 
 impl Rgb {
@@ -395,6 +417,32 @@ impl From<Color> for Rgba {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Hsv(pub f32, pub f32, pub f32);
+
+impl Hsv {
+    #[inline]
+    pub fn h(&self) -> f32 {
+        self.0
+    }
+
+    #[inline]
+    pub fn s(&self) -> f32 {
+        self.1
+    }
+
+    #[inline]
+    pub fn v(&self) -> f32 {
+        self.2
+    }
+}
+
+impl From<Hsv> for Color {
+    fn from(Hsv(h, s, v): Hsv) -> Self {
+        Color::from(Hsva(h, s, v, 1.))
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Hsva(pub f32, pub f32, pub f32, pub f32);
 
 impl Hsva {
@@ -446,6 +494,41 @@ impl From<Hsva> for Color {
         };
     
         Self::from_rgba(r, g, b, a)
+    }
+}
+
+impl From<Color> for Hsva {
+    fn from(color: Color) -> Hsva {
+        let (r, g, b, a) = (color.r8(), color.g8(), color.b8(), color.a8());
+
+        let r = r as f32 / 255.;
+        let g = g as f32 / 255.;
+        let b = b as f32 / 255.;
+        let a = a as f32 / 255.;
+
+        let max = r.max(g).max(b);
+        let min = r.min(g).min(b);
+
+        let c = max - min;
+        let s = c / max;
+
+        let r_s = (max - r) / c;
+        let g_s = (max - g) / c;
+        let b_s = (max - b) / c;
+
+        let h = if min == max {
+            0.
+        } else if max == r {
+            b_s - g_s
+        } else if max == g {
+            2. + r_s - b_s
+        } else {
+            4. + g_s - r_s
+        };
+
+        let h = (h / 6. + 1.) % 1.;
+
+        Hsva(360. * h, s, max, a)
     }
 }
 

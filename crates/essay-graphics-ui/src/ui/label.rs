@@ -2,11 +2,11 @@ use crate::ui::{ui::Response, Ui};
 
 use super::ui::Widget;
 
-pub(crate) struct UiLabel {
+pub(crate) struct Label {
     label: String,
 }
 
-impl UiLabel {
+impl Label {
     pub(crate) fn new(label: &str) -> Self {
         Self {
             label: String::from(label),
@@ -14,7 +14,7 @@ impl UiLabel {
     }
 }
 
-impl Widget for UiLabel {
+impl Widget for Label {
     fn ui(
         &mut self, 
         ui: &mut Ui, 

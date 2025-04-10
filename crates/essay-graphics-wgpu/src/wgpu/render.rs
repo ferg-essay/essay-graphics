@@ -260,6 +260,8 @@ impl<'a> Renderer for PlotRenderer<'a> {
         pos: Bounds<Canvas>, 
         drawable: &mut dyn Drawable
     ) -> Result<()> {
+        self.flush();
+
         let push = Push::new(self, pos);
 
         drawable.draw(push.ptr)?;
@@ -275,6 +277,8 @@ impl<'a> Renderer for PlotRenderer<'a> {
         pos: Bounds<Canvas>, 
         f: Box<dyn FnOnce(&mut dyn Renderer) -> Result<()> + 'b>
     ) -> Result<()> {
+        self.flush();
+
         let push = Push::new(self, pos);
 
         (f)(push.ptr)?;

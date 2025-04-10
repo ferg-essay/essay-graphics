@@ -408,11 +408,16 @@ impl PlotCanvas {
     ) -> Result<(), RenderErr> {
         // let to_unit = self.to_gpu.matmul(to_device);
 
-        let face_color = style.get_face_color()
+        let mut face_color = style.get_face_color()
             .unwrap_or(Color::black());
 
-        let edge_color = style.get_edge_color()
+        let mut edge_color = style.get_edge_color()
             .unwrap_or(face_color);
+
+        if let Some(alpha) = style.get_alpha() {
+            face_color = face_color.with_alpha(alpha);
+            edge_color = edge_color.with_alpha(alpha);
+        }
 
         let path = match style.get_line_style() {
             Some(LineStyle::Solid) | None => {
@@ -550,6 +555,10 @@ impl PlotCanvas {
         style: &dyn PathOpt, 
         text_style: &TextStyle,
     ) -> Result<(), RenderErr> {
+        if text.len() == 0 { // todo: more sophisticated validation
+            return Ok(());
+        }
+
         let color = match style.get_face_color() {
             Some(color) => color,
             None => Color(0x000000ff),

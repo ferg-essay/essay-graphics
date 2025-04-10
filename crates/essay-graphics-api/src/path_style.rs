@@ -50,6 +50,10 @@ impl PathStyle {
         self
     }
 
+    pub fn get_line_width(&mut self) -> Option<f32> {
+        self.line_width.clone()
+    }
+
     pub fn line_width(&mut self, linewidth: f32) -> &mut Self {
         // assert!(linewidth > 0.);
 
