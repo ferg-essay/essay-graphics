@@ -1,4 +1,4 @@
-use std::{any::Any, marker::PhantomData, sync::{Arc, Mutex}};
+use std::{any::Any, marker::PhantomData, sync::{Arc, Mutex, OnceLock}};
 
 use essay_graphics_api::{
     renderer::{Result, Canvas, Drawable, Renderer}, 
@@ -76,8 +76,6 @@ impl<T: Drawable + Send + 'static> From<T> for ViewArc {
     }
 }
 
-
-
 /*
 impl<T: Drawable + Send + 'static> Drawable for View<T> {
     #[inline]
@@ -116,10 +114,10 @@ pub struct ViewArcDraw(Arc<Mutex<ViewPtr>>);
 
 impl Drawable for ViewArcDraw {
     #[inline]
-    fn draw(&mut self, renderer: &mut dyn Renderer) -> Result<()> {
+    fn draw(&mut self, ui: &mut dyn Renderer) -> Result<()> {
         let mut view = self.0.lock().unwrap();
         
-        view.draw(renderer)
+        view.draw(ui)
     }
 }
 

@@ -1,25 +1,47 @@
-use essay_graphics_api::renderer::{self, Drawable, Renderer};
+use essay_graphics_api::{renderer::{self, Canvas, Drawable, Renderer}, Bounds, Point, Size};
 
-use crate::ui::{ui::Cursor, Ui};
+use crate::{page::Page, ui::Ui};
+
+use super::{cursor::{Cursor, CursorTop, ViewSizeId, ViewSizeCache}, ui::draw_top};
 
 pub struct UiView {
-    builder: Box<dyn FnMut(&mut Ui)->() + Send>,
+    add_content: Box<dyn FnMut(&mut Ui)->() + Send>,
+    last_id: ViewSizeId,
+    state: Option<ViewSizeCache>,
 }
 
 impl UiView {
-    pub fn new(builder: impl FnMut(&mut Ui)->() + 'static + Send) -> Self {
+    pub fn new(add_content: impl FnMut(&mut Ui)->() + 'static + Send) -> Self {
         Self {
-            builder: Box::new(builder),
+            add_content: Box::new(add_content),
+            last_id: ViewSizeId::default(),
+            state: None,
         }
     }
 }
 
 impl Drawable for UiView {
-    fn draw(&mut self, renderer: &mut dyn Renderer) -> renderer::Result<()> {
-        let cursor = Cursor::new(renderer.pos().clone());
-        
-        let mut ui = Ui::new(renderer, cursor);
-        (self.builder)(&mut ui);
+    fn draw(
+        &mut self, 
+        renderer: &mut dyn Renderer
+    ) -> renderer::Result<()> {
+        let id = self.last_id;
+
+        let state = self.state.take().unwrap_or_else(|| {
+            ViewSizeCache::new(id)
+        });
+
+        let (id, state) = draw_top(
+            id, 
+            state, 
+            renderer, 
+            &mut self.add_content
+        );
+
+        println!("StatePage: {:?}", state.page);
+
+        self.last_id = id;
+        self.state = Some(state);
 
         Ok(())
     }

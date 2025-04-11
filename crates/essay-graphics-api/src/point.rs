@@ -19,6 +19,11 @@ impl Point {
     }
 
     #[inline]
+    pub fn zero(&self) -> Self {
+        Point(0., 0.)
+    }
+
+    #[inline]
     pub fn is_below(self, p0: Point, p1: Point) -> bool {
         let Point(x, y) = self;
         let Point(x0, y0) = p0;
@@ -41,6 +46,12 @@ impl Point {
         let dy = self.1 - p.1;
 
         dx.hypot(dy)
+    }
+}
+
+impl Default for Point {
+    fn default() -> Self {
+        Self(0., 0.)
     }
 }
 

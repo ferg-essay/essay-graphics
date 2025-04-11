@@ -1,4 +1,4 @@
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Default)]
 pub struct Size(pub f32, pub f32);
 
 impl Size {

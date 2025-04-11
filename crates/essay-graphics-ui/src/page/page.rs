@@ -29,40 +29,19 @@ impl Page {
     pub fn render<R>(
         &mut self, 
         id: ViewId, 
-        renderer: &mut dyn Renderer,
+        ui: &mut dyn Renderer,
         f: impl FnOnce(&mut dyn Renderer) -> Result<R>
     ) -> Result<R> {
-        let pos = self.views[id.0].pos(renderer);
+        let pos = self.views[id.0].pos(ui);
 
-        let mut draw = PageDrawable {
-            f: Some(f),
-            result: None,
-        };
+        let mut result: Option<R> = None;
 
-        renderer.draw_with(pos, &mut draw)?;
+        ui.draw_with_closure(pos, Box::new(|ui| {
+            result = Some((f)(ui)?);
+            Ok(())
+        }))?;
 
-        Ok(draw.result.take().unwrap())
-    }
-}
-
-struct PageDrawable<R, F>
-where
-    F: FnOnce(&mut dyn Renderer) -> Result<R>
-{
-    f: Option<F>,
-    result: Option<R>,
-}
-
-impl<R, F> Drawable for PageDrawable<R, F>
-where
-    F: FnOnce(&mut dyn Renderer) -> Result<R>
-{
-    fn draw(&mut self, renderer: &mut dyn Renderer) -> Result<()> {
-        let f = self.f.take().unwrap();
-
-        self.result = Some((f)(renderer)?);
-
-        Ok(())
+        Ok(result.unwrap())
     }
 }
 
@@ -279,8 +258,8 @@ impl ViewItem {
         }
     }
 
-    fn pos(&self, renderer: &mut dyn Renderer) -> Bounds::<Canvas> {
-        let pos = renderer.pos().clone();
+    fn pos(&self, ui: &mut dyn Renderer) -> Bounds::<Canvas> {
+        let pos = ui.pos().clone();
 
         [
             [pos.xmin() + self.pos.xmin() * pos.width(),

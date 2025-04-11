@@ -44,9 +44,9 @@ impl Pages {
 }
 
 impl Drawable for Pages {
-    fn draw(&mut self, renderer: &mut dyn Renderer) -> Result<()> {
+    fn draw(&mut self, ui: &mut dyn Renderer) -> Result<()> {
         if let Some(current) = self.current {
-            self.pages[current].draw(renderer)
+            self.pages[current].draw(ui)
         } else {
             Ok(())
         }

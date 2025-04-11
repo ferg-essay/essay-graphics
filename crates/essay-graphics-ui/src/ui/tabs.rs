@@ -93,6 +93,12 @@ impl<T: PartialEq + Clone + Into<String>> Tabs<'_, T> {
 
                         add_content = item.add_content.take();
                         selected = Some(item.key);
+                    } else if ui.input().cursor_in(&pos) {
+                        tab_style.edge_color(ui.style()[State::Hover].edge);
+                        tab_style.face_color(ui.style()[State::Hover].background);
+
+                        let path = Path::from(pos);
+                        ui.renderer().draw_path(&path, &tab_style).unwrap();
                     } else {
                         tab_style.edge_color(ui.style()[State::Inactive].edge);
                         tab_style.face_color(ui.style()[State::Inactive].background);

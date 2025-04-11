@@ -10,10 +10,12 @@ fn main() {
         ui.button("there", there).onclick(|| { there=!there; });
         ui.horizontal(|ui| {
             ui.label("gab");
+
             ui.vertical(|ui| {
                 ui.label("bag");
                 ui.label("gaba");
             });
+
             ui.label("c");
         });
         ui.label("tail");

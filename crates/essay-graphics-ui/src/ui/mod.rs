@@ -1,3 +1,4 @@
+mod cursor;
 mod row;
 mod button;
 mod label;
@@ -6,6 +7,6 @@ mod tabs;
 mod ui;
 mod ui_view;
 
-pub use ui::{Ui, UiState};
+pub use ui::{Ui, UiState, UiSize};
 pub use ui_view::UiView;
 pub use tabs::Tabs;

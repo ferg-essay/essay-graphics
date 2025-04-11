@@ -1,46 +1,98 @@
 use essay_graphics_api::{
-    input::Input, renderer::{Canvas, Renderer}, Bounds, Point, Size, TextStyle
+    input::Input, renderer::{self, Canvas, Drawable, Renderer}, Bounds, Point, Size, TextStyle
 };
 
-use crate::ui::{
+use crate::{page::Page, ui::{
     button::Button, 
     label::Label, 
     style::UiStyle,
-};
+}};
+
+use super::{cursor::{Cursor, CursorTop, CursorUpdate, ViewSizeId, ViewSizeCache}, UiView};
 
 pub struct Ui<'a> {
     renderer: &'a mut dyn Renderer,
-    style: UiStyle,
+    style: &'a UiStyle,
     cursor: Cursor,
     update: CursorUpdate,
+
+    state: &'a ViewSizeCache,
+}
+
+pub struct UiTop<'a> {
+    renderer: &'a mut dyn Renderer,
+    style: &'a UiStyle,
+    top: CursorTop,
 }
 
 impl<'a> Ui<'a> {
     pub(super) fn new(
         renderer: &'a mut dyn Renderer,
+        style: &'a UiStyle,
         cursor: Cursor,
-    ) -> Self {
-        let mut style = UiStyle::new();
-        style.button_press.color("red");
 
+        state: &'a ViewSizeCache,
+    ) -> Self {
         Self {
             cursor,
             renderer,
             style,
             update: CursorUpdate::Vertical,
+            state,
         }
+    }
+    
+    fn child(
+        &mut self,
+        bounds: Bounds<Canvas>, 
+        update: CursorUpdate,
+        add_content: impl FnOnce(&mut Ui)
+    ) {
+        let mut child = Ui {
+            cursor: self.cursor.child(Point(bounds.xmin(), bounds.ymax())),
+            renderer: self.renderer,
+            style: self.style,
+            update,
+            state: self.state,
+        };
+
+        (add_content)(&mut child);
+
+        self.cursor.merge_child(&child.cursor);
+    }
+    
+    fn child_view(
+        &mut self,
+        bounds: Bounds<Canvas>, 
+        update: CursorUpdate,
+        add_content: impl FnOnce(&mut Ui)
+    ) {
+        let mut child = Ui {
+            cursor: self.cursor.child(Point(bounds.xmin(), bounds.ymax())),
+            renderer: self.renderer,
+            style: self.style,
+            update,
+            state: self.state,
+        };
+
+        (add_content)(&mut child);
+
+        // self.cursor.merge_child(&child.cursor);
     }
 
     #[inline]
     pub fn draw<R>(
         renderer: &'a mut dyn Renderer,
-        f: impl FnOnce(&mut Ui) -> R
+        add_content: impl FnOnce(&mut Ui) -> R
     ) -> R {
+        todo!();
+        /*
         let cursor = Cursor::new(renderer.pos().clone());
 
         let mut ui = Ui::new(renderer, cursor);
 
-        (f)(&mut ui)
+        (add_content)(&mut ui)
+        */
     }
 
     #[inline]
@@ -55,12 +107,12 @@ impl<'a> Ui<'a> {
 
     #[inline]
     pub fn allocate_rect(&mut self, size: Size) -> Bounds<Canvas> {
-        self.update.alloc(size, &mut self.cursor)
+        self.update.alloc_canvas(size, &mut self.cursor)
     }
 
     #[inline]
     pub fn remaining_size(&mut self) -> Size {
-        self.cursor.remaining_size()
+        self.cursor.canvas_free()
     }
 
     #[inline]
@@ -82,49 +134,67 @@ impl<'a> Ui<'a> {
         self.add(button)
     }
 
-    pub fn horizontal(&mut self, builder: impl FnOnce(&mut Ui)) -> &mut Self {
-        let pos = self.cursor.pos;
-        let extent = self.cursor.extent;
+    pub fn view<T: Drawable>(&mut self, view: &mut OnceView<T>, draw: T) -> Response {
+        view.get_or_init_mut(draw).draw(self.renderer()).unwrap();
+
+        Response::default()
+    }
+
+    pub fn horizontal(&mut self, add_content: impl FnOnce(&mut Ui)) -> &mut Self {
+        let pos = self.cursor.canvas_pos;
+        let extent = self.cursor.canvas_extent;
 
         let bounds = Bounds::from([
             [pos.x(), extent.ymin()],
             [extent.xmax(), pos.y()]
         ]);
 
-        let mut child = Ui {
-            renderer: self.renderer,
-            cursor: Cursor::new(bounds),
-            style: self.style.clone(),
-            update: CursorUpdate::Horizontal,
-        };
+        self.child(bounds, CursorUpdate::Horizontal, add_content);
 
-        (builder)(&mut child);
-
-        self.cursor.bounds = self.cursor.bounds.union(&child.cursor.bounds);
-        self.cursor.pos = Point(self.cursor.pos.x(), self.cursor.bounds.ymin());
+        self.cursor.canvas_pos = Point(self.cursor.canvas_pos.x(), self.cursor.canvas_allocated.ymin());
 
         self
     }
 
-    pub fn vertical(&mut self, builder: impl FnOnce(&mut Ui)) -> &mut Self {
-        let pos = self.cursor.pos;
-        let extent = self.cursor.extent;
+    pub fn vertical(&mut self, add_content: impl FnOnce(&mut Ui)) -> &mut Self {
+        let pos = self.cursor.canvas_pos;
+        let extent = self.cursor.canvas_extent;
         let bounds = Bounds::<Canvas>::from((
             [pos.x(), extent.ymin()],
             [extent.xmax() - pos.x(), pos.y() - extent.ymin()]
         ));
 
-        let mut child = Ui {
-            renderer: self.renderer,
-            cursor: Cursor::new(bounds),
-            style: self.style.clone(),
-            update: CursorUpdate::Vertical,
+        self.child(bounds, CursorUpdate::Vertical, add_content);
+
+        self.cursor.canvas_pos = Point(self.cursor.canvas_allocated.xmax(), self.cursor.canvas_pos.y());
+        self.cursor.page_pos = Point(self.cursor.page_allocated.xmax(), self.cursor.page_pos.y());
+
+        self
+    }
+
+    pub fn horizontal_view(
+        &mut self, 
+        size: UiSize, 
+        add_content: impl FnOnce(&mut Ui)
+    ) -> &mut Self {
+        let bounds = match size {
+            UiSize::Canvas(width, height) => todo!(),
+            UiSize::Page(width, height) => {
+                self.update.alloc_page(
+                    Size(width, height), 
+                    &mut self.cursor
+                )
+            }
         };
+            
+        self.child_view(bounds, CursorUpdate::Horizontal, add_content);
 
-        (builder)(&mut child);
+        self.cursor.canvas_pos = Point(self.cursor.canvas_pos.x(), self.cursor.canvas_allocated.ymin());
 
-        self.cursor.bounds = self.cursor.bounds.union(&child.cursor.bounds);
-        self.cursor.pos = Point(self.cursor.bounds.xmax(), self.cursor.pos.y());
+        println!("View {:?}", bounds);
+        println!("Alloc {:?}", self.cursor.canvas_allocated);
+        println!("Extent {:?}", self.cursor.canvas_extent);
+        println!("PageAlloc {:?}", self.cursor.page_allocated);
 
         self
     }
@@ -138,6 +208,54 @@ impl<'a> Ui<'a> {
     pub fn input(&self) -> &Input {
         self.renderer.input()
     }
+}
+
+pub(crate) fn draw_top<'a>(
+    id: ViewSizeId, 
+    state: ViewSizeCache, 
+    renderer: &'a mut dyn Renderer, 
+    add_content: &'a mut dyn FnMut(&mut Ui)
+) -> (ViewSizeId, ViewSizeCache) {
+    let mut style = UiStyle::new();
+    style.button_press.color("red");
+
+    let mut top = CursorTop::new(id, state, renderer.pos());
+
+    let cursor = Cursor::new(renderer.pos(), top.prev_state.page);
+
+    let style = UiStyle::new();
+    
+    let mut ui = Ui {
+        state: &top.prev_state,
+        cursor,
+        renderer,
+        style: &style,
+        update: CursorUpdate::Vertical,
+    };
+
+    (add_content)(&mut ui);
+
+    // todo()
+    top.next_state.page = ui.cursor.page_allocated;
+    println!("NextPage: {:?}", top.next_state.page);
+
+    let last_id = top.last_id;
+    let next_state = top.merge_state();
+
+    (last_id, next_state)
+}
+
+pub enum UiSize {
+    Canvas(f32, f32),
+    Page(f32, f32),
+}
+
+#[derive(Default)]
+pub struct UiGroup {
+    canvas_size: Size,
+    page_size: Size,
+
+    items: Vec<UiGroup>,
 }
 
 pub struct UiState {
@@ -154,10 +272,13 @@ impl UiState {
         renderer: &mut dyn Renderer,
         f: impl FnOnce(&mut Ui) -> R
     ) -> R {
+        todo!();
+        /*
         let cursor = Cursor::new(renderer.pos().clone());
         
         let mut ui = Ui::new(renderer, cursor);
         (f)(&mut ui)
+        */
     }
 }
 
@@ -168,66 +289,6 @@ impl Default for UiState {
     }
 }
 
-
-#[derive(Clone, Debug)]
-pub struct Cursor {
-    pos: Point,
-    bounds: Bounds<Canvas>, // current bounds allocated by the cursor
-    extent: Bounds<Canvas>, // full extent of the canvas
-}
-
-impl Cursor {
-    pub(crate) fn new(pos: Bounds<Canvas>) -> Cursor {
-        let point = Point(pos.xmin(), pos.ymax());
-
-        Cursor {
-            pos: point,
-            bounds: Bounds::from(point),
-            extent: pos,
-        }
-    }
-
-    pub(crate) fn remaining_size(&self) -> Size {
-        Size(
-            self.extent.xmax() - self.pos.x(),
-            self.pos.y() - self.extent.ymin()
-        )
-    }
-}
-
-enum CursorUpdate {
-    Vertical,
-    Horizontal,
-}
-
-impl CursorUpdate {
-    fn alloc(&self, size: Size, cursor: &mut Cursor) -> Bounds<Canvas> {
-        match self {
-            CursorUpdate::Vertical => {
-                let rect = Bounds::<Canvas>::new(
-                    [cursor.pos.x(), cursor.pos.y() - size.height()],
-                    [cursor.pos.x() + size.width(), cursor.pos.y()],
-                );
-        
-                cursor.pos = Point(cursor.pos.x(), cursor.pos.y() - size.height());
-                cursor.bounds = cursor.bounds.union(&rect);
-
-                rect
-            },
-            CursorUpdate::Horizontal => {
-                let rect = Bounds::<Canvas>::new(
-                    [cursor.pos.x(), cursor.pos.y() - size.height()],
-                    [cursor.pos.x() + size.width(), cursor.pos.y()],
-                );
-        
-                cursor.pos = Point(cursor.pos.x() + size.width(), cursor.pos.y());
-                cursor.bounds = cursor.bounds.union(&rect);
-
-                rect
-            }
-        }
-    }
-}
 
 pub struct Response {
     onclick: bool,
@@ -257,6 +318,50 @@ impl Default for Response {
     }
 }
 
+
+pub struct OnceView<T: Drawable> {
+    view: Option<T>,
+}
+
+impl<T: Drawable> OnceView<T> {
+    #[inline]
+    pub fn get(&self) -> Option<&T> {
+        self.view.as_ref()
+    } 
+
+    #[inline]
+    pub fn get_mut(&mut self) -> Option<&mut T> {
+        self.view.as_mut()
+    } 
+
+    #[inline]
+    pub fn get_or_init(&mut self, draw: T) -> &T {
+        if self.view.is_none() {
+            self.view = Some(draw);
+        }
+
+        self.view.as_ref().unwrap()
+    } 
+
+    #[inline]
+    pub fn get_or_init_mut(&mut self, draw: T) -> &mut T {
+        if self.view.is_none() {
+            self.view = Some(draw);
+        }
+
+        self.view.as_mut().unwrap()
+    } 
+}
+
+impl<T: Drawable> Drawable for OnceView<T> {
+    fn draw(&mut self, ui: &mut dyn Renderer) -> renderer::Result<()> {
+        if let Some(view) = &mut self.view {
+            view.draw(ui)
+        } else {
+            Ok(())
+        }
+    }
+}
 
 
 pub trait Widget {

@@ -1,4 +1,4 @@
-use essay_graphics::ui::{Tabs, UiView};
+use essay_graphics::ui::{Tabs, UiSize, UiView};
 use essay_graphics::layout::MainLoop;
 
 fn main() { 
@@ -10,10 +10,15 @@ fn main() {
     let view = UiView::new(move |ui| {
         let mut tabs = Tabs::<String>::new(selected.clone());
         tabs.item(String::from("a"), |ui| {
-            ui.label("Option A");
-            ui.button("hello", hello).onclick(|| { hello=!hello; });
-            ui.button("there", there).onclick(|| { there=!there; });
+            ui.horizontal_view(UiSize::Page(1., 1.), |ui| {
+                ui.label("Option A");
+                ui.button("hello", hello).onclick(|| { hello=!hello; });
+            });
+            ui.horizontal_view(UiSize::Page(1., 1.), |ui| {
+                ui.button("there", there).onclick(|| { there=!there; });
+            });
         });
+
         tabs.item(String::from("b"), |ui| {
             ui.label("Option B");
             ui.button("button", button_b).onclick(|| { button_b=!button_b; });
