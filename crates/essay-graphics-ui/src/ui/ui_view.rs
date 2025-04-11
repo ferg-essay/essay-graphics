@@ -2,7 +2,7 @@ use essay_graphics_api::{renderer::{self, Canvas, Drawable, Renderer}, Bounds, P
 
 use crate::{page::Page, ui::Ui};
 
-use super::{cursor::{Cursor, CursorTop, ViewSizeId, ViewSizeCache}, ui::draw_top};
+use super::{cursor::{ViewSizeId, ViewSizeCache}, ui::draw_top};
 
 pub struct UiView {
     add_content: Box<dyn FnMut(&mut Ui)->() + Send>,
@@ -27,21 +27,18 @@ impl Drawable for UiView {
     ) -> renderer::Result<()> {
         let id = self.last_id;
 
-        let state = self.state.take().unwrap_or_else(|| {
+        let prev_cache = self.state.take().unwrap_or_else(|| {
             ViewSizeCache::new(id)
         });
 
-        let (id, state) = draw_top(
-            id, 
-            state, 
+        let next_cache = draw_top(
+            prev_cache, 
             renderer, 
             &mut self.add_content
         );
 
-        println!("StatePage: {:?}", state.page);
-
         self.last_id = id;
-        self.state = Some(state);
+        self.state = Some(next_cache);
 
         Ok(())
     }

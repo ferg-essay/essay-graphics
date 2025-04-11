@@ -1,14 +1,16 @@
 use essay_graphics_api::{
-    input::Input, renderer::{self, Canvas, Drawable, Renderer}, Bounds, Point, Size, TextStyle
+    input::Input, 
+    renderer::{self, Canvas, Drawable, Renderer}, 
+    Bounds, Point, Size, TextStyle
 };
 
-use crate::{page::Page, ui::{
+use crate::ui::{
     button::Button, 
     label::Label, 
     style::UiStyle,
-}};
+};
 
-use super::{cursor::{Cursor, CursorTop, CursorUpdate, ViewSizeId, ViewSizeCache}, UiView};
+use super::cursor::{Cursor, CursorUpdate, ViewSizeId, ViewSizeCache};
 
 pub struct Ui<'a> {
     renderer: &'a mut dyn Renderer,
@@ -16,30 +18,40 @@ pub struct Ui<'a> {
     cursor: Cursor,
     update: CursorUpdate,
 
-    state: &'a ViewSizeCache,
-}
-
-pub struct UiTop<'a> {
-    renderer: &'a mut dyn Renderer,
-    style: &'a UiStyle,
-    top: CursorTop,
+    prev_cache: Option<&'a ViewSizeCache>,
+    next_cache: &'a mut ViewSizeCache,
+    cache_index: usize,
 }
 
 impl<'a> Ui<'a> {
-    pub(super) fn new(
-        renderer: &'a mut dyn Renderer,
-        style: &'a UiStyle,
-        cursor: Cursor,
+    fn top(
+        renderer: &mut dyn Renderer,
+        prev_cache: Option<&ViewSizeCache>,
+        next_cache: &mut ViewSizeCache,
+        add_content: impl FnOnce(&mut Ui)
+    ) {
+        let page = prev_cache
+            .map(|cache| cache.page)
+            .unwrap_or(Bounds::unit());
 
-        state: &'a ViewSizeCache,
-    ) -> Self {
-        Self {
+        let cursor = Cursor::new(renderer.pos(), page);
+
+        let style = UiStyle::new();
+        
+        let mut ui = Ui {
             cursor,
             renderer,
-            style,
+            style: &style,
             update: CursorUpdate::Vertical,
-            state,
-        }
+    
+            prev_cache,
+            next_cache,
+            cache_index: 0,
+        };
+    
+        (add_content)(&mut ui);
+    
+        next_cache.page = ui.cursor.page_allocated;
     }
     
     fn child(
@@ -53,7 +65,9 @@ impl<'a> Ui<'a> {
             renderer: self.renderer,
             style: self.style,
             update,
-            state: self.state,
+            prev_cache: self.prev_cache,
+            next_cache: self.next_cache,
+            cache_index: self.cache_index,
         };
 
         (add_content)(&mut child);
@@ -67,17 +81,33 @@ impl<'a> Ui<'a> {
         update: CursorUpdate,
         add_content: impl FnOnce(&mut Ui)
     ) {
+        let child_cache = self.prev_cache
+            .map(|cache| cache.get(self.cache_index))
+            .unwrap_or(None);
+
         let mut child = Ui {
-            cursor: self.cursor.child(Point(bounds.xmin(), bounds.ymax())),
+            cursor: self.cursor.child_view(
+                Point(bounds.xmin(), bounds.ymax()),
+                child_cache
+                    .map(|cache| cache.page)
+                    .unwrap_or(Bounds::unit()),
+                child_cache
+                    .map(|cache| cache.canvas)
+                    .unwrap_or(Bounds::zero()),
+            ),
             renderer: self.renderer,
             style: self.style,
             update,
-            state: self.state,
+            prev_cache: child_cache,
+            next_cache: self.next_cache.push(self.cache_index),
+            cache_index: self.cache_index + 1,
         };
 
         (add_content)(&mut child);
 
-        // self.cursor.merge_child(&child.cursor);
+        self.cache_index = child.cache_index;
+        child.next_cache.canvas = child.cursor.fixed_allocated;
+        child.next_cache.page = child.cursor.page_allocated;
     }
 
     #[inline]
@@ -186,15 +216,12 @@ impl<'a> Ui<'a> {
                 )
             }
         };
-            
+
         self.child_view(bounds, CursorUpdate::Horizontal, add_content);
 
-        self.cursor.canvas_pos = Point(self.cursor.canvas_pos.x(), self.cursor.canvas_allocated.ymin());
-
-        println!("View {:?}", bounds);
-        println!("Alloc {:?}", self.cursor.canvas_allocated);
-        println!("Extent {:?}", self.cursor.canvas_extent);
-        println!("PageAlloc {:?}", self.cursor.page_allocated);
+        //self.update.update_pos(&mut self.cursor);
+        //self.cursor.canvas_pos = Point(self.cursor.canvas_pos.x(), self.cursor.canvas_allocated.ymin());
+        //self.cursor.canvas_pos = Point(self.cursor.canvas_pos.x(), self.cursor.canvas_allocated.ymin());
 
         self
     }
@@ -211,38 +238,44 @@ impl<'a> Ui<'a> {
 }
 
 pub(crate) fn draw_top<'a>(
-    id: ViewSizeId, 
-    state: ViewSizeCache, 
+    prev_cache: ViewSizeCache, 
     renderer: &'a mut dyn Renderer, 
     add_content: &'a mut dyn FnMut(&mut Ui)
-) -> (ViewSizeId, ViewSizeCache) {
+) -> ViewSizeCache {
     let mut style = UiStyle::new();
     style.button_press.color("red");
 
-    let mut top = CursorTop::new(id, state, renderer.pos());
+    // let mut top = CursorTop::new(id, prev_cache, renderer.pos());
 
-    let cursor = Cursor::new(renderer.pos(), top.prev_state.page);
+    // let cursor = Cursor::new(renderer.pos(), top.prev_state.page);
 
-    let style = UiStyle::new();
+    // let style = UiStyle::new();
+    let mut next_cache = ViewSizeCache::new(ViewSizeId::default());
     
+    Ui::top(renderer, Some(&prev_cache), &mut next_cache, add_content);
+    /*
     let mut ui = Ui {
-        state: &top.prev_state,
         cursor,
         renderer,
         style: &style,
         update: CursorUpdate::Vertical,
+
+        prev_cache: &top.prev_state,
+        next_cache: &mut next_cache,
+        cache_index: 0,
     };
 
     (add_content)(&mut ui);
 
     // todo()
-    top.next_state.page = ui.cursor.page_allocated;
+    next_cache.page = next_cache.page.union(ui.cursor.page_allocated);
     println!("NextPage: {:?}", top.next_state.page);
+    */
 
-    let last_id = top.last_id;
-    let next_state = top.merge_state();
+    //let last_id = top.last_id;
+    //let next_state = top.merge_state();
 
-    (last_id, next_state)
+    next_cache
 }
 
 pub enum UiSize {

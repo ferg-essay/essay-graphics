@@ -51,6 +51,26 @@ impl Cursor {
         }
     }
 
+    pub(super) fn child_view(
+        &self, 
+        canvas_pos: Point,
+        page_extent: Bounds<Page>,
+        fixed_extent: Bounds<Canvas>,
+    ) -> Self {
+        Self {
+            canvas_extent: self.canvas_extent,
+            page_extent,
+            fixed_extent,
+
+            canvas_pos,
+            page_pos: self.page_pos,
+
+            canvas_allocated: Bounds::from(canvas_pos),
+            page_allocated: Bounds::from(self.page_pos),
+            fixed_allocated: Bounds::zero(),
+        }
+    }
+
     pub(super) fn merge_child(&mut self, child: &Self) {
         self.canvas_allocated = self.canvas_allocated.union(child.canvas_allocated);
         self.page_allocated = self.page_allocated.union(child.page_allocated);
@@ -62,33 +82,6 @@ impl Cursor {
             self.canvas_extent.xmax() - self.canvas_pos.x(),
             self.canvas_pos.y() - self.canvas_extent.ymin()
         )
-    }
-}
-
-pub(super) struct CursorTop {
-    pub last_id: ViewSizeId,
-    pub prev_state: ViewSizeCache,
-    pub next_state: ViewSizeCache,
-    pos: Bounds<Canvas>,
-}
-
-impl CursorTop {
-    pub fn new(
-        last_id: ViewSizeId, 
-        state: ViewSizeCache,
-        pos: Bounds<Canvas>,
-    ) -> Self {
-        Self {
-            last_id,
-            prev_state: state,
-            next_state: ViewSizeCache::new(last_id),
-            pos
-        }
-    }
-
-    pub fn merge_state(self) -> ViewSizeCache {
-        // todo() need to merge because of options like tabs
-        self.next_state
     }
 }
 
@@ -163,15 +156,35 @@ impl CursorUpdate {
                 rect
             },
             CursorUpdate::Horizontal => {
-                if true { todo!(); };
+                let f_width = size.width() / cursor.page_extent.width();
+                let f_height = size.height() / cursor.page_extent.height();
+
+                let canvas_size = Size(
+                    f_width * (cursor.canvas_extent.width() - cursor.fixed_extent.width()),
+                    f_height * (cursor.canvas_extent.height() - cursor.fixed_extent.height()),
+                );
 
                 let rect = Bounds::<Canvas>::new(
-                    [cursor.canvas_pos.x(), cursor.canvas_pos.y() - size.height()],
-                    [cursor.canvas_pos.x() + size.width(), cursor.canvas_pos.y()],
+                    [
+                            cursor.canvas_pos.x(),
+                            (cursor.canvas_pos.y() - canvas_size.height()).max(0.)
+                        ],
+                    [
+                            (cursor.canvas_pos.x() + canvas_size.width()).min(cursor.canvas_extent.xmax()), 
+                            cursor.canvas_pos.y()
+                        ],
                 );
         
-                cursor.canvas_pos = Point(cursor.canvas_pos.x() + size.width(), cursor.canvas_pos.y());
+                cursor.canvas_pos = Point(rect.xmax(), rect.ymax());
                 cursor.canvas_allocated = cursor.canvas_allocated.union(&rect);
+
+                let page_rect = Bounds::<Page>::from((
+                    [cursor.page_pos.x(), cursor.page_pos.y() - size.height()],
+                    [size.width(), size.height()],
+                ));
+
+                cursor.page_pos = Point(page_rect.xmax(), page_rect.ymax());
+                cursor.page_allocated = cursor.page_allocated.union(&page_rect);
 
                 rect
             }
@@ -235,5 +248,22 @@ impl ViewSizeCache {
         self.children[index] = Some(ViewSizeCache::new(id));
 
         self.children[index].as_ref().unwrap()
+    }
+    
+    pub(super) fn get(&self, index: usize) -> Option<&ViewSizeCache> {
+        match self.children.get(index) {
+            Some(view) => view.as_ref(),
+            None => None
+        }
+    }
+    
+    pub(super) fn push(&mut self, index: usize) -> &mut ViewSizeCache {
+        assert!(self.children.len() <= index);
+
+        self.children.resize(index + 1, None);
+
+        self.children[index] = Some(ViewSizeCache::new(ViewSizeId(index)));
+
+        self.children[index].as_mut().unwrap()
     }
 }

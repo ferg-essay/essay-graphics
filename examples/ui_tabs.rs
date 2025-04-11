@@ -11,8 +11,15 @@ fn main() {
         let mut tabs = Tabs::<String>::new(selected.clone());
         tabs.item(String::from("a"), |ui| {
             ui.horizontal_view(UiSize::Page(1., 1.), |ui| {
-                ui.label("Option A");
-                ui.button("hello", hello).onclick(|| { hello=!hello; });
+                ui.horizontal_view(UiSize::Page(1., 1.), |ui| {
+                    ui.label("Option A");
+                });
+                ui.horizontal_view(UiSize::Page(1., 1.), |ui| {
+                    ui.button("hello", hello).onclick(|| { hello=!hello; });
+                });
+                ui.horizontal_view(UiSize::Page(1., 1.), |ui| {
+                    ui.label("more");
+                });
             });
             ui.horizontal_view(UiSize::Page(1., 1.), |ui| {
                 ui.button("there", there).onclick(|| { there=!there; });
