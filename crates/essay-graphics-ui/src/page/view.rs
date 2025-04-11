@@ -1,4 +1,4 @@
-use std::{any::Any, marker::PhantomData, sync::{Arc, Mutex, OnceLock}};
+use std::{any::Any, marker::PhantomData, sync::{Arc, Mutex}};
 
 use essay_graphics_api::{
     renderer::{Result, Canvas, Drawable, Renderer}, 

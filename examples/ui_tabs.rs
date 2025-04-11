@@ -27,8 +27,21 @@ fn main() {
         });
 
         tabs.item(String::from("b"), |ui| {
-            ui.label("Option B");
-            ui.button("button", button_b).onclick(|| { button_b=!button_b; });
+            ui.vertical_view(UiSize::Page(1., 1.), |ui| {
+                ui.vertical_view(UiSize::Page(1., 1.), |ui| {
+                    ui.label("Option B");
+                });
+                ui.vertical_view(UiSize::Page(1., 1.), |ui| {
+                    ui.button("Button B", button_b).onclick(|| { button_b=!button_b; });
+                });
+                ui.vertical_view(UiSize::Page(1., 1.), |ui| {
+                    ui.label("more");
+                });
+            });
+            ui.vertical_view(UiSize::Page(1., 1.), |ui| {
+                ui.label("Tail");
+                ui.label("AfterTail");
+            });
         });
         selected = tabs.show(ui).unwrap();
     });

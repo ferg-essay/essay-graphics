@@ -53,12 +53,14 @@ impl Cursor {
 
     pub(super) fn child_view(
         &self, 
-        canvas_pos: Point,
+        canvas_extent: Bounds<Canvas>,
         page_extent: Bounds<Page>,
         fixed_extent: Bounds<Canvas>,
     ) -> Self {
+        let canvas_pos = Point(canvas_extent.xmin(), canvas_extent.ymax());
+
         Self {
-            canvas_extent: self.canvas_extent,
+            canvas_extent,
             page_extent,
             fixed_extent,
 
@@ -123,131 +125,81 @@ impl CursorUpdate {
     pub fn alloc_page(&self, size: Size, cursor: &mut Cursor) -> Bounds<Canvas> {
         match self {
             CursorUpdate::Vertical => {
-                let f_width = size.width() / cursor.page_extent.width();
-                let f_height = size.height() / cursor.page_extent.height();
-
-                let canvas_size = Size(
-                    f_width * (cursor.canvas_extent.width() - cursor.fixed_extent.width()),
-                    f_height * (cursor.canvas_extent.height() - cursor.fixed_extent.height()),
-                );
-
-                let rect = Bounds::<Canvas>::new(
-                    [
-                            cursor.canvas_pos.x(),
-                            (cursor.canvas_pos.y() - canvas_size.height()).max(0.)
-                        ],
-                    [
-                            (cursor.canvas_pos.x() + canvas_size.width()).min(cursor.canvas_extent.xmax()), 
-                            cursor.canvas_pos.y()
-                        ],
-                );
+                let rect = self.alloc_view_canvas(size, cursor);
         
                 cursor.canvas_pos = Point(cursor.canvas_pos.x(), cursor.canvas_pos.y() - rect.height());
-                cursor.canvas_allocated = cursor.canvas_allocated.union(&rect);
 
-                let page_rect = Bounds::<Page>::from((
-                    [cursor.page_pos.x(), cursor.page_pos.y() - size.height()],
-                    [size.width(), size.height()],
-                ));
+                let page_rect = self.alloc_view_page(size, cursor);
 
-                cursor.page_pos = Point(cursor.page_pos.x(), cursor.page_pos.y() - size.height());
-                cursor.page_allocated = cursor.page_allocated.union(&page_rect);
+                cursor.page_pos = Point(page_rect.xmin(), page_rect.ymin());
 
                 rect
             },
             CursorUpdate::Horizontal => {
-                let f_width = size.width() / cursor.page_extent.width();
-                let f_height = size.height() / cursor.page_extent.height();
-
-                let canvas_size = Size(
-                    f_width * (cursor.canvas_extent.width() - cursor.fixed_extent.width()),
-                    f_height * (cursor.canvas_extent.height() - cursor.fixed_extent.height()),
-                );
-
-                let rect = Bounds::<Canvas>::new(
-                    [
-                            cursor.canvas_pos.x(),
-                            (cursor.canvas_pos.y() - canvas_size.height()).max(0.)
-                        ],
-                    [
-                            (cursor.canvas_pos.x() + canvas_size.width()).min(cursor.canvas_extent.xmax()), 
-                            cursor.canvas_pos.y()
-                        ],
-                );
+                let rect = self.alloc_view_canvas(size, cursor);
         
                 cursor.canvas_pos = Point(rect.xmax(), rect.ymax());
-                cursor.canvas_allocated = cursor.canvas_allocated.union(&rect);
 
-                let page_rect = Bounds::<Page>::from((
-                    [cursor.page_pos.x(), cursor.page_pos.y() - size.height()],
-                    [size.width(), size.height()],
-                ));
+                let page_rect = self.alloc_view_page(size, cursor);
 
                 cursor.page_pos = Point(page_rect.xmax(), page_rect.ymax());
-                cursor.page_allocated = cursor.page_allocated.union(&page_rect);
 
                 rect
             }
         }
     }
-}
 
-#[derive(Clone, Copy, PartialEq, Debug)]
-pub(super) struct ViewSizeId(usize);
+    pub fn alloc_view_canvas(&self, size: Size, cursor: &mut Cursor) -> Bounds<Canvas> {
+        let f_width = size.width() / cursor.page_extent.width();
+        let f_height = size.height() / cursor.page_extent.height();
 
-impl ViewSizeId {
-    #[must_use]
-    fn next(self) -> ViewSizeId {
-        Self(self.0 + 1)
+        let canvas_size = Size(
+            f_width * (cursor.canvas_extent.width() - cursor.fixed_extent.width()),
+            f_height * (cursor.canvas_extent.height() - cursor.fixed_extent.height()),
+        );
+
+        let rect = Bounds::<Canvas>::new(
+            [
+                    cursor.canvas_pos.x(),
+                    (cursor.canvas_pos.y() - canvas_size.height()).max(0.)
+                ],
+            [
+                    (cursor.canvas_pos.x() + canvas_size.width()).min(cursor.canvas_extent.xmax()), 
+                    cursor.canvas_pos.y()
+                ],
+        );
+        
+        cursor.canvas_allocated = cursor.canvas_allocated.union(&rect);
+
+        rect
     }
-}
 
-impl Default for ViewSizeId {
-    fn default() -> Self {
-        Self(1)
+    pub fn alloc_view_page(&self, size: Size, cursor: &mut Cursor) -> Bounds<Page> {
+        let page_rect = Bounds::<Page>::from((
+            [cursor.page_pos.x(), cursor.page_pos.y() - size.height()],
+            [size.width(), size.height()],
+        ));
+
+        cursor.page_allocated = cursor.page_allocated.union(&page_rect);
+
+        page_rect
     }
 }
 
 #[derive(Clone)]
 pub(super) struct ViewSizeCache {
-    pub id: ViewSizeId,
     pub page: Bounds<Page>,
     pub canvas: Bounds<Canvas>,
     pub children: Vec<Option<ViewSizeCache>>,
 }
 
 impl ViewSizeCache {
-    pub(super) fn new(id: ViewSizeId) -> Self {
+    pub(super) fn new() -> Self {
         Self {
-            id,
             page: Bounds::unit(),
             canvas: Bounds::from(Point(0., 0.)),
             children: Vec::default(),
         }
-    }
-
-    fn add_canvas(&mut self, pos: Bounds<Canvas>) {
-        self.canvas = self.canvas.union(pos);
-    }
-
-    fn add_page(&mut self, pos: Bounds<Page>) {
-        self.page = self.page.union(pos);
-    }
-
-    fn child(&self, index: usize) -> Option<&ViewSizeCache> {
-        self.children.get(index)
-            .map(|v| v.as_ref())
-            .unwrap_or(None)
-    }
-
-    fn add_child(&mut self, index: usize, id: ViewSizeId, pos: Point) -> &ViewSizeCache {
-        if self.children.len() <= index {
-            self.children.resize(index, None);
-        }
-
-        self.children[index] = Some(ViewSizeCache::new(id));
-
-        self.children[index].as_ref().unwrap()
     }
     
     pub(super) fn get(&self, index: usize) -> Option<&ViewSizeCache> {
@@ -262,7 +214,7 @@ impl ViewSizeCache {
 
         self.children.resize(index + 1, None);
 
-        self.children[index] = Some(ViewSizeCache::new(ViewSizeId(index)));
+        self.children[index] = Some(ViewSizeCache::new());
 
         self.children[index].as_mut().unwrap()
     }
