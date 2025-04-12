@@ -1,7 +1,8 @@
 mod canvas;
 mod bezier;
 mod image;
-mod main_loop;
+mod main_loop_wgpu;
+mod main_loop_winit;
 mod render;
 mod shape2d;
 mod shape2d_texture;
@@ -22,8 +23,10 @@ pub use canvas::PlotCanvas;
 
 pub use render::PlotRenderer;
 
-pub use main_loop::{
-    WgpuMainLoop, MainLoopHandle, run_event_loop,
+pub use main_loop_wgpu::WgpuMainLoop;
+
+pub use main_loop_winit::{
+    MainLoopHandle, run_event_loop,
 };
 
 pub use hardcopy::WgpuHardcopy;
