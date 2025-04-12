@@ -262,7 +262,7 @@ impl<'a> Ui<'a> {
 }
 
 pub(super) fn draw_top<'a, R>(
-    prev_cache: ViewSizeCache, 
+    prev_cache: &ViewSizeCache, 
     renderer: &'a mut dyn Renderer, 
     add_content: &'a mut dyn FnMut(&mut Ui) -> R
 ) -> (R, ViewSizeCache) {
@@ -271,7 +271,7 @@ pub(super) fn draw_top<'a, R>(
 
     let mut next_cache = ViewSizeCache::new();
     
-    let result = Ui::top(renderer, Some(&prev_cache), &mut next_cache, add_content);
+    let result = Ui::top(renderer, Some(prev_cache), &mut next_cache, add_content);
 
     (result, next_cache)
 }

@@ -27,11 +27,20 @@ impl Drawable for UiView {
             ViewSizeCache::new()
         });
 
-        let (_, next_cache) = draw_top(
-            prev_cache, 
+        let (_, mut next_cache) = draw_top(
+            &prev_cache, 
             renderer, 
             &mut self.add_content
         );
+
+        if ! next_cache.merge(&prev_cache) {
+            // redraw if page cache changes
+            draw_top(
+                &next_cache, 
+                renderer, 
+                &mut self.add_content
+            );
+        }
 
         self.state = Some(next_cache);
 

@@ -218,4 +218,30 @@ impl ViewSizeCache {
 
         self.children[index].as_mut().unwrap()
     }
+    
+    pub(crate) fn merge(&mut self, prev_cache: &ViewSizeCache) -> bool {
+        if self.page != prev_cache.page {
+            return false;
+        }
+
+        if self.children.len() != prev_cache.children.len() {
+            return false;
+        }
+
+        for (next, prev) in self.children.iter_mut().zip(prev_cache.children.iter()) {
+            if next.is_none() != prev.is_none() {
+                return false;
+            }
+
+            if let Some(next) = next {
+                if let Some(prev) = prev {
+                    if ! next.merge(prev) {
+                        return false;
+                    }
+                }
+            }
+        }
+
+        true
+    }
 }
