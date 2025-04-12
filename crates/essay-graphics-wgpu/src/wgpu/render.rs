@@ -20,31 +20,59 @@ pub(super) struct RenderWgpu<'a> {
     //pub encoder: Option<wgpu::CommandEncoder>,
     pub encoder: wgpu::CommandEncoder,
 
-    bounds: Bounds<Canvas>,
+    scissor: Option<(u32, u32, u32, u32)>,
 }
 
 impl<'a> RenderWgpu<'a> {
+    /*
     pub fn clear_scissor(&mut self, rpass: &mut wgpu::RenderPass) {
         rpass.set_scissor_rect(
-            self.bounds.xmin() as u32, 
-            self.bounds.ymax() as u32, 
-            self.bounds.width() as u32,
-            self.bounds.height() as u32
+            self.scissor.xmin() as u32, 
+            self.scissor.ymax() as u32, 
+            self.scissor.width() as u32,
+            self.scissor.height() as u32
         );
     }
+    */
 
     //pub fn render_pass<'b: 'c, 'c>(&'b mut self, draw: impl FnOnce(&mut wgpu::RenderPass<'b>) + 'b) {
     //}
 
-    pub fn render_pass<'b: 'c, 'c>(&'b mut self, draw: impl FnOnce(&mut wgpu::RenderPass<'b>) + 'b) {
+    pub fn render_pass2<'b>(&'b mut self, draw: impl FnOnce(&mut wgpu::RenderPass<'b>) + 'b) {
         //if let Some(mut encoder) = self.encoder.take() {
         //    render_pass2(&mut encoder, self.view, draw);
         //}
         render_pass2(&mut self.encoder, &self.view, draw)
     }
+
+    pub fn render_pass<'b>(
+        &'b mut self,
+        draw: impl FnOnce(&mut wgpu::RenderPass<'b>) + 'b
+    ) {
+        let mut rpass = self.encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+            label: None,
+                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                    view: self.view,
+                    resolve_target: None,
+                    ops: wgpu::Operations {
+                        load: wgpu::LoadOp::Load,
+                        store: wgpu::StoreOp::Store,
+                    }
+                })],
+                depth_stencil_attachment: None,
+                timestamp_writes: None,
+                occlusion_query_set: None,
+        });
+
+        if let Some(scissor) = self.scissor {
+            rpass.set_scissor_rect(scissor.0, scissor.1, scissor.2, scissor.3);
+        }
+    
+        (draw)(&mut rpass);
+    }
 }
 
-pub fn render_pass2<'a: 'b, 'b>(
+pub fn render_pass2<'a>(
     encoder: &'a mut wgpu::CommandEncoder,
     view: &'a wgpu::TextureView,
     draw: impl FnOnce(&mut wgpu::RenderPass<'a>) + 'a
@@ -72,47 +100,23 @@ pub(super) fn wgpu_rpass(
     device: &wgpu::Device,
     queue: &wgpu::Queue,
     view: &wgpu::TextureView,
-    bounds: Bounds<Canvas>,
+    scissor: Option<(u32, u32, u32, u32)>,
     draw: impl FnOnce(&mut RenderWgpu) -> renderer::Result<()>
 ) -> renderer::Result<()> {
-    let mut encoder =
+    let encoder =
         device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
     
-    let result = {
-        /*
-        let rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-            label: None,
-            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                view: view,
-                resolve_target: None,
-                ops: wgpu::Operations {
-                    load: wgpu::LoadOp::Load,
-                    store: wgpu::StoreOp::Store,
-                }
-            })],
-            depth_stencil_attachment: None,
-            timestamp_writes: None,
-            occlusion_query_set: None,
-        });
-        */
-
-        let mut wgpu = RenderWgpu {
-            device,
-            queue,
-            view,
-            bounds,
-            encoder, //: Some(encoder),
-                // rpass,
-        };
-
-        let result = (draw)(&mut wgpu);
-
-        //if let Some(encoder) = wgpu.encoder.take() {
-            queue.submit(Some(wgpu.encoder.finish()));
-        //}
-
-        result
+    let mut wgpu = RenderWgpu {
+        device,
+        queue,
+        view,
+        scissor,
+        encoder,
     };
+
+    let result = (draw)(&mut wgpu);
+
+    queue.submit(Some(wgpu.encoder.finish()));
 
     result
 }
@@ -147,8 +151,10 @@ impl<'a> PlotRenderer<'a> {
     fn flush_inner(&mut self) {
         if let Some(queue) = self.queue {
             if let Some(texture) = self.view {
-                wgpu_rpass(self.device, queue, texture, self.pos(), |wgpu| {
+                wgpu_rpass(self.device, queue, texture, self.get_scissor(), |wgpu| {
+                    self.canvas.image_render.flush(wgpu);
                     self.canvas.shape2d_render.flush(wgpu);
+                    self.canvas.text_render.flush(wgpu);
 
                     Ok(())
                 }).unwrap();
@@ -167,7 +173,7 @@ impl<'a> PlotRenderer<'a> {
                 //let scissor = self.canvas.to_scissor(clip);
                 let scissor = self.get_scissor();
 
-                self.canvas.image_render.flush(queue, texture, &mut encoder);
+                //self.canvas.image_render.flush(queue, texture, &mut encoder);
                 self.canvas.triangle_render.flush(self.device, queue, texture, &mut encoder, scissor);
                 // TODO: order issues with bezier and shape2d
                 //self.canvas.shape2d_render.flush(self.device, queue, texture, &mut encoder, scissor);
@@ -175,7 +181,7 @@ impl<'a> PlotRenderer<'a> {
 
                 self.canvas.bezier_render.flush(self.device, queue, texture, &mut encoder, scissor);
                 self.canvas.shape2d_texture_render.flush(self.device, queue, texture, &mut encoder, scissor);
-                self.canvas.text_render.flush(queue, texture, &mut encoder);
+                //self.canvas.text_render.flush(queue, texture, &mut encoder);
 
                 self.canvas.form3d_render.flush(
                     self.device, 

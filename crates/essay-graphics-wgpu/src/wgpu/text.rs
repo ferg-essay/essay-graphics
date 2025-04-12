@@ -2,7 +2,7 @@ use bytemuck_derive::{Zeroable, Pod};
 use essay_graphics_api::{Affine2d, Color, HorizAlign, Point, Size, VertAlign};
 use wgpu::util::DeviceExt;
 
-use super::{text_texture::TextTexture, text_cache::{TextCache, FontId}};
+use super::{render::RenderWgpu, text_cache::{FontId, TextCache}, text_texture::TextTexture};
 
 pub struct TextRender {
     texture: TextTexture,
@@ -242,18 +242,23 @@ impl TextRender {
         Size(x, size + descent)
     }
 
+    /*
     pub fn flush(
         &mut self, 
         queue: &wgpu::Queue, 
         view: &wgpu::TextureView,
         encoder: &mut wgpu::CommandEncoder,
     ) {
-        self.text_cache.flush(queue, &self.texture);
+    */
+
+    pub(super) fn flush(&mut self, wgpu: &mut RenderWgpu) {
+        self.text_cache.flush(wgpu.queue, &self.texture);
 
         if self.text_items.len() == 0 {
             return;
         }
 
+        /*
         let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: None,
             color_attachments: &[Some(wgpu::RenderPassColorAttachment {
@@ -268,40 +273,42 @@ impl TextRender {
             timestamp_writes: None,
             occlusion_query_set: None,
         });
+        */
 
-        queue.write_buffer(
-            &mut self.vertex_buffer, 
-            0,
-            bytemuck::cast_slice(self.vertex_vec.as_slice())
-        );
-
-        queue.write_buffer(
-            &mut self.style_buffer, 
-            0,
-            bytemuck::cast_slice(self.style_vec.as_slice())
-        );
-
-        for item in self.text_items.drain(..) {
-            rpass.set_pipeline(&self.pipeline);
-
-            let stride = self.vertex_stride;
-            rpass.set_vertex_buffer(0, self.vertex_buffer.slice(
-                (stride * item.start) as u64..(stride * item.end) as u64
-            ));
-
-            let stride = self.style_stride;
-            rpass.set_vertex_buffer(1, self.style_buffer.slice(
-                (stride * item.index) as u64..(stride * (item.index + 1)) as u64
-            ));
-
-            rpass.set_bind_group(0, self.texture.bind_group(), &[]);
-
-            rpass.draw(
-                0..(item.end - item.start) as u32,
-                0..1,
+        wgpu.render_pass(|rpass| {
+            wgpu.queue.write_buffer(
+                &mut self.vertex_buffer, 
+                0,
+                bytemuck::cast_slice(self.vertex_vec.as_slice())
             );
 
-        }
+            wgpu.queue.write_buffer(
+                &mut self.style_buffer, 
+                0,
+                bytemuck::cast_slice(self.style_vec.as_slice())
+            );
+
+            for item in self.text_items.drain(..) {
+                rpass.set_pipeline(&self.pipeline);
+
+                let stride = self.vertex_stride;
+                rpass.set_vertex_buffer(0, self.vertex_buffer.slice(
+                    (stride * item.start) as u64..(stride * item.end) as u64
+                ));
+
+                let stride = self.style_stride;
+                rpass.set_vertex_buffer(1, self.style_buffer.slice(
+                    (stride * item.index) as u64..(stride * (item.index + 1)) as u64
+                ));
+
+                rpass.set_bind_group(0, self.texture.bind_group(), &[]);
+
+                rpass.draw(
+                    0..(item.end - item.start) as u32,
+                    0..1,
+                );
+            }
+        });
 
         self.vertex_offset = 0;
     }
