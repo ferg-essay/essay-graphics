@@ -2,7 +2,7 @@ use bytemuck_derive::{Zeroable, Pod};
 use essay_graphics_api::{Affine2d, Color, HorizAlign, Point, Size, VertAlign};
 use wgpu::util::DeviceExt;
 
-use super::{render::RenderWgpu, text_cache::{FontId, TextCache}, text_texture::TextTexture};
+use super::{render::{RenderWgpu, RenderWgpu2}, text_cache::{FontId, TextCache}, text_texture::TextTexture};
 
 pub struct TextRender {
     texture: TextTexture,

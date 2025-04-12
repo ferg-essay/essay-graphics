@@ -2,7 +2,7 @@ use bytemuck_derive::{Pod, Zeroable};
 use essay_graphics_api::{form::{Form, FormId, Matrix4}, TextureId};
 use wgpu::util::DeviceExt;
 
-use super::texture_store::TextureCache;
+use super::{render::RenderWgpu, texture_store::TextureCache};
 
 pub struct Form3dRender {
     vertex_stride: usize,
@@ -247,6 +247,7 @@ impl Form3dRender {
         self.camera.set(camera);
     }
 
+    /*
     pub fn flush(
         &mut self, 
         device: &wgpu::Device,
@@ -256,14 +257,20 @@ impl Form3dRender {
         textures: &TextureCache,
         clip: Option<(u32, u32, u32, u32)>
     ) {
+    */
+    pub fn flush(
+        &mut self, 
+        wgpu: &mut RenderWgpu,
+        textures: &TextureCache,
+    ) {
         if self.draw_items.len() == 0 {
             return;
         }
 
-        let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+        let mut rpass = wgpu.encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: None,
             color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                view: &view,
+                view: &wgpu.view,
                 resolve_target: None,
                 ops: wgpu::Operations {
                     load: wgpu::LoadOp::Load,
@@ -285,7 +292,7 @@ impl Form3dRender {
         if self.is_buffer_stale {
             self.is_buffer_stale = false;
  
-            self.vertex_buffer = device.create_buffer_init(
+            self.vertex_buffer = wgpu.device.create_buffer_init(
                 &wgpu::util::BufferInitDescriptor {
                     label: None,
                     contents: bytemuck::cast_slice(self.vertex_vec.as_slice()),
@@ -293,7 +300,7 @@ impl Form3dRender {
                 }
             );
     
-            self.index_buffer = device.create_buffer_init(
+            self.index_buffer = wgpu.device.create_buffer_init(
                 &wgpu::util::BufferInitDescriptor {
                     label: None,
                     contents: bytemuck::cast_slice(self.index_vec.as_slice()),
@@ -301,7 +308,7 @@ impl Form3dRender {
                 }
             );
     
-            self.style_buffer = device.create_buffer_init(
+            self.style_buffer = wgpu.device.create_buffer_init(
                 &wgpu::util::BufferInitDescriptor {
                     label: None,
                     contents: bytemuck::cast_slice(self.style_vec.as_slice()),
@@ -313,13 +320,13 @@ impl Form3dRender {
         if self.is_stale {
             self.is_stale = false;
 
-            queue.write_buffer(
+            wgpu.queue.write_buffer(
                 &mut self.vertex_buffer, 
                 0,
                 bytemuck::cast_slice(self.vertex_vec.as_slice())
             );
 
-            queue.write_buffer(
+            wgpu.queue.write_buffer(
                 &mut self.index_buffer, 
                 0,
                 bytemuck::cast_slice(self.index_vec.as_slice())
@@ -334,7 +341,7 @@ impl Form3dRender {
             */
         }
 
-        queue.write_buffer(
+        wgpu.queue.write_buffer(
             &mut self.camera_buffer,
             0,
             bytemuck::cast_slice(&[self.camera])
@@ -345,7 +352,7 @@ impl Form3dRender {
         // rpass.set_stencil_ref
         rpass.set_bind_group(1, &self.camera_bind_group, &[]);
 
-        if let Some((x, y, w, h)) = clip {
+        if let Some((x, y, w, h)) = wgpu.scissor {
             rpass.set_scissor_rect(x, y, w, h);
         }
 

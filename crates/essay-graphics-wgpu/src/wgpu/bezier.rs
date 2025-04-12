@@ -2,6 +2,8 @@ use bytemuck_derive::{Pod, Zeroable};
 use essay_graphics_api::{Point, Color, Affine2d};
 use wgpu::util::DeviceExt;
 
+use super::render::RenderWgpu;
+
 pub struct BezierRender {
     vertex_stride: usize,
     vertex_vec: Vec<BezierVertex>,
@@ -307,6 +309,7 @@ impl BezierRender {
         item.s_end = self.style_offset;
     }
 
+    /*
     pub fn flush(
         &mut self, 
         device: &wgpu::Device,
@@ -315,10 +318,16 @@ impl BezierRender {
         encoder: &mut wgpu::CommandEncoder,
         scissor: Option<(u32, u32, u32, u32)>,
     ) {
+    */
+    pub(super) fn flush(
+        &mut self, 
+        wgpu: &mut RenderWgpu,
+    ) {
         if self.shape_items.len() == 0 {
             return;
         }
 
+        /*
         let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: None,
             color_attachments: &[Some(wgpu::RenderPassColorAttachment {
@@ -333,11 +342,12 @@ impl BezierRender {
             timestamp_writes: None,
             occlusion_query_set: None,
         });
+        */
 
         if self.is_stale {
             self.is_stale = false;
  
-            self.vertex_buffer = device.create_buffer_init(
+            self.vertex_buffer = wgpu.device.create_buffer_init(
                 &wgpu::util::BufferInitDescriptor {
                     label: None,
                     contents: bytemuck::cast_slice(self.vertex_vec.as_slice()),
@@ -345,7 +355,7 @@ impl BezierRender {
                 }
             );
     
-            self.style_buffer = device.create_buffer_init(
+            self.style_buffer = wgpu.device.create_buffer_init(
                 &wgpu::util::BufferInitDescriptor {
                     label: None,
                     contents: bytemuck::cast_slice(self.style_vec.as_slice()),
@@ -354,23 +364,24 @@ impl BezierRender {
             );
         }
 
-        queue.write_buffer(
+        wgpu.queue.write_buffer(
             &mut self.vertex_buffer, 
             0,
             bytemuck::cast_slice(self.vertex_vec.as_slice())
         );
 
-        queue.write_buffer(
+        wgpu.queue.write_buffer(
             &mut self.style_buffer, 
             0,
             bytemuck::cast_slice(self.style_vec.as_slice())
         );
 
+        wgpu.render_pass(|rpass| {
         rpass.set_pipeline(&self.pipeline);
 
-        if let Some((x, y, w, h)) = scissor {
-            rpass.set_scissor_rect(x, y, w, h);
-        }
+        //if let Some((x, y, w, h)) = scissor {
+        //    rpass.set_scissor_rect(x, y, w, h);
+        //}
 
         for item in self.shape_items.drain(..) {
             if item.v_start < item.v_end && item.s_start < item.s_end {
@@ -390,6 +401,7 @@ impl BezierRender {
                 );
             }
         }
+        });
 
         self.vertex_offset = 0;
     }

@@ -2,6 +2,8 @@ use bytemuck_derive::{Pod, Zeroable};
 use essay_graphics_api::Affine2d;
 use wgpu::util::DeviceExt;
 
+use super::render::RenderWgpu;
+
 pub struct Triangle2dRenderer {
     vertex_stride: usize,
     vertex_vec: Vec<Vertex>,
@@ -176,6 +178,7 @@ impl Triangle2dRenderer {
         item.s_end = self.style_offset;
     }
 
+    /*
     pub fn flush(
         &mut self, 
         device: &wgpu::Device,
@@ -184,10 +187,16 @@ impl Triangle2dRenderer {
         encoder: &mut wgpu::CommandEncoder,
         clip: Option<(u32, u32, u32, u32)>,
     ) {
+    */
+    pub fn flush(
+        &mut self, 
+        wgpu: &mut RenderWgpu,
+    ) {
         if self.mesh_items.len() == 0 {
             return;
         }
-
+        
+        /*
         let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: None,
             color_attachments: &[Some(wgpu::RenderPassColorAttachment {
@@ -202,11 +211,12 @@ impl Triangle2dRenderer {
             timestamp_writes: None,
             occlusion_query_set: None,
         });
+        */
 
         if self.is_stale {
             self.is_stale = false;
  
-            self.vertex_buffer = device.create_buffer_init(
+            self.vertex_buffer = wgpu.device.create_buffer_init(
                 &wgpu::util::BufferInitDescriptor {
                     label: None,
                     contents: bytemuck::cast_slice(self.vertex_vec.as_slice()),
@@ -214,7 +224,7 @@ impl Triangle2dRenderer {
                 }
             );
     
-            self.index_buffer = device.create_buffer_init(
+            self.index_buffer = wgpu.device.create_buffer_init(
                 &wgpu::util::BufferInitDescriptor {
                     label: None,
                     contents: bytemuck::cast_slice(self.index_vec.as_slice()),
@@ -222,7 +232,7 @@ impl Triangle2dRenderer {
                 }
             );
     
-            self.style_buffer = device.create_buffer_init(
+            self.style_buffer = wgpu.device.create_buffer_init(
                 &wgpu::util::BufferInitDescriptor {
                     label: None,
                     contents: bytemuck::cast_slice(self.style_vec.as_slice()),
@@ -231,29 +241,32 @@ impl Triangle2dRenderer {
             );
         }
 
-        queue.write_buffer(
+        wgpu.queue.write_buffer(
             &mut self.vertex_buffer, 
             0,
             bytemuck::cast_slice(self.vertex_vec.as_slice())
         );
 
-        queue.write_buffer(
+        wgpu.queue.write_buffer(
             &mut self.index_buffer, 
             0,
             bytemuck::cast_slice(self.index_vec.as_slice())
         );
 
-        queue.write_buffer(
+        wgpu.queue.write_buffer(
             &mut self.style_buffer, 
             0,
             bytemuck::cast_slice(self.style_vec.as_slice())
         );
 
+        wgpu.render_pass(|rpass| {
         rpass.set_pipeline(&self.pipeline);
 
+        /*
         if let Some((x0, y0, w, h)) = clip {
             rpass.set_scissor_rect(x0, y0, w, h);
         }
+        */
 
         for item in self.mesh_items.drain(..) {
             if item.v_start < item.v_end && item.i_start < item.i_end {
@@ -278,6 +291,7 @@ impl Triangle2dRenderer {
                 );
             }
         }
+    });
     }
 }
 

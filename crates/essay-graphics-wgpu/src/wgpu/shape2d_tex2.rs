@@ -2,7 +2,7 @@ use bytemuck_derive::{Pod, Zeroable};
 use essay_graphics_api::{form::{Shape, ShapeId}, Affine2d, TextureId};
 use wgpu::util::DeviceExt;
 
-use super::texture_store::TextureCache;
+use super::{render::RenderWgpu, texture_store::TextureCache};
 
 pub struct Shape2dTex2Render {
     vertex_stride: usize,
@@ -143,17 +143,14 @@ impl Shape2dTex2Render {
 
     pub fn flush(
         &mut self, 
-        device: &wgpu::Device,
-        queue: &wgpu::Queue, 
-        view: &wgpu::TextureView,
-        encoder: &mut wgpu::CommandEncoder,
+        wgpu: &mut RenderWgpu,
         textures: &TextureCache,
-        clip: Option<(u32, u32, u32, u32)>
     ) {
         if self.draw_items.len() == 0 {
             return;
         }
 
+        /*
         let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: None,
             color_attachments: &[Some(wgpu::RenderPassColorAttachment {
@@ -168,11 +165,12 @@ impl Shape2dTex2Render {
             timestamp_writes: None,
             occlusion_query_set: None,
         });
+        */
 
         if self.is_buffer_stale {
             self.is_buffer_stale = false;
  
-            self.vertex_buffer = device.create_buffer_init(
+            self.vertex_buffer = wgpu.device.create_buffer_init(
                 &wgpu::util::BufferInitDescriptor {
                     label: None,
                     contents: bytemuck::cast_slice(self.vertex_vec.as_slice()),
@@ -184,27 +182,28 @@ impl Shape2dTex2Render {
         if self.is_stale {
             self.is_stale = false;
 
-            queue.write_buffer(
+            wgpu.queue.write_buffer(
                 &mut self.vertex_buffer, 
                 0,
                 bytemuck::cast_slice(self.vertex_vec.as_slice())
             );
         }
 
-        queue.write_buffer(
+        wgpu.queue.write_buffer(
             &mut self.camera_buffer,
             0,
             bytemuck::cast_slice(&[self.camera])
         );
 
+        wgpu.render_pass(|rpass| {
         rpass.set_pipeline(&self.pipeline);
 
         // rpass.set_stencil_ref
         rpass.set_bind_group(1, &self.camera_bind_group, &[]);
 
-        if let Some((x, y, w, h)) = clip {
-            rpass.set_scissor_rect(x, y, w, h);
-        }
+        //if let Some((x, y, w, h)) = clip {
+        //    rpass.set_scissor_rect(x, y, w, h);
+        //}
 
         for draw_item in self.draw_items.drain(..) {
             let item = &self.form_items[draw_item.id.0];
@@ -223,6 +222,7 @@ impl Shape2dTex2Render {
                 );
             }
         }
+    });
     }
 }
 

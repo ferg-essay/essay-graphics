@@ -4,7 +4,7 @@ use bytemuck_derive::{Zeroable, Pod};
 use essay_graphics_api::{Affine2d, Color, Hatch, Point, TextureId};
 use wgpu::util::DeviceExt;
 
-use super::{canvas::line_normal, texture_store::TextureCache};
+use super::{canvas::line_normal, render::RenderWgpu, texture_store::TextureCache};
 
 pub struct Shape2dTextureRender {
     vertex_stride: usize,
@@ -173,6 +173,7 @@ impl Shape2dTextureRender {
         item.s_end = self.style_offset;
     }
 
+    /*
     pub fn flush(
         &mut self, 
         device: &wgpu::Device,
@@ -180,6 +181,11 @@ impl Shape2dTextureRender {
         view: &wgpu::TextureView,
         encoder: &mut wgpu::CommandEncoder,
         scissor: Option<(u32, u32, u32, u32)>,
+    ) {
+    */
+    pub fn flush(
+        &mut self, 
+        wgpu: &mut RenderWgpu,
     ) {
         if self.shape_items.len() == 0 {
             return;
@@ -190,7 +196,7 @@ impl Shape2dTextureRender {
         if self.is_stale {
             self.is_stale = false;
  
-            self.vertex_buffer = device.create_buffer_init(
+            self.vertex_buffer = wgpu.device.create_buffer_init(
                 &wgpu::util::BufferInitDescriptor {
                     label: None,
                     contents: bytemuck::cast_slice(self.vertex_vec.as_slice()),
@@ -198,7 +204,7 @@ impl Shape2dTextureRender {
                 }
             );
     
-            self.style_buffer = device.create_buffer_init(
+            self.style_buffer = wgpu.device.create_buffer_init(
                 &wgpu::util::BufferInitDescriptor {
                     label: None,
                     contents: bytemuck::cast_slice(self.style_vec.as_slice()),
@@ -207,18 +213,19 @@ impl Shape2dTextureRender {
             );
         }
 
-        queue.write_buffer(
+        wgpu.queue.write_buffer(
             &mut self.vertex_buffer, 
             0,
             bytemuck::cast_slice(self.vertex_vec.as_slice())
         );
 
-        queue.write_buffer(
+        wgpu.queue.write_buffer(
             &mut self.style_buffer, 
             0,
             bytemuck::cast_slice(self.style_vec.as_slice())
         );
 
+        /*
         {
         let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: None,
@@ -234,19 +241,21 @@ impl Shape2dTextureRender {
             timestamp_writes: None,
             occlusion_query_set: None,
         });
+        */
+        wgpu.render_pass(|rpass| {
 
         rpass.set_pipeline(&self.pipeline);
 
-        if let Some((x, y, w, h)) = scissor {
-            rpass.set_scissor_rect(x, y, w, h);
-        }
+        //if let Some((x, y, w, h)) = scissor {
+        //    rpass.set_scissor_rect(x, y, w, h);
+        //}
 
         let items : Vec<Item> = self.shape_items.drain(..).collect();
         for item in items {
             if item.v_start < item.v_end && item.s_start < item.s_end {
-                if let Some([x, y, w, h]) = item.clip {
-                    rpass.set_viewport(x, y, w, h, f32::MIN, f32::MAX);
-                }
+                //if let Some([x, y, w, h]) = item.clip {
+                //    rpass.set_viewport(x, y, w, h, f32::MIN, f32::MAX);
+                //}
 
                 rpass.set_bind_group(0, self.texture_bind_map(item.texture), &[]);
                 
@@ -266,7 +275,7 @@ impl Shape2dTextureRender {
                 );
             }
         }
-        }
+        });
 
         self.vertex_offset = 0;
     }

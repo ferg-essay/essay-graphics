@@ -20,7 +20,7 @@ pub(super) struct RenderWgpu<'a> {
     //pub encoder: Option<wgpu::CommandEncoder>,
     pub encoder: wgpu::CommandEncoder,
 
-    scissor: Option<(u32, u32, u32, u32)>,
+    pub scissor: Option<(u32, u32, u32, u32)>,
 }
 
 impl<'a> RenderWgpu<'a> {
@@ -72,6 +72,22 @@ impl<'a> RenderWgpu<'a> {
     }
 }
 
+pub(super) struct RenderWgpu2<'a> {
+    pub device: &'a wgpu::Device,
+    pub queue: &'a wgpu::Queue,
+    pub view: &'a wgpu::TextureView,
+
+    scissor: Option<(u32, u32, u32, u32)>,
+}
+
+impl<'a> RenderWgpu2<'a> {
+    pub fn render_pass<'b>(
+        &'b mut self,
+        draw: impl FnOnce(&mut wgpu::RenderPass<'b>) + 'b
+    ) {
+    }
+}
+
 pub fn render_pass2<'a>(
     encoder: &'a mut wgpu::CommandEncoder,
     view: &'a wgpu::TextureView,
@@ -95,7 +111,6 @@ pub fn render_pass2<'a>(
     (draw)(&mut rpass);
 }
 
-
 pub(super) fn wgpu_rpass(
     device: &wgpu::Device,
     queue: &wgpu::Queue,
@@ -117,6 +132,53 @@ pub(super) fn wgpu_rpass(
     let result = (draw)(&mut wgpu);
 
     queue.submit(Some(wgpu.encoder.finish()));
+
+    result
+}
+
+pub(super) fn wgpu_rpass2(
+    device: &wgpu::Device,
+    queue: &wgpu::Queue,
+    view: &wgpu::TextureView,
+    scissor: Option<(u32, u32, u32, u32)>,
+    draw: impl FnOnce(&mut RenderWgpu2, &mut wgpu::RenderPass) -> renderer::Result<()>
+) -> renderer::Result<()> {
+    let mut encoder =
+        device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
+    
+    let mut wgpu = RenderWgpu2 {
+        device,
+        queue,
+        view,
+        scissor,
+    };
+
+    let result = {
+        let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+            label: None,
+                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                    view: view,
+                resolve_target: None,
+                ops: wgpu::Operations {
+                    load: wgpu::LoadOp::Load,
+                    store: wgpu::StoreOp::Store,
+                }
+            })],
+            depth_stencil_attachment: None,
+            timestamp_writes: None,
+            occlusion_query_set: None,
+        });
+
+        if let Some(scissor) = scissor {
+            rpass.set_scissor_rect(scissor.0, scissor.1, scissor.2, scissor.3);
+        }
+
+        (draw)(&mut wgpu, &mut rpass)
+    };
+
+    // let result = (draw)(&mut wgpu);
+
+    queue.submit(Some(encoder.finish()));
 
     result
 }
@@ -153,9 +215,21 @@ impl<'a> PlotRenderer<'a> {
             if let Some(texture) = self.view {
                 wgpu_rpass(self.device, queue, texture, self.get_scissor(), |wgpu| {
                     self.canvas.image_render.flush(wgpu);
+                    self.canvas.triangle_render.flush(wgpu);
                     self.canvas.shape2d_render.flush(wgpu);
+                    // TODO: order issues with bezier and shape2d
+                    self.canvas.bezier_render.flush(wgpu);
+                    self.canvas.shape2d_texture_render.flush(wgpu);
                     self.canvas.text_render.flush(wgpu);
-
+                    self.canvas.form3d_render.flush(
+                        wgpu,
+                        &self.canvas.texture_store, 
+                    );
+                    self.canvas.shape2d_tex2_render.flush(
+                        wgpu,
+                        &self.canvas.texture_store, 
+                    );
+    
                     Ok(())
                 }).unwrap();
                 /*
@@ -167,22 +241,22 @@ impl<'a> PlotRenderer<'a> {
                     scissor: Option<(u32, u32, u32, u32)>,
                 }
                 */
-                let mut encoder =
-                   self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
+                //let mut encoder =
+                //   self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
 
                 //let scissor = self.canvas.to_scissor(clip);
-                let scissor = self.get_scissor();
+                //let scissor = self.get_scissor();
 
                 //self.canvas.image_render.flush(queue, texture, &mut encoder);
-                self.canvas.triangle_render.flush(self.device, queue, texture, &mut encoder, scissor);
+                //self.canvas.triangle_render.flush(self.device, queue, texture, &mut encoder, scissor);
                 // TODO: order issues with bezier and shape2d
                 //self.canvas.shape2d_render.flush(self.device, queue, texture, &mut encoder, scissor);
                 //self.canvas.shape2d_render.flush(&view);
 
-                self.canvas.bezier_render.flush(self.device, queue, texture, &mut encoder, scissor);
-                self.canvas.shape2d_texture_render.flush(self.device, queue, texture, &mut encoder, scissor);
+                //self.canvas.bezier_render.flush(self.device, queue, texture, &mut encoder, scissor);
+                //self.canvas.shape2d_texture_render.flush(self.device, queue, texture, &mut encoder, scissor);
                 //self.canvas.text_render.flush(queue, texture, &mut encoder);
-
+                /*
                 self.canvas.form3d_render.flush(
                     self.device, 
                     queue, 
@@ -199,8 +273,9 @@ impl<'a> PlotRenderer<'a> {
                     &self.canvas.texture_store, 
                     scissor
                 );
+                */
                 
-                queue.submit(Some(encoder.finish()));
+                // queue.submit(Some(encoder.finish()));
             }
         }
     }
