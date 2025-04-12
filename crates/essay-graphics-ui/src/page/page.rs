@@ -438,12 +438,12 @@ impl PageDraw for PageDrawable {
     }
 }
 
-struct PageUi {
+struct _PageUi {
     size: UiSize,
     add_content: Box<dyn FnMut(&mut Ui) + Send>,
 }
 
-impl PageDraw for PageUi {
+impl PageDraw for _PageUi {
     fn draw(&mut self, ui: &mut Ui) {
         ui.vertical_view(self.size, |ui| {
             (self.add_content)(ui)

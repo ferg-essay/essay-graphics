@@ -100,11 +100,10 @@ impl TextCache {
             .size(size)
             .build();
 
-        let image = Render::new(&[
-            Source::Outline,
-        ]).format(Format::Alpha)
-        .render(&mut scaler, glyph)
-        .unwrap();
+        let image = Render::new(&[Source::Outline])
+            .format(Format::Alpha)
+            .render(&mut scaler, glyph)
+            .unwrap();
 
         let placement = image.placement;
 

@@ -26,6 +26,7 @@ pub struct Ui<'a> {
 impl<'a> Ui<'a> {
     fn top<R>(
         renderer: &mut dyn Renderer,
+        style: &UiStyle,
         prev_cache: Option<&ViewSizeCache>,
         next_cache: &mut ViewSizeCache,
         add_content: impl FnOnce(&mut Ui) -> R
@@ -35,13 +36,11 @@ impl<'a> Ui<'a> {
             .unwrap_or(Bounds::unit());
 
         let cursor = Cursor::new(renderer.pos(), page);
-
-        let style = UiStyle::new();
         
         let mut ui = Ui {
             cursor,
             renderer,
-            style: &style,
+            style,
             update: CursorUpdate::Vertical,
     
             prev_cache,
@@ -264,14 +263,12 @@ impl<'a> Ui<'a> {
 pub(super) fn draw_top<'a, R>(
     prev_cache: &ViewSizeCache, 
     renderer: &'a mut dyn Renderer, 
+    style: &UiStyle,
     add_content: &'a mut dyn FnMut(&mut Ui) -> R
 ) -> (R, ViewSizeCache) {
-    let mut style = UiStyle::new();
-    style.button_press.color("red");
-
     let mut next_cache = ViewSizeCache::new();
     
-    let result = Ui::top(renderer, Some(prev_cache), &mut next_cache, add_content);
+    let result = Ui::top(renderer, style, Some(prev_cache), &mut next_cache, add_content);
 
     (result, next_cache)
 }
