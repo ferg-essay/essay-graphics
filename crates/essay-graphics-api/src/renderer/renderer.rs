@@ -121,10 +121,10 @@ pub trait Renderer {
         &mut self,
     );
 
-    fn draw_with<'a>(
+    fn draw_with(
         &mut self, 
         pos: Bounds<Canvas>, 
-        drawable: &'a mut dyn Drawable
+        drawable: &mut dyn Drawable
     ) -> Result<()>;
 
     fn draw_with_closure<'a>(

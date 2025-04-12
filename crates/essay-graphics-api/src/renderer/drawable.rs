@@ -16,6 +16,20 @@ pub trait Drawable {
     fn draw(&mut self, ui: &mut dyn Renderer) -> Result<()>;
 }
 
+impl Drawable for Box<dyn Drawable> {
+    #[inline]
+    fn draw(&mut self, ui: &mut dyn Renderer) -> Result<()> {
+        self.as_mut().draw(ui)
+    }
+}
+
+impl Drawable for Box<dyn Drawable + Send> {
+    #[inline]
+    fn draw(&mut self, ui: &mut dyn Renderer) -> Result<()> {
+        self.as_mut().draw(ui)
+    }
+}
+
 impl<F> Drawable for F
 where
     F: FnMut(&mut dyn Renderer) -> Result<()> 
@@ -24,4 +38,3 @@ where
         (self)(renderer)
     }
 }
-

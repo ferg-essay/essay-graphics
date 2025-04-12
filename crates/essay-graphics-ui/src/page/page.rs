@@ -3,6 +3,8 @@ use essay_graphics_api::{
     Bounds, Coord, Size
 };
 
+use crate::ui::{Tabs, Ui, UiSize, UiView};
+
 pub struct Page {
     views: Vec<ViewItem>,
 }
@@ -167,6 +169,150 @@ impl PageBuilder {
     }
 }
 
+pub struct Page2 {
+    ui_view: UiView,
+}
+
+impl Page2 {
+    pub fn new(view: impl Drawable + Send + 'static) -> Self {
+        Self::build(|ui| {
+            ui.view(view);
+        })
+    }
+
+    pub fn build(f: impl FnOnce(&mut PageBuilder2)) -> Self {
+        let mut builder = PageBuilder2::new();
+
+        (f)(&mut builder);
+
+        let mut items = builder.children;
+
+        Self {
+            ui_view: UiView::new(move |ui| {
+                for item in &mut items {
+                    item.draw(ui);
+                }
+            }),
+        }
+    }
+}
+
+impl Drawable for Page2 {
+    fn draw(&mut self, ui: &mut dyn Renderer) -> Result<()> {
+        self.ui_view.draw(ui)
+    }
+}
+
+pub struct PageBuilder2 {
+    // update: CursorUpdate,
+    children: Vec<Box<dyn PageDraw>>,
+}
+
+impl PageBuilder2 {
+    pub fn new() -> Self {
+        Self {
+            // update: CursorUpdate::Vertical,
+            children: Vec::new(),
+        }
+    }
+
+    pub fn view(&mut self, view: impl Drawable + Send + 'static) {
+        self.view_size(Size(1., 1.), view)
+    }
+
+    pub fn view_size(
+        &mut self, 
+        size: impl Into<Size>,
+        view: impl Drawable + Send + 'static, // <T>>
+    ) {
+        self.children.push(Box::new(PageDrawable {
+            size: size.into(),
+            draw: Box::new(view),
+        }));
+    }
+
+    pub fn horizontal<R>(&mut self, f: impl FnOnce(&mut PageBuilder2) -> R) -> R {
+        self.horizontal_size(1., f)
+    }
+
+    pub fn horizontal_size<R>(&mut self, size: f32, f: impl FnOnce(&mut PageBuilder2) -> R) -> R {
+        let mut sub = Self {
+            children: Vec::new(),
+        };
+
+        let result = (f)(&mut sub);
+
+        self.children.push(Box::new(PageHoriz {
+            size: UiSize::Page(size, size),
+            children: sub.children,
+        }));
+
+        result
+    }
+
+    pub fn vertical<R>(
+        &mut self, 
+        add_content: impl FnOnce(&mut PageBuilder2) -> R
+    ) -> R {
+        self.vertical_size(1., add_content)
+    }
+
+    pub fn vertical_size<R>(
+        &mut self, 
+        size: f32, 
+        add_content: impl FnOnce(&mut PageBuilder2) -> R
+    ) -> R {
+        let mut sub = Self {
+            children: Vec::new(),
+        };
+
+        let result = (add_content)(&mut sub);
+
+        self.children.push(Box::new(PageVert {
+            size: UiSize::Page(size, size),
+            children: sub.children,
+        }));
+
+
+        result
+    }
+
+    pub fn tabs(
+        &mut self, 
+        add_content: impl FnOnce(&mut BuildTabs)
+    ) {
+        let mut tabs = BuildTabs {
+            tabs: Vec::new(),
+        };
+
+        let result = (add_content)(&mut tabs);
+
+        self.children.push(Box::new(PageTabs::new(tabs.tabs)));
+
+
+        result
+    }
+}
+
+pub struct BuildTabs {
+    tabs: Vec<(String, Box<dyn PageDraw>)>,
+}
+
+impl BuildTabs {
+    pub fn tab<R>(&mut self, label: String, add_content: impl FnOnce(&mut PageBuilder2) -> R) -> R {
+        let mut content = PageBuilder2::new();
+
+        let result = (add_content)(&mut content);
+
+        self.tabs.push((label, Box::new(PageVert { 
+            size: UiSize::Page(1., 1.),
+            children: content.children 
+        })));
+
+        result
+    }
+}
+
 #[derive(Clone)]
 enum CursorUpdate {
     Single,
@@ -274,6 +420,98 @@ impl ViewItem {
 
         renderer.draw_with(pos, self.view.as_mut())
 
+    }
+}
+
+trait PageDraw : Send + 'static {
+    fn draw(&mut self, ui: &mut Ui);
+}
+
+struct PageDrawable {
+    size: Size,
+    draw: Box<dyn Drawable + Send>,
+}
+
+impl PageDraw for PageDrawable {
+    fn draw(&mut self, ui: &mut Ui) {
+        ui.draw_size(self.size, &mut self.draw);
+    }
+}
+
+struct PageUi {
+    size: UiSize,
+    add_content: Box<dyn FnMut(&mut Ui) + Send>,
+}
+
+impl PageDraw for PageUi {
+    fn draw(&mut self, ui: &mut Ui) {
+        ui.vertical_view(self.size, |ui| {
+            (self.add_content)(ui)
+        });
+    }
+}
+
+struct PageHoriz {
+    size: UiSize,
+    children: Vec<Box<dyn PageDraw>>,
+}
+
+impl PageDraw for PageHoriz {
+    fn draw(&mut self, ui: &mut Ui) {
+        ui.horizontal_view(self.size, |ui| {
+            for child in &mut self.children {
+                child.draw(ui);
+            }
+        });
+    }
+}
+
+struct PageVert {
+    size: UiSize,
+    children: Vec<Box<dyn PageDraw>>,
+}
+
+impl PageDraw for PageVert {
+    fn draw(&mut self, ui: &mut Ui) {
+        ui.vertical_view(self.size, |ui| {
+            for child in &mut self.children {
+                child.draw(ui);
+            }
+        });
+    }
+}
+
+struct PageTabs {
+    value: String,
+    children: Vec<(String, Box<dyn PageDraw>)>,
+}
+
+impl PageTabs {
+    fn new(children: Vec<(String, Box<dyn PageDraw>)>) -> Self {
+        assert!(children.len() > 0, "tabs must have at least one item");
+
+        Self {
+            value: children[0].0.clone(),
+            children,
+        }
+    }
+}
+
+impl PageDraw for PageTabs {
+    fn draw(&mut self, ui: &mut Ui) {
+        ui.vertical(|ui| {
+            let mut tabs = Tabs::<String>::new(self.value.clone());
+
+            for (label, draw) in &mut self.children {
+                tabs.item(label.clone(), |ui| {
+                    draw.draw(ui);
+                })
+            }
+
+            if let Some(value) = tabs.show(ui) {
+                self.value = value;
+            };
+        });
     }
 }
 

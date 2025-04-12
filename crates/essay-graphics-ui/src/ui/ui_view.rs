@@ -10,7 +10,7 @@ pub struct UiView {
 }
 
 impl UiView {
-    pub fn new(add_content: impl FnMut(&mut Ui)->() + 'static + Send) -> Self {
+    pub fn new(add_content: impl FnMut(&mut Ui)->() + Send + 'static) -> Self {
         Self {
             add_content: Box::new(add_content),
             state: None,

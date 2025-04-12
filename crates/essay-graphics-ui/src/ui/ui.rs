@@ -130,6 +130,11 @@ impl<'a> Ui<'a> {
     pub fn allocate_rect(&mut self, size: Size) -> Bounds<Canvas> {
         self.update.alloc_canvas(size, &mut self.cursor)
     }
+    
+    #[inline]
+    pub fn allocate_page(&mut self, size: Size) -> Bounds<Canvas> {
+        self.update.alloc_page(size, &mut self.cursor)
+    }
 
     #[inline]
     pub fn remaining_size(&mut self) -> Size {
@@ -155,8 +160,14 @@ impl<'a> Ui<'a> {
         self.add(button)
     }
 
-    pub fn view<T: Drawable>(&mut self, view: &mut OnceView<T>, draw: T) -> Response {
-        view.get_or_init_mut(draw).draw(self.renderer()).unwrap();
+    pub fn view<'b, T: Drawable>(&mut self, draw: &'b mut T) -> Response {
+        self.draw_size(Size(1., 1.), draw)
+    }
+
+    pub fn draw_size(&mut self, size: Size, draw: &mut dyn Drawable) -> Response {
+        let rect = self.allocate_page(size);
+        
+        self.renderer().draw_with(rect, draw).unwrap();
 
         Response::default()
     }
@@ -265,6 +276,7 @@ pub(super) fn draw_top<'a, R>(
     (result, next_cache)
 }
 
+#[derive(Copy, Clone, Debug)]
 pub enum UiSize {
     Canvas(f32, f32),
     Page(f32, f32),

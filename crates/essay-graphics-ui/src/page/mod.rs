@@ -3,7 +3,11 @@ mod pages;
 mod page;
 mod main_loop;
 
-pub use page::{Page, PageBuilder, ViewId};
+pub use page::{
+    Page, PageBuilder, 
+    Page2, PageBuilder2, BuildTabs,
+    ViewId
+};
 
 pub use view::{
     View, ViewArc, PosView,
