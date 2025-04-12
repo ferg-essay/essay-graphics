@@ -2,9 +2,9 @@ use bytemuck_derive::{Zeroable, Pod};
 use essay_graphics_api::{Affine2d, Color, Point};
 use wgpu::util::DeviceExt;
 
-use super::canvas::line_normal;
+use super::{canvas::line_normal, render::RenderWgpu};
 
-pub struct Shape2dRender {
+pub(super) struct Shape2dRender {
     vertex_stride: usize,
     vertex_vec: Vec<Shape2dVertex>,
     vertex_buffer: wgpu::Buffer,
@@ -99,7 +99,7 @@ impl Shape2dRender {
             v_end: usize::MAX,
             s_start: self.style_offset,
             s_end: usize::MAX,
-            clip,
+            // clip,
         });
     }
 
@@ -131,6 +131,25 @@ impl Shape2dRender {
         self.vertex(p2.x(), p2.y());
     }
 
+    fn vertex(&mut self, x: f32, y: f32) {
+        //let x = x.round();
+        //let y = y.round();
+
+        let vertex = Shape2dVertex { position: [x, y] };
+
+        let len = self.vertex_vec.len();
+        let offset = self.vertex_offset;
+
+        if offset == len {
+            self.is_stale = true;
+            self.vertex_vec.resize(len + 2048, Shape2dVertex::empty());
+        }
+
+
+        self.vertex_vec[self.vertex_offset] = vertex;
+        self.vertex_offset += 1;
+    }
+
     pub fn draw_style(
         &mut self, 
         color: Color,
@@ -154,14 +173,7 @@ impl Shape2dRender {
         item.s_end = self.style_offset;
     }
 
-    pub fn flush(
-        &mut self, 
-        device: &wgpu::Device,
-        queue: &wgpu::Queue, 
-        view: &wgpu::TextureView,
-        encoder: &mut wgpu::CommandEncoder,
-        scissor: Option<(u32, u32, u32, u32)>,
-    ) {
+    pub(super) fn flush(&mut self, wgpu: &mut RenderWgpu) {
         if self.shape_items.len() == 0 {
             return;
         }
@@ -171,7 +183,7 @@ impl Shape2dRender {
         if self.is_stale {
             self.is_stale = false;
  
-            self.vertex_buffer = device.create_buffer_init(
+            self.vertex_buffer = wgpu.device.create_buffer_init(
                 &wgpu::util::BufferInitDescriptor {
                     label: None,
                     contents: bytemuck::cast_slice(self.vertex_vec.as_slice()),
@@ -179,7 +191,7 @@ impl Shape2dRender {
                 }
             );
     
-            self.style_buffer = device.create_buffer_init(
+            self.style_buffer = wgpu.device.create_buffer_init(
                 &wgpu::util::BufferInitDescriptor {
                     label: None,
                     contents: bytemuck::cast_slice(self.style_vec.as_slice()),
@@ -188,22 +200,26 @@ impl Shape2dRender {
             );
         }
 
-        queue.write_buffer(
+        wgpu.queue.write_buffer(
             &mut self.vertex_buffer, 
             0,
             bytemuck::cast_slice(self.vertex_vec.as_slice())
         );
 
-        queue.write_buffer(
+        wgpu.queue.write_buffer(
             &mut self.style_buffer, 
             0,
             bytemuck::cast_slice(self.style_vec.as_slice())
         );
 
+        /*
+        let mut encoder =
+            wgpu.device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
+
         let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: None,
             color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                view: &view,
+                view: &wgpu.view,
                 resolve_target: None,
                 ops: wgpu::Operations {
                     load: wgpu::LoadOp::Load,
@@ -214,56 +230,44 @@ impl Shape2dRender {
             timestamp_writes: None,
             occlusion_query_set: None,
         });
+        */
 
-        rpass.set_pipeline(&self.pipeline);
+        wgpu.render_pass(|rpass| {
+            rpass.set_pipeline(&self.pipeline);
 
-        if let Some((x, y, w, h)) = scissor {
-            rpass.set_scissor_rect(x, y, w, h);
-        }
-
-        for item in self.shape_items.drain(..) {
-            if item.v_start < item.v_end && item.s_start < item.s_end {
-                if let Some([x, y, w, h]) = item.clip {
-                    rpass.set_viewport(x, y, w, h, f32::MIN, f32::MAX);
-                }
-
-                let stride = self.vertex_stride;
-                rpass.set_vertex_buffer(0, self.vertex_buffer.slice(
-                    (stride * item.v_start) as u64..(stride * item.v_end) as u64
-                ));
-
-                let stride = self.style_stride;
-                rpass.set_vertex_buffer(1, self.style_buffer.slice(
-                    (stride * item.s_start) as u64..(stride * item.s_end) as u64
-                ));
-
-                rpass.draw(
-                    0..(item.v_end - item.v_start) as u32,
-                    0..(item.s_end - item.s_start) as u32,
-                );
+            /*
+            if let Some((x, y, w, h)) = wgpu.scissor {
+                rpass.set_scissor_rect(x, y, w, h);
             }
-        }
+            */
+
+            for item in self.shape_items.drain(..) {
+                if item.v_start < item.v_end && item.s_start < item.s_end {
+                    /*
+                    if let Some([x, y, w, h]) = item.clip {
+                        rpass.set_viewport(x, y, w, h, f32::MIN, f32::MAX);
+                    }
+                    */
+
+                    let stride = self.vertex_stride;
+                    rpass.set_vertex_buffer(0, self.vertex_buffer.slice(
+                        (stride * item.v_start) as u64..(stride * item.v_end) as u64
+                    ));
+
+                    let stride = self.style_stride;
+                    rpass.set_vertex_buffer(1, self.style_buffer.slice(
+                        (stride * item.s_start) as u64..(stride * item.s_end) as u64
+                    ));
+
+                    rpass.draw(
+                        0..(item.v_end - item.v_start) as u32,
+                        0..(item.s_end - item.s_start) as u32,
+                    );
+                }
+            }
+        });
 
         self.vertex_offset = 0;
-    }
-
-    fn vertex(&mut self, x: f32, y: f32) {
-        //let x = x.round();
-        //let y = y.round();
-
-        let vertex = Shape2dVertex { position: [x, y] };
-
-        let len = self.vertex_vec.len();
-        let offset = self.vertex_offset;
-
-        if offset == len {
-            self.is_stale = true;
-            self.vertex_vec.resize(len + 2048, Shape2dVertex::empty());
-        }
-
-
-        self.vertex_vec[self.vertex_offset] = vertex;
-        self.vertex_offset += 1;
     }
 }
 
@@ -274,7 +278,7 @@ pub struct Shape2dItem {
     s_start: usize,
     s_end: usize,
 
-    clip: Option<[f32; 4]>,
+    // clip: Option<[f32; 4]>,
 }
 
 #[repr(C)]

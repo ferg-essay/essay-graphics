@@ -143,14 +143,6 @@ impl Shape2dTextureRender {
         p1: &Point,
         p2: &Point
     ) {
-        //self.vertex(p0.x(), p0.y());
-        //self.vertex(p1.x(), p1.y());
-        //self.vertex(p2.x(), p2.y());
-        //println!("Tri {:?} {:?} {:?}", p0, p1, p2);
-        //self.vertex_uv(p0.x(), p0.y(), 0., 0.);
-        //self.vertex_uv(p1.x(), p1.y(), 0., 10.);
-        //self.vertex_uv(p2.x(), p2.y(), 10., 0.);
-
         let f = 1. / 64.;
 
         self.vertex_uv(p0.x(), p0.y(), p0.x() * f, p0.y() * f);

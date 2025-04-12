@@ -1,3 +1,4 @@
+mod mesh2d;
 mod canvas;
 mod bezier;
 mod image;

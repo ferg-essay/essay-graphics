@@ -146,26 +146,6 @@ impl Form3dRender {
         self.draw_items.drain(..);
     }
 
-    /*
-    pub fn create_texture_rgba8(
-        &mut self, 
-        device: &wgpu::Device, 
-        queue: &wgpu::Queue, 
-        image: &Tensor<u8>
-    ) -> TextureId {
-        assert!(image.rank() == 3, "texture rank must be 3 shape={:?}", image.shape().as_slice());
-        assert!(image.cols() == 4, "texture cols 4 shape={:?}", image.shape().as_slice());
-
-        self.texture_cache.add_rgba_u8(
-            device, 
-            queue, 
-            image.dim(1) as u32, 
-            image.dim(0) as u32, 
-            image.as_slice()
-        )
-    }
-    */
-
     pub fn create_form(&mut self, form: &Form) -> FormId {
         let id = FormId(self.form_items.len());
 
