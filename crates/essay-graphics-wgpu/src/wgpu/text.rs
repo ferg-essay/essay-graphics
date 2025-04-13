@@ -2,7 +2,7 @@ use bytemuck_derive::{Zeroable, Pod};
 use essay_graphics_api::{Affine2d, Color, HorizAlign, Point, Size, VertAlign};
 use wgpu::util::DeviceExt;
 
-use super::{render::{RenderWgpu, RenderWgpu2}, text_cache::{FontId, TextCache}, text_texture::TextTexture};
+use super::{render::RenderWgpu, text_cache::{FontId, TextCache}, text_texture::TextTexture};
 
 pub struct TextRender {
     texture: TextTexture,
@@ -242,38 +242,12 @@ impl TextRender {
         Size(x, size + descent)
     }
 
-    /*
-    pub fn flush(
-        &mut self, 
-        queue: &wgpu::Queue, 
-        view: &wgpu::TextureView,
-        encoder: &mut wgpu::CommandEncoder,
-    ) {
-    */
-
     pub(super) fn flush(&mut self, wgpu: &mut RenderWgpu) {
         self.text_cache.flush(wgpu.queue, &self.texture);
 
         if self.text_items.len() == 0 {
             return;
         }
-
-        /*
-        let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-            label: None,
-            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                view: &view,
-                resolve_target: None,
-                ops: wgpu::Operations {
-                    load: wgpu::LoadOp::Load,
-                    store: wgpu::StoreOp::Store,
-                }
-            })],
-            depth_stencil_attachment: None,
-            timestamp_writes: None,
-            occlusion_query_set: None,
-        });
-        */
 
         wgpu.render_pass(|rpass| {
             wgpu.queue.write_buffer(
@@ -311,6 +285,7 @@ impl TextRender {
         });
 
         self.vertex_offset = 0;
+        self.style_offset = 0;
     }
 
     fn vertex(&mut self, x: f32, y: f32, u: f32, v: f32) {

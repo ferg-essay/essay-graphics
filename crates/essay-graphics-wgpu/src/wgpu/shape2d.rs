@@ -1,3 +1,5 @@
+use std::mem;
+
 use bytemuck_derive::{Zeroable, Pod};
 use essay_graphics_api::{Affine2d, Color, Point};
 use wgpu::util::DeviceExt;
@@ -81,17 +83,13 @@ impl Shape2dRender {
         }
     }
 
-    //pub fn add_texture(&mut self, width: usize, height: usize, data: &[u8]) -> TextureId {
-    //    self.texture_cache.add(width, height, data)
-    //}
-
     pub fn clear(&mut self) {
         self.shape_items.drain(..);
         self.vertex_offset = 0;
         self.style_offset = 0;
     }
 
-    pub fn start_shape(&mut self, clip: Option<[f32; 4]>) {
+    pub fn start_shape(&mut self) {
         let start = self.vertex_offset;
 
         self.shape_items.push(Shape2dItem {
@@ -132,9 +130,6 @@ impl Shape2dRender {
     }
 
     fn vertex(&mut self, x: f32, y: f32) {
-        //let x = x.round();
-        //let y = y.round();
-
         let vertex = Shape2dVertex { position: [x, y] };
 
         let len = self.vertex_vec.len();
@@ -171,6 +166,40 @@ impl Shape2dRender {
         self.style_offset += 1;
 
         item.s_end = self.style_offset;
+    }
+
+    pub(super) fn draw_mesh(
+        &mut self, 
+        wgpu: &mut RenderWgpu,
+        mesh: Shape2dMesh,
+        color: Color,
+        affine: &Affine2d,
+    ) {
+        if self.vertex_vec.len() < self.vertex_offset + mesh.len()
+            || self.style_vec.len() <= self.style_offset + 1 {
+            self.flush(wgpu);
+        }
+
+        if self.vertex_vec.len() < self.vertex_offset + mesh.len()
+            || self.style_vec.len() <= self.style_offset + 1 {
+            todo!("Can't yet resize buffers");
+        }
+
+        let offset = self.vertex_offset;
+        let len = mesh.vertices.len();
+        //let slice = self.vertex_vec.as_mut_slice();
+
+        self.start_shape();
+
+
+        self.vertex_vec.as_mut_slice()[offset..offset + len]
+            .copy_from_slice(&mesh.vertices.as_slice()[..len]);
+
+        self.vertex_offset += len;
+        
+        // ptr::copy_nonnonnoncopy_nono
+
+        self.draw_style(color, affine);
     }
 
     pub(super) fn flush(&mut self, wgpu: &mut RenderWgpu) {
@@ -212,43 +241,11 @@ impl Shape2dRender {
             bytemuck::cast_slice(self.style_vec.as_slice())
         );
 
-        /*
-        let mut encoder =
-            wgpu.device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
-
-        let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-            label: None,
-            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                view: &wgpu.view,
-                resolve_target: None,
-                ops: wgpu::Operations {
-                    load: wgpu::LoadOp::Load,
-                    store: wgpu::StoreOp::Store,
-                }
-            })],
-            depth_stencil_attachment: None,
-            timestamp_writes: None,
-            occlusion_query_set: None,
-        });
-        */
-
         wgpu.render_pass(|rpass| {
             rpass.set_pipeline(&self.pipeline);
 
-            /*
-            if let Some((x, y, w, h)) = wgpu.scissor {
-                rpass.set_scissor_rect(x, y, w, h);
-            }
-            */
-
             for item in self.shape_items.drain(..) {
                 if item.v_start < item.v_end && item.s_start < item.s_end {
-                    /*
-                    if let Some([x, y, w, h]) = item.clip {
-                        rpass.set_viewport(x, y, w, h, f32::MIN, f32::MAX);
-                    }
-                    */
-
                     let stride = self.vertex_stride;
                     rpass.set_vertex_buffer(0, self.vertex_buffer.slice(
                         (stride * item.v_start) as u64..(stride * item.v_end) as u64
@@ -271,14 +268,54 @@ impl Shape2dRender {
     }
 }
 
-pub struct Shape2dItem {
-    v_start: usize,
-    v_end: usize,
+pub(super) struct Shape2dMesh {
+    vertices: Vec<Shape2dVertex>,
+}
 
-    s_start: usize,
-    s_end: usize,
+impl Shape2dMesh {
+    pub fn new() -> Self {
+        Self {
+            vertices: Vec::new(),
+        }
+    }
 
-    // clip: Option<[f32; 4]>,
+    fn len(&self) -> usize {
+        self.vertices.len()
+    }
+
+    pub(crate) fn draw_line(
+        &mut self, 
+        b0: &Point,
+        b1: &Point,
+        lw2: f32,
+    ) {
+        let (nx, ny) = line_normal(*b0, *b1, lw2);
+
+        self.vertex(b0.x() - nx, b0.y() + ny);
+        self.vertex(b0.x() + nx, b0.y() - ny);
+        self.vertex(b1.x() + nx, b1.y() - ny);
+
+        self.vertex(b1.x() + nx, b1.y() - ny);
+        self.vertex(b1.x() - nx, b1.y() + ny);
+        self.vertex(b0.x() - nx, b0.y() + ny);
+    }
+
+    pub(crate) fn draw_triangle(
+        &mut self, 
+        p0: &Point,
+        p1: &Point,
+        p2: &Point
+    ) {
+        self.vertex(p0.x(), p0.y());
+        self.vertex(p1.x(), p1.y());
+        self.vertex(p2.x(), p2.y());
+    }
+
+    fn vertex(&mut self, x: f32, y: f32) {
+        let vertex = Shape2dVertex { position: [x, y] };
+
+        self.vertices.push(vertex);
+    }
 }
 
 #[repr(C)]
@@ -306,6 +343,15 @@ impl Shape2dVertex {
     }
 }
 
+pub struct Shape2dItem {
+    v_start: usize,
+    v_end: usize,
+
+    s_start: usize,
+    s_end: usize,
+
+    // clip: Option<[f32; 4]>,
+}
 #[repr(C)]
 #[derive(Copy, Clone, Debug, Pod, Zeroable)]
 pub struct Shape2dStyle {

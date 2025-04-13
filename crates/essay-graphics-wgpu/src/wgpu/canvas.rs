@@ -1,7 +1,7 @@
 use essay_graphics_api::{
     form::{Form, FormId, Matrix4, Shape, ShapeId}, 
     input::Input,
-    renderer::{Canvas, Drawable, RenderErr, Result}, 
+    renderer::{Canvas, Drawable, RenderErr, Renderer, Result}, 
     Affine2d, Bounds, CapStyle, Clip, Color, FontStyle, FontTypeId, HorizAlign, ImageId, JoinStyle, LineStyle, 
     Path, PathCode, PathOpt, Point, Size, TextStyle, TextureId, VertAlign
 };
@@ -10,7 +10,7 @@ use essay_tensor::tensor::Tensor;
 use crate::PlotRenderer;
 
 use super::{
-    bezier::BezierRender, form3d::Form3dRender, image::ImageRender, shape2d::Shape2dRender, shape2d_tex2::Shape2dTex2Render, shape2d_texture::Shape2dTextureRender, text::TextRender, text_cache::FontId, texture_store::TextureCache, triangle2d::Triangle2dRenderer, triangulate::triangulate2
+    bezier::BezierRender, form3d::Form3dRender, image::ImageRender, render::{render_draw, render_draw_inner}, shape2d::Shape2dRender, shape2d_tex2::Shape2dTex2Render, shape2d_texture::Shape2dTextureRender, text::TextRender, text_cache::FontId, texture_store::TextureCache, triangle2d::Triangle2dRenderer, triangulate::triangulate2
 };
 
 
@@ -97,6 +97,25 @@ impl PlotCanvas {
         self.is_request_redraw = is_redraw;
     }
 
+    pub fn draw<'a, R>(
+        &'a mut self,
+        device: &'a wgpu::Device,
+        queue: &'a wgpu::Queue,
+        view: Option<&'a wgpu::TextureView>,
+        draw: impl FnOnce(&mut dyn Renderer) -> Result<R> + 'a
+    ) -> Result<R> {
+        self.clear();
+        
+        let result = render_draw_inner(self, device, queue, view, draw);
+        // let result = render_draw_inner(canvas, device, queue, view, draw);
+    
+        self.input_mut().update_after_draw();
+        
+        result
+    }
+    
+    
+
     pub fn clear(&mut self) {
         self.bezier_render.clear();
         self.text_render.clear();
@@ -173,7 +192,7 @@ impl PlotCanvas {
         &mut self, 
         path: &Path<Canvas>, 
     ) {
-        self.shape2d_render.start_shape(None);
+        self.shape2d_render.start_shape();
         self.bezier_render.start_shape();
 
         let mut last = Point(0., 0.);
@@ -227,7 +246,7 @@ impl PlotCanvas {
         let lw2 = self.to_px(0.5 * linewidth); // / self.canvas.width();
         let lw2 = lw2.max(0.5);
         
-        self.shape2d_render.start_shape(None);
+        self.shape2d_render.start_shape();
         self.bezier_render.start_shape();
 
         let mut p0 = Point(0.0f32, 0.0f32);
@@ -749,21 +768,27 @@ impl PlotCanvas {
         Ok(())
     }
 
-    pub(crate) fn draw(
+    /*
+    pub(crate) fn draw<R>(
         &mut self,
-        draw: &mut dyn Drawable,
         device: &wgpu::Device,
         queue: &wgpu::Queue,
-        view: &wgpu::TextureView,
-    ) -> Result<()> {
-        draw.draw(&mut self.renderer(device, queue, Some(view)))?;
+        view: Option<&wgpu::TextureView>,
+        draw: impl FnOnce(&mut dyn Renderer) -> Result<R>
+    ) -> Result<R> {
+        self.clear();
+
+        // let result = (draw)(&mut self._renderer(device, queue, view))?;
+        let result = render_draw(self, device, queue, view, draw)?;
 
         self.input.update_after_draw();
 
-        Ok(())
+        Ok(result)
     }
+    */
 
-    pub fn renderer<'a>(
+    /*
+    pub fn _renderer<'a>(
         &'a mut self, 
         device: &'a wgpu::Device, 
         queue: &'a wgpu::Queue, 
@@ -771,8 +796,10 @@ impl PlotCanvas {
     ) -> PlotRenderer<'a> {
         self.clear();
 
-        PlotRenderer::new(self, device, Some(queue), view)
+        // PlotRenderer::new(self, device, Some(queue), view)
+        PlotRenderer::new(self, device, queue, view)
     }
+    */
 }
 
 fn clamp_miter(center: Point, miter: Point, lim: f32) -> Point {

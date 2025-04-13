@@ -130,7 +130,7 @@ pub trait Renderer {
     fn draw_with_closure<'a>(
         &mut self, 
         pos: Bounds<Canvas>, 
-        f: Box<dyn FnOnce(&mut dyn Renderer) -> Result<()> + 'a>,
+        draw: Box<dyn FnOnce(&mut dyn Renderer) -> Result<()> + 'a>,
     ) -> Result<()>;
 
     fn input(&self) -> &Input;

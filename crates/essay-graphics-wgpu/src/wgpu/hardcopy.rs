@@ -1,10 +1,12 @@
 use std::{fs::File, io::BufWriter, ops::Deref};
 
-use essay_graphics_api::renderer::{Drawable, Renderer};
+use essay_graphics_api::renderer::{self, Drawable, Renderer};
 use wgpu::BufferView;
 use image::{ImageBuffer, Rgba};
 
 use crate::{PlotCanvas, PlotRenderer};
+
+use super::render::render_draw;
 
 pub struct WgpuHardcopy {
     device: wgpu::Device,
@@ -136,15 +138,6 @@ impl WgpuHardcopy {
         self.read_into(id, fun)
     }
 
-    pub fn renderer_viewless(&mut self) -> PlotRenderer {
-        PlotRenderer::new(
-            &mut self.canvas, 
-            &self.device, 
-            Some(&self.queue), 
-            None
-        )
-    }
-
     pub fn draw(&mut self, drawable: &mut dyn Drawable) {
         let view = self.texture
             .create_view(&wgpu::TextureViewDescriptor::default());
@@ -154,15 +147,35 @@ impl WgpuHardcopy {
         self.canvas.clear();
         self.canvas.request_redraw(true);
 
-        let mut plot_renderer = PlotRenderer::new(
+        render_draw(
             &mut self.canvas, 
             &self.device, 
-            Some(&self.queue), 
-            Some(&view)
-        );
+            //Some(&self.queue), 
+            &self.queue, 
+            Some(&view),
+            |ui| {
+                drawable.draw(ui)                
+            }
+        ).unwrap();
 
-        drawable.draw(&mut plot_renderer).unwrap();
-        plot_renderer.flush();
+        // drawable.draw(&mut plot_renderer).unwrap();
+        // plot_renderer.flush();
+    }
+
+    pub fn draw_viewless<R>(&mut self, draw: impl FnOnce(&mut dyn Renderer) -> renderer::Result<R>) -> renderer::Result<R> {
+        self.canvas.clear();
+
+        render_draw(
+            &mut self.canvas, 
+            &self.device, 
+            //Some(&self.queue), 
+            &self.queue, 
+            None,
+            draw,
+        )
+
+        // drawable.draw(&mut plot_renderer).unwrap();
+        // plot_renderer.flush();
     }
 
     pub fn copy_into_buffer(

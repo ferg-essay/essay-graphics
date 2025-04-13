@@ -309,16 +309,6 @@ impl BezierRender {
         item.s_end = self.style_offset;
     }
 
-    /*
-    pub fn flush(
-        &mut self, 
-        device: &wgpu::Device,
-        queue: &wgpu::Queue, 
-        view: &wgpu::TextureView,
-        encoder: &mut wgpu::CommandEncoder,
-        scissor: Option<(u32, u32, u32, u32)>,
-    ) {
-    */
     pub(super) fn flush(
         &mut self, 
         wgpu: &mut RenderWgpu,
@@ -326,23 +316,6 @@ impl BezierRender {
         if self.shape_items.len() == 0 {
             return;
         }
-
-        /*
-        let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-            label: None,
-            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                view: &view,
-                resolve_target: None,
-                ops: wgpu::Operations {
-                    load: wgpu::LoadOp::Load,
-                    store: wgpu::StoreOp::Store,
-                }
-            })],
-            depth_stencil_attachment: None,
-            timestamp_writes: None,
-            occlusion_query_set: None,
-        });
-        */
 
         if self.is_stale {
             self.is_stale = false;

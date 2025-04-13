@@ -3,7 +3,7 @@ use std::time::Duration;
 use essay_graphics_api::{input::Input, renderer::{self, Drawable}};
 use winit::{event_loop::EventLoop, window::{CursorIcon, Window}};
 
-use super::{run_event_loop, MainLoopHandle, PlotCanvas};
+use super::{render::render_draw, run_event_loop, MainLoopHandle, PlotCanvas, PlotRenderer};
 
 pub struct WgpuMainLoop {
     title: Option<String>,
@@ -135,7 +135,10 @@ impl MainLoopData {
     
         self.queue.submit(Some(encoder.finish()));
     
-        self.canvas.draw(self.drawable.as_mut(), &self.device, &self.queue, &view).unwrap();
+        render_draw(&mut self.canvas, &self.device, &self.queue, Some(&view), |ui| {
+            self.drawable.draw(ui)
+        });
+        //self.canvas.draw(self.drawable.as_mut(), &self.device, &self.queue, &view).unwrap();
     
         frame.present();
     }

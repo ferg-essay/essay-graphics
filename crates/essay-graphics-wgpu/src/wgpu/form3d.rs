@@ -258,7 +258,7 @@ impl Form3dRender {
         clip: Option<(u32, u32, u32, u32)>
     ) {
     */
-    pub fn flush(
+    pub(super) fn flush(
         &mut self, 
         wgpu: &mut RenderWgpu,
         textures: &TextureCache,
