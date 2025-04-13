@@ -267,7 +267,8 @@ impl Form3dRender {
             return;
         }
 
-        let mut rpass = wgpu.encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+        if let Some(encoder) = &mut wgpu.encoder {
+        let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: None,
             color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                 view: &wgpu.view,
@@ -393,6 +394,7 @@ impl Form3dRender {
                 );
             }
         }
+    }
     }
 }
 

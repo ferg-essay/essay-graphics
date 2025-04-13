@@ -223,6 +223,7 @@ impl Shape2dTex2Render {
             }
         }
     });
+        self.clear();
     }
 }
 

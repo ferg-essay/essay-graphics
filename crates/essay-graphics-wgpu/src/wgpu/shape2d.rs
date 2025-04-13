@@ -264,7 +264,7 @@ impl Shape2dRender {
             }
         });
 
-        self.vertex_offset = 0;
+        self.clear();
     }
 }
 
@@ -343,6 +343,7 @@ impl Shape2dVertex {
     }
 }
 
+#[derive(Debug)]
 pub struct Shape2dItem {
     v_start: usize,
     v_end: usize,

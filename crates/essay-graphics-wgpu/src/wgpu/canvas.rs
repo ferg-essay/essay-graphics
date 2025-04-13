@@ -112,6 +112,10 @@ impl PlotCanvas {
     }
     
     pub fn clear(&mut self) {
+        if true {
+            return;
+        }
+        /*
         self.bezier_render.clear();
         self.text_render.clear();
         self.shape2d_render.clear();
@@ -121,6 +125,7 @@ impl PlotCanvas {
 
         self.form3d_render.clear();
         self.shape2d_tex2_render.clear();
+        */
     }
 
     pub fn resize(&mut self, device: &wgpu::Device, width: u32, height: u32) {

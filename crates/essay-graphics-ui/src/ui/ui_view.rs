@@ -90,6 +90,7 @@ impl UiTop {
             let mut style = PathStyle::new();
             style.color(self.style[State::Active].background);
 
+            renderer.flush();
             renderer.draw_path(&path, &style).unwrap();
 
             // redraw if page cache changes

@@ -3,7 +3,7 @@ use std::mem;
 use essay_graphics_api::{
     form::{Form, FormId, Matrix4, Shape, ShapeId}, 
     input::Input,
-    renderer::{self, Canvas, Drawable, RenderErr, Renderer, Result}, 
+    renderer::{self, Canvas, RenderErr, Renderer, Result}, 
     Affine2d, Bounds, FontStyle, FontTypeId, ImageId, Path, PathOpt, 
     Point, Size, TextStyle, TextureId
 };
@@ -16,17 +16,48 @@ pub(super) struct RenderWgpu<'a> {
     pub queue: &'a wgpu::Queue,
     pub view: &'a wgpu::TextureView,
 
-    pub encoder: wgpu::CommandEncoder,
+    pub encoder: Option<wgpu::CommandEncoder>,
 
     pub scissor: Option<(u32, u32, u32, u32)>,
+    pub state: State,
+    pub commands: Vec<wgpu::CommandBuffer>,
+}
+
+#[derive(Clone, Copy, PartialEq)]
+pub enum State {
+    PreInit,
+    Initialized
 }
 
 impl<'a> RenderWgpu<'a> {
+    pub fn init(&mut self) {
+        if self.state == State::PreInit {
+            self.state = State::Initialized;
+
+            self.clear_screen(self.view);
+        }
+    }
+
+    pub fn init_encoder(&mut self) {
+        if self.encoder.is_none() {
+            self.encoder = Some(
+                self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None })
+            );
+
+            self.init();
+        }
+
+    }
+
     pub fn render_pass<'b>(
         &'b mut self,
         draw: impl FnOnce(&mut wgpu::RenderPass<'b>) + 'b
     ) {
-        let mut rpass = self.encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+        self.init();
+
+        self.init_encoder();
+        if let Some(encoder) = &mut self.encoder {
+        let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: None,
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                     view: self.view,
@@ -42,10 +73,66 @@ impl<'a> RenderWgpu<'a> {
         });
 
         if let Some(scissor) = self.scissor {
+            println!("Scissor {:?}", scissor);
             rpass.set_scissor_rect(scissor.0, scissor.1, scissor.2, scissor.3);
         }
     
         (draw)(&mut rpass);
+        }
+
+        // self.queue.submit(self.encoder..finish());
+    }
+
+    fn clear_screen(&mut self, view: &wgpu::TextureView) {
+        //if let Some(encoder) = self.get_encoder() {
+        self.get_encoder().begin_render_pass(&wgpu::RenderPassDescriptor {
+            label: None,
+            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                view: &view,
+                resolve_target: None,
+                ops: wgpu::Operations {
+                    load: wgpu::LoadOp::Clear(wgpu::Color {
+                        r: 1.0,
+                        g: 1.0,
+                        b: 1.0,
+                        a: 1.0,
+                    }),
+                    store: wgpu::StoreOp::Store,
+                }
+            })],
+            depth_stencil_attachment: None,
+            timestamp_writes: None,
+            occlusion_query_set: None,
+        });
+    //    }
+    }
+
+    fn get_encoder(&mut self) -> &mut wgpu::CommandEncoder {
+        self.init_encoder();
+
+        self.encoder.as_mut().unwrap()
+    }
+
+    fn flush(&mut self) {
+        if let Some(encoder) = self.encoder.take() {
+            self.queue.submit(Some(encoder.finish()));
+            // self.commands.push(encoder.finish());
+            // self.queue.submit(Some(encoder.finish()));
+        }
+
+        // self.encoder = Some(encoder);
+    
+    }
+
+    fn close(&mut self) {
+        self.flush();
+        /*
+        if let Some(encoder) = self.encoder.take() {
+            self.commands.push(encoder.finish());
+        }
+
+        self.queue.submit(self.commands.drain(..));
+        */
     }
 }
 
@@ -56,20 +143,34 @@ pub(super) fn wgpu_rpass<'a: 'b, 'b, R>(
     // scissor: Option<(u32, u32, u32, u32)>,
     draw: impl FnOnce(&mut RenderWgpu<'a>) -> renderer::Result<R> + 'b
 ) -> renderer::Result<R> {
-    let encoder =
-        device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
+    //let encoder =
+    //    device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
     
     let mut wgpu = RenderWgpu {
         device,
         queue,
         view,
         scissor: None,
-        encoder,
+        encoder: None,
+        state: State::PreInit,
+        commands: Vec::new(),
     };
 
     let result = (draw)(&mut wgpu);
 
-    queue.submit(Some(wgpu.encoder.finish()));
+    //if let Some(encoder) = wgpu.encoder.take() {
+    //    wgpu.commands.push(encoder.finish());
+    //}
+
+    //if wgpu.state != State::PreInit {
+        //println!("SubMit");
+    //}
+
+    //if wgpu.commands.len() > 0 {
+    //    wgpu.queue.submit(wgpu.commands.drain(..));
+    //}
+
+    wgpu.close();
 
     result
 }
@@ -188,6 +289,8 @@ impl<'a, 'b> PlotRenderer<'a, 'b> {
                 wgpu,
                 &self.canvas.texture_store, 
             );
+
+            wgpu.flush();
         }
         /*
         if let Some(queue) = self.queue {
@@ -256,7 +359,10 @@ impl<'a, 'b> Renderer for PlotRenderer<'a, 'b> {
         path: &Path<Canvas>, 
         style: &dyn PathOpt, 
     ) -> Result<(), RenderErr> {
-        self.canvas.draw_path(path, style)
+        self.canvas.draw_path(path, style)?;
+        
+        Ok(())
+
     }
 
     fn draw_markers(
@@ -452,9 +558,10 @@ impl Drop for Push<'_, '_, '_> {
         mem::swap(&mut self.pos, &mut self.ptr.pos);
     }
 }
-
+/*
 impl Drop for PlotRenderer<'_, '_> {
     fn drop(&mut self) {
         self.flush_inner();
     }
 }
+    */

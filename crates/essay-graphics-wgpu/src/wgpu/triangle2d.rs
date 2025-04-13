@@ -291,6 +291,10 @@ impl Triangle2dRenderer {
                 );
             }
         }
+
+        self.style_offset = 0;
+        self.index_offset = 0;
+        self.vertex_offset = 0;
     });
     }
 }

@@ -325,7 +325,7 @@ impl ImageRender {
             }
         });
 
-        self.vertex_offset = 0;
+        self.clear();
     }
 
     fn vertex(&mut self, x: f32, y: f32, u: f32, v: f32) {
