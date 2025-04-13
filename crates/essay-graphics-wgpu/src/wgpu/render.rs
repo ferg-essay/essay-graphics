@@ -362,7 +362,11 @@ impl<'a, 'b> Renderer for PlotRenderer<'a, 'b> {
         path: &Path<Canvas>, 
         style: &dyn PathOpt, 
     ) -> Result<(), RenderErr> {
-        self.canvas.draw_path(path, style)
+        if let Some(wgpu) = self.wgpu.as_mut() {
+            self.canvas.draw_path(wgpu, path, style)?;
+        }
+
+        Ok(())
     }
     
     fn draw_bezier_mesh(
@@ -397,7 +401,11 @@ impl<'a, 'b> Renderer for PlotRenderer<'a, 'b> {
         color: &Tensor<u32>,
         style: &dyn PathOpt, 
     ) -> Result<(), RenderErr> {
-        self.canvas.draw_markers(marker, xy, scale, color, style)
+        if let Some(wgpu) = self.wgpu.as_mut() {
+            self.canvas.draw_markers(wgpu, marker, xy, scale, color, style)?;
+        }
+
+        Ok(())
     }
 
     fn font(

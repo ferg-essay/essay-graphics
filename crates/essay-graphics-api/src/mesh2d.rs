@@ -84,3 +84,15 @@ impl BezierMesh2d {
         self.vertices.as_slice()
     }
 }
+
+impl From<&Vec<[[f32; 2]; 3]>> for Mesh2d {
+    fn from(value: &Vec<[[f32; 2]; 3]>) -> Self {
+        let mut mesh = Mesh2d::new();
+
+        for tri in value {
+            mesh.triangle(tri[0], tri[1], tri[2]);
+        }
+
+        mesh
+    }
+}

@@ -2,7 +2,7 @@ use bytemuck_derive::{Zeroable, Pod};
 use essay_graphics_api::{Affine2d, Color, Mesh2d};
 use wgpu::util::DeviceExt;
 
-use super::render::RenderWgpu;
+use super::{canvas::MarkerStyle, render::RenderWgpu};
 
 pub(super) struct Mesh2dRender {
     vertex_stride: usize,
@@ -75,21 +75,25 @@ impl Mesh2dRender {
         &mut self, 
         wgpu: &mut RenderWgpu,
         mesh: &Mesh2d,
-        color: Color,
-        affine: &Affine2d,
+        style: &Vec<MarkerStyle>,
     ) {
+        let len = mesh.vertices.len();
+
+        if len == 0 || style.len() == 0 {
+            return;
+        }
+
         if self.vertex_vec.len() < self.vertex_offset + mesh.as_slice().len()
-            || self.style_vec.len() <= self.style_offset + 1 {
+            || self.style_vec.len() <= self.style_offset + style.len() {
             self.flush(wgpu);
         }
 
         if self.vertex_vec.len() < self.vertex_offset + mesh.as_slice().len()
-            || self.style_vec.len() <= self.style_offset + 1 {
+            || self.style_vec.len() <= self.style_offset + style.len() {
             todo!("Can't yet resize buffers");
         }
 
         let offset = self.vertex_offset;
-        let len = mesh.vertices.len();
 
         self.start_shape();
 
@@ -102,7 +106,9 @@ impl Mesh2dRender {
 
         self.vertex_offset += len;
         
-        self.draw_style(color, affine);
+        for MarkerStyle { color, affine } in style {
+            self.draw_style(*color, affine);
+        }
     }
 
     fn start_shape(&mut self) {

@@ -17,7 +17,7 @@ use super::{
     shape2d::Shape2dRender, shape2d_tex2::Shape2dTex2Render, 
     shape2d_texture::Shape2dTextureRender, text::TextRender, text_cache::FontId, 
     texture_store::TextureCache, triangle2d::Triangle2dRenderer, 
-    triangulate::triangulate2
+    triangulate::triangulate2, triangulate3
 };
 
 pub struct PlotCanvas {
@@ -237,6 +237,29 @@ impl PlotCanvas {
         }
     }
 
+    fn fill_shape(
+        &mut self, 
+        path: &Path<Canvas>, 
+    ) -> (Mesh2d, BezierMesh2d) {
+        let mut bezier = BezierMesh2d::new();
+
+        let mut last = Point(0., 0.);
+        for code in path.codes() {
+            if let PathCode::Bezier2(p1, p2) = code {
+                // TODO: CW/CCW code
+                // self.bezier_render.draw_bezier_fill(&last, p1, p2);
+
+                bezier.triangle(last, p1, p2, 1., 0.);
+            }
+
+            last = code.tail();
+        }
+
+        let mesh2d = triangulate3::triangulate3(path);
+
+        (mesh2d, bezier)
+    }
+
     pub(crate) fn fill_texture_path(
         &mut self, 
         path: &Path<Canvas>, 
@@ -441,8 +464,9 @@ impl PlotCanvas {
         }
     }
 
-    pub fn draw_path(
+    pub(super) fn draw_path(
         &mut self, 
+        wgpu: &mut RenderWgpu,
         path: &Path<Canvas>, 
         style: &dyn PathOpt, 
     ) -> Result<(), RenderErr> {
@@ -495,10 +519,12 @@ impl PlotCanvas {
 
                 is_texture = true;
             } else {
-                self.fill_path(&path);
+                let (mesh, bezier) = self.fill_shape(&path);
 
-                self.shape2d_render.draw_style(face_color, &self.to_gpu);
-                self.bezier_render.draw_style(face_color, &self.to_gpu);
+                let style = vec![(face_color, &self.to_gpu).into()];
+
+                self.mesh2d_render.draw(wgpu, &mesh, &style);
+                self.bezier_mesh_render.draw(wgpu, &bezier, &style);
             }
 
             if face_color != edge_color || is_texture {
@@ -518,8 +544,9 @@ impl PlotCanvas {
         return Ok(());
     }
 
-    pub fn draw_markers(
+    pub(crate) fn draw_markers(
         &mut self, 
+        wgpu: &mut RenderWgpu,
         path: &Path<Canvas>, 
         xy: &Tensor,
         scale: &Tensor,
@@ -539,15 +566,27 @@ impl PlotCanvas {
         };
 
         if path.is_closed_path() && ! face_color.is_none() {
+            let marker_style: Vec<MarkerStyle> = xy.iter_row().enumerate()
+                .map(|(i,xy)| {
+                    let affine = marker_affine(xy[0], xy[1], i, scale);
+                    let color = marker_color(i, color, face_color);
+
+                    MarkerStyle::from((color, &self.to_gpu.matmul(&affine)))
+                }).collect();
+
+            let (mesh, bezier) = self.fill_shape(&path);
+
+            self.mesh2d_render.draw(wgpu, &mesh, &marker_style);
+            self.bezier_mesh_render.draw(wgpu, &bezier, &marker_style);
+
+
+                /*
             self.fill_path(&path);
-
             for (i, xy) in xy.iter_row().enumerate() {
-                let affine = marker_affine(xy[0], xy[1], i, scale);
-                let color = marker_color(i, color, face_color);
-
                 self.shape2d_render.draw_style(color, &self.to_gpu.matmul(&affine));
                 self.bezier_render.draw_style(color, &self.to_gpu.matmul(&affine));
             }
+            */
 
             if face_color != edge_color && ! edge_color.is_none() {
                 self.draw_lines(&path, style);
@@ -705,7 +744,7 @@ impl PlotCanvas {
         mesh: &BezierMesh2d, 
         color: Color
     ) -> Result<(), RenderErr> {
-        self.bezier_mesh_render.draw(wgpu, mesh, color, &self.to_gpu);
+        self.bezier_mesh_render.draw(wgpu, mesh, &vec![(color, &self.to_gpu).into()]);
 
         Ok(())
     }
@@ -716,7 +755,7 @@ impl PlotCanvas {
         mesh: &Mesh2d, 
         color: Color
     ) -> Result<(), RenderErr> {
-        self.mesh2d_render.draw(wgpu, mesh, color, &self.to_gpu);
+        self.mesh2d_render.draw(wgpu, mesh, &vec![(color, &self.to_gpu).into()]);
 
         Ok(())
     }
@@ -1149,5 +1188,28 @@ impl Cursor {
     fn next(&mut self) {
         self.i = (self.i + 1) % self.dashes.len();
         self.t = 0.;
+    }
+}
+
+pub(super) struct MarkerStyle {
+    pub color: Color,
+    pub affine: Affine2d,
+}
+
+impl From<(Color, Affine2d)> for MarkerStyle {
+    fn from((color, affine): (Color, Affine2d)) -> Self {
+        Self {
+            color,
+            affine
+        }
+    }
+}
+
+impl From<(Color, &Affine2d)> for MarkerStyle {
+    fn from((color, affine): (Color, &Affine2d)) -> Self {
+        Self {
+            color,
+            affine: affine.clone()
+        }
     }
 }

@@ -1,3 +1,4 @@
+mod triangulate3;
 //mod mesh2d_old;
 mod canvas;
 mod bezier;

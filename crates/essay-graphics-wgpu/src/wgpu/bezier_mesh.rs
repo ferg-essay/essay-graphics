@@ -2,7 +2,7 @@ use bytemuck_derive::{Pod, Zeroable};
 use essay_graphics_api::{Affine2d, BezierMesh2d, Color};
 use wgpu::util::DeviceExt;
 
-use super::render::RenderWgpu;
+use super::{canvas::MarkerStyle, render::RenderWgpu};
 
 pub struct BezierMeshRender {
     vertex_stride: usize,
@@ -74,17 +74,21 @@ impl BezierMeshRender {
         &mut self, 
         wgpu: &mut RenderWgpu,
         mesh: &BezierMesh2d, 
-        color: Color, 
-        camera: &Affine2d
+        style: &Vec<MarkerStyle>,
     ) {
-        self.start_shape();
-
         let mesh_vertices = mesh.as_slice();
+
+        if mesh_vertices.len() == 0 || style.len() == 0{
+            return;
+        }
+
+        self.start_shape();
 
         let len = self.vertex_vec.len();
         let offset = self.vertex_offset;
 
-        if len < offset + mesh_vertices.len() {
+        if len < offset + mesh_vertices.len() 
+            || self.style_vec.len() + self.style_offset < style.len() {
             self.flush(wgpu);
         }
 
@@ -98,7 +102,9 @@ impl BezierMeshRender {
 
         self.vertex_offset += mesh_vertices.len();
 
-        self.draw_style(color, camera);
+        for MarkerStyle { color, affine } in style {
+            self.draw_style(*color, affine);
+        }
     }
 
     fn start_shape(&mut self) {

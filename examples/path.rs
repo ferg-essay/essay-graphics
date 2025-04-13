@@ -1,3 +1,4 @@
+use essay_graphics_api::color::Grey;
 use renderer::{Canvas, Drawable, Renderer};
 use essay_graphics::prelude::*;
 use essay_graphics::layout::{MainLoop, View};
@@ -41,7 +42,12 @@ impl Drawable for PathView {
 
         let path = self.path_data.transform(&to_canvas);
 
-        let style = PathStyle::new();
+        let mut style = PathStyle::new();
+
+        style.line_width(3.);
+        style.edge_color("azure");
+        style.face_color(Grey(0.9));
+
         renderer.draw_path(&path, &style)
     }
 }
