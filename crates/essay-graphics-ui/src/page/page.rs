@@ -38,7 +38,7 @@ impl Page {
 
         let mut result: Option<R> = None;
 
-        ui.draw_with_closure(pos, Box::new(|ui| {
+        ui.draw_with(pos, Box::new(|ui| {
             result = Some((f)(ui)?);
             Ok(())
         }))?;
@@ -418,8 +418,9 @@ impl ViewItem {
     fn draw(&mut self, renderer: &mut dyn Renderer) -> Result<()> {
         let pos = self.pos(renderer);
 
-        renderer.draw_with(pos, self.view.as_mut())
-
+        renderer.draw_with(pos, Box::new(|ui| 
+            self.view.draw(ui)
+        ))
     }
 }
 

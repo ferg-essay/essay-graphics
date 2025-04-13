@@ -79,9 +79,10 @@ pub(crate) fn render_draw<'a, R>(
     device: &'a wgpu::Device,
     queue: &'a wgpu::Queue,
     view: Option<&'a wgpu::TextureView>,
+    is_flush: bool,
     draw: impl FnOnce(&mut dyn Renderer) -> Result<R> + 'a
 ) -> Result<R> {
-    let result = render_draw_inner(canvas, device, queue, view, draw);
+    let result = render_draw_inner(canvas, device, queue, view, is_flush, draw);
 
     canvas.input_mut().update_after_draw();
 
@@ -93,6 +94,7 @@ pub(crate) fn render_draw<'a, R>(
         device: &'a wgpu::Device,
         queue: &'a wgpu::Queue,
         view: Option<&'a wgpu::TextureView>,
+        is_flush: bool,
         draw: impl FnOnce(&mut dyn Renderer) -> Result<R> + 'a
     ) -> Result<R> {
     if let Some(view) = view {
@@ -103,14 +105,16 @@ pub(crate) fn render_draw<'a, R>(
                 canvas,
                 device,
                 queue: Some(queue),
-                view: Some(view),
+                // view: Some(view),
                 pos,
                 wgpu: Some(wgpu),
             };
 
             let result = (draw)(&mut ui);
 
-            ui.flush();
+            if is_flush {
+                ui.flush();
+            }
 
             result
         })
@@ -121,14 +125,16 @@ pub(crate) fn render_draw<'a, R>(
             device,
             canvas,
             queue: Some(queue),
-            view: None,
+            // view: None,
             pos,
             wgpu: None,
         };
 
         let result = (draw)(&mut ui);
 
-        ui.flush();
+        if is_flush {
+            ui.flush();
+        }
 
         result
     }
@@ -139,7 +145,7 @@ pub struct PlotRenderer<'a, 'b> {
     canvas: &'a mut PlotCanvas,
     device: &'a wgpu::Device,
     queue: Option<&'a wgpu::Queue>,
-    view: Option<&'a wgpu::TextureView>,
+    // view: Option<&'a wgpu::TextureView>,
 
     wgpu: Option<&'b mut RenderWgpu<'a>>,
 
@@ -381,31 +387,26 @@ impl<'a, 'b> Renderer for PlotRenderer<'a, 'b> {
         self.flush_inner();
     }
 
-    fn draw_with(
+    fn draw_with<'c>(
         &mut self, 
         pos: Bounds<Canvas>, 
-        drawable: &mut dyn Drawable
+        f: Box<dyn FnOnce(&mut dyn Renderer) -> Result<()> + 'c>
     ) -> Result<()> {
-        self.flush();
-
         let push = Push::new(self, pos);
 
-        drawable.draw(push.ptr)?;
-
-        //push.ptr.flush_inner(&push.clip);
-        push.ptr.flush_inner();
+        (f)(push.ptr)?;
 
         Ok(())
     }
 
-    fn draw_with_closure<'c>(
+    fn draw_with_clip<'c>(
         &mut self, 
         pos: Bounds<Canvas>, 
         f: Box<dyn FnOnce(&mut dyn Renderer) -> Result<()> + 'c>
     ) -> Result<()> {
         self.flush();
 
-        let push = Push::new(self, pos);
+        let push = Push::new_clip(self, pos);
 
         (f)(push.ptr)?;
 
@@ -424,6 +425,17 @@ struct Push<'a, 'b, 'c> {
 
 impl<'a, 'b, 'c> Push<'a, 'b, 'c> {
     fn new(renderer: &'a mut PlotRenderer<'b, 'c>, pos: Bounds<Canvas>) -> Self {
+        let mut push = Self {
+            ptr: renderer,
+            pos,
+        };
+
+        mem::swap(&mut push.pos, &mut push.ptr.pos);
+
+        push
+    }
+
+    fn new_clip(renderer: &'a mut PlotRenderer<'b, 'c>, pos: Bounds<Canvas>) -> Self {
         let mut push = Self {
             ptr: renderer,
             pos,

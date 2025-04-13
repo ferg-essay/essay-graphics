@@ -1,9 +1,5 @@
 use essay_graphics_api::{
-    form::{Form, FormId, Matrix4, Shape, ShapeId}, 
-    input::Input,
-    renderer::{Canvas, Drawable, RenderErr, Renderer, Result}, 
-    Affine2d, Bounds, CapStyle, Clip, Color, FontStyle, FontTypeId, HorizAlign, ImageId, JoinStyle, LineStyle, 
-    Path, PathCode, PathOpt, Point, Size, TextStyle, TextureId, VertAlign
+    affine2d, form::{Form, FormId, Matrix4, Shape, ShapeId}, input::Input, renderer::{Canvas, Drawable, RenderErr, Renderer, Result}, Affine2d, Bounds, CapStyle, Clip, Color, FontStyle, FontTypeId, HorizAlign, ImageId, JoinStyle, LineStyle, Path, PathCode, PathOpt, Point, Size, TextStyle, TextureId, VertAlign
 };
 use essay_tensor::tensor::Tensor;
 
@@ -102,20 +98,19 @@ impl PlotCanvas {
         device: &'a wgpu::Device,
         queue: &'a wgpu::Queue,
         view: Option<&'a wgpu::TextureView>,
+        is_flush: bool,
         draw: impl FnOnce(&mut dyn Renderer) -> Result<R> + 'a
     ) -> Result<R> {
         self.clear();
-        
-        let result = render_draw_inner(self, device, queue, view, draw);
+
+        let result = render_draw_inner(self, device, queue, view, is_flush, draw);
         // let result = render_draw_inner(canvas, device, queue, view, draw);
     
-        self.input_mut().update_after_draw();
+        // self.input_mut().update_after_draw();
         
         result
     }
     
-    
-
     pub fn clear(&mut self) {
         self.bezier_render.clear();
         self.text_render.clear();
@@ -930,14 +925,14 @@ fn marker_affine(x: f32, y: f32, i: usize, scale: &Tensor) -> Affine2d {
     // optional scaling
     if scale.len() > 1 {
        affine = match scale.rank() {
-            1 => affine.scale(scale[i], scale[i]),
-            2 => affine.scale(scale[(i, 0)], scale[(i, 1)]),
+            1 => affine2d::scale(scale[i], scale[i]),
+            2 => affine2d::scale(scale[(i, 0)], scale[(i, 1)]),
             _ => panic!("Marker scale must be 1 or 2 dimensional {:?}", scale.shape().as_vec())
         }
     } else if scale.len() == 1 {
         affine = match scale.cols() {
-            1 => affine.scale(scale[0], scale[0]),
-            2 => affine.scale(scale[(0, 0)], scale[(0, 1)]),
+            1 => affine2d::scale(scale[0], scale[0]),
+            2 => affine2d::scale(scale[(0, 0)], scale[(0, 1)]),
             _ => panic!("Marker scale must be 1 or 2 dimensional {:?}", scale.shape().as_vec())
         }
     }

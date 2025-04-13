@@ -135,9 +135,11 @@ impl MainLoopData {
     
         self.queue.submit(Some(encoder.finish()));
     
-        render_draw(&mut self.canvas, &self.device, &self.queue, Some(&view), |ui| {
-            self.drawable.draw(ui)
-        });
+        let is_flush = true;
+        render_draw(&mut self.canvas, &self.device, &self.queue, Some(&view), is_flush,
+            |ui| {
+                self.drawable.draw(ui)
+        }).unwrap();
         //self.canvas.draw(self.drawable.as_mut(), &self.device, &self.queue, &view).unwrap();
     
         frame.present();

@@ -121,13 +121,13 @@ pub trait Renderer {
         &mut self,
     );
 
-    fn draw_with(
+    fn draw_with<'a>(
         &mut self, 
         pos: Bounds<Canvas>, 
-        drawable: &mut dyn Drawable
+        draw: Box<dyn FnOnce(&mut dyn Renderer) -> Result<()> + 'a>,
     ) -> Result<()>;
 
-    fn draw_with_closure<'a>(
+    fn draw_with_clip<'a>(
         &mut self, 
         pos: Bounds<Canvas>, 
         draw: Box<dyn FnOnce(&mut dyn Renderer) -> Result<()> + 'a>,

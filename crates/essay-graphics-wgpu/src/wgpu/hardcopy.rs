@@ -147,12 +147,15 @@ impl WgpuHardcopy {
         self.canvas.clear();
         self.canvas.request_redraw(true);
 
+        let is_flush = true;
+
         render_draw(
             &mut self.canvas, 
             &self.device, 
             //Some(&self.queue), 
             &self.queue, 
             Some(&view),
+            is_flush,
             |ui| {
                 drawable.draw(ui)                
             }
@@ -162,7 +165,12 @@ impl WgpuHardcopy {
         // plot_renderer.flush();
     }
 
-    pub fn draw_viewless<R>(&mut self, draw: impl FnOnce(&mut dyn Renderer) -> renderer::Result<R>) -> renderer::Result<R> {
+    pub fn draw_viewless<R>(
+        &mut self, 
+        draw: impl FnOnce(&mut dyn Renderer) -> renderer::Result<R>
+    ) -> renderer::Result<R> {
+        let is_flush = true;
+
         self.canvas.clear();
 
         render_draw(
@@ -171,6 +179,7 @@ impl WgpuHardcopy {
             //Some(&self.queue), 
             &self.queue, 
             None,
+            is_flush,
             draw,
         )
 

@@ -166,7 +166,7 @@ impl<'a> Ui<'a> {
     pub fn draw_size(&mut self, size: Size, draw: &mut dyn Drawable) -> Response {
         let rect = self.allocate_page(size);
         
-        self.renderer().draw_with(rect, draw).unwrap();
+        self.renderer().draw_with(rect, Box::new(|ui| draw.draw(ui))).unwrap();
 
         Response::default()
     }

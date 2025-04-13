@@ -187,9 +187,11 @@ impl TextRender {
         };
 
         let end = self.vertex_offset;
-        let affine = Affine2d::eye()
-            .rotate_around(0.5 * (x0 + x), y0, angle)
-            .translate(dx, dy)
+        let mut affine = Affine2d::eye();
+        if angle != 0. {
+            affine = affine.rotate_around(0.5 * (x0 + x), y0, angle)
+        }
+        affine = affine.translate(dx, dy)
             .scale(2. / bounds.x(), 2. / bounds.y())
             .translate(-1., -1.);
 

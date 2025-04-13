@@ -199,11 +199,15 @@ impl Renderer for TestRenderer {
         todo!()
     }
     
-    fn draw_with(&mut self, _pos: Bounds<Canvas>, _drawable: &mut dyn Drawable) -> Result<()> {
+    fn draw_with<'a>(
+        &mut self, 
+        _pos: Bounds<Canvas>, 
+        _f: Box<dyn FnOnce(&'a mut dyn Renderer) -> Result<()> + 'a>,
+    ) -> Result<()> {
         todo!()
     }
     
-    fn draw_with_closure<'a>(
+    fn draw_with_clip<'a>(
         &mut self, 
         _pos: Bounds<Canvas>, 
         _f: Box<dyn FnOnce(&'a mut dyn Renderer) -> Result<()> + 'a>,

@@ -2,113 +2,122 @@ use core::fmt;
 
 use essay_tensor::{ten, tensor::Tensor};
 
-use crate::{renderer::Canvas, Angle, Coord, Path, Point};
+use crate::{renderer::Canvas, Coord, Path, Point};
 
 #[derive(Clone)]
 pub struct Affine2d {
-    mat: Tensor,
+    mat: [f32; 6],
 }
 
 impl Affine2d {
+    #[inline]
     pub fn new(
         a: f32, b: f32, c: f32, 
         d: f32, e: f32, f: f32
     ) -> Affine2d {
-        let mat = ten![
-            [a, b, c],
-            [d, e, f],
-            [0., 0., 1.],
-        ]; 
-
         Self {
-            mat
+            mat: [a, b, c, d, e, f]
         }
     }
 
+    #[inline]
     pub fn mat(&self) -> Tensor {
-        self.mat.clone()
+        let m = &self.mat;
+
+        ten![
+            [m[0], m[1], m[2]],
+            [m[3], m[4], m[5]],
+            [0., 0., 1.],
+
+        ]
     }
 
+    #[inline]
     pub fn eye() -> Self {
-        // TODO: use Tensor::eye
-        let mat = ten![
-            [1., 0., 0.],
-            [0., 1., 0.],
-            [0., 0., 1.],
-        ]; 
-
         Self {
-            mat
+            mat: [
+                1., 0., 0., 
+                0., 1., 0.
+            ]
         }
     }
 
+    #[inline]
     pub fn translate(&self, x: f32, y: f32) -> Self {
-        let translate = ten![
-            [1., 0., x],
-            [0., 1., y],
-            [0., 0., 1.],
-        ]; 
+        let m = self.mat;
 
         Self {
-            mat: matmul(&translate, &self.mat),
+            mat: [
+                m[0], m[1], m[2] + x,
+                m[3], m[4], m[5] + y,
+            ]
         }
     }
 
+    #[inline]
     pub fn scale(&self, sx: f32, sy: f32) -> Self {
-        let scale = ten![
-            [sx, 0., 0.],
-            [0., sy, 0.],
-            [0., 0., 1.],
-        ]; 
+        let m = self.mat;
 
         Self {
-            mat: matmul(&scale, &self.mat),
+            mat: [
+                sx * m[0], sx * m[1], sx * m[2],
+                sy * m[3], sy * m[4], sy * m[5],
+            ]
         }
     }
 
-    pub fn rotate(&self, theta: impl Into<Angle>) -> Self {
-        let (sin, cos) = theta.into().sin_cos();
-
-        let rot = ten![
-            [cos, -sin, 0.],
-            [sin,  cos, 0.],
-            [0.,   0.,  1.],
-        ]; 
-
-        Self {
-            mat: matmul(&rot, &self.mat),
+    #[inline]
+    pub fn rotate(&self, theta: f32) -> Self {
+        if theta == 0. {
+            return self.clone();
         }
+
+        let (sin, cos) = theta.sin_cos();
+
+        let rot = Self {
+            mat: [
+                cos, -sin, 0.,
+                sin,  cos, 0.,
+            ]
+        };
+
+        matmul(&rot, &self)
     }
 
+    #[inline]
     pub fn rotate_around(&self, x: f32, y: f32, theta: f32) -> Self {
+        if theta == 0. {
+            return self.clone();
+        }
+
         self.translate(-x, -y).rotate(theta).translate(x, y)
     }
 
+    #[inline]
     pub fn rotate_deg(&self, deg: f32) -> Self {
         self.rotate(deg.to_radians())
     }
 
+    #[inline]
     pub fn rotate_unit(&self, unit: f32) -> Self {
         self.rotate((0.25 - unit) * std::f32::consts::PI)
     }
 
+    #[inline]
     pub fn matmul(&self, y: &Affine2d) -> Self {
-        Self {
-            mat: matmul(&self.mat, &y.mat),
-        }
+        matmul(self, y)
     }
 
+    #[inline]
     pub fn compose(&self, y: &Affine2d) -> Self {
-        Self {
-            mat: matmul(&y.mat, &self.mat),
-        }
+        matmul(&y, &self)
     }
 
     pub fn transform(&self, points: &Tensor) -> Tensor {
-        assert!(points.rank() == 2);
+        assert!(points.rank() > 1);
         assert!(points.cols() == 2);
 
-        let mat = self.mat.as_slice();
+        let mat = self.mat;
 
         points.map_row(|point| {
             let x = point[0];
@@ -123,7 +132,7 @@ impl Affine2d {
 
     #[inline]
     pub fn transform_point(&self, point: Point) -> Point {
-        let mat = self.mat.as_slice();
+        let mat = self.mat;
 
         let Point(x, y) = point;
 
@@ -134,7 +143,7 @@ impl Affine2d {
     }
     
     pub fn transform_path<T: Coord>(&self, path: &Path<T>) -> Path<Canvas> {
-        let mat = self.mat.as_slice();
+        let mat = self.mat;
 
         path.map(|Point(x, y)| {
             Point(
@@ -146,7 +155,7 @@ impl Affine2d {
 
     #[inline]
     pub fn strip_translation(&self) -> Self {
-        let mat = self.mat.as_slice();
+        let mat = self.mat;
 
         Self::new(
             mat[0], mat[1], 0.,
@@ -195,8 +204,7 @@ pub fn rotate(theta: f32) -> Affine2d {
 pub fn rotate_deg(deg: f32) -> Affine2d {
     let theta = deg.to_radians();
     
-    let sin = theta.sin();
-    let cos = theta.cos();
+    let (sin, cos) = theta.sin_cos();
 
     Affine2d::new(
         cos, -sin, 0.,
@@ -204,18 +212,11 @@ pub fn rotate_deg(deg: f32) -> Affine2d {
     )
 }
 
-fn matmul(x: &Tensor, y: &Tensor) -> Tensor {
-    assert_eq!(x.rank(), 2);
-    assert_eq!(x.rows(), 3);
-    assert_eq!(x.cols(), 3);
-    assert_eq!(y.rank(), 2);
-    assert_eq!(y.rows(), 3);
-    assert_eq!(y.cols(), 3);
+fn matmul(x: &Affine2d, y: &Affine2d) -> Affine2d {
+    let x = x.mat;
+    let y = y.mat;
 
-    let x = x.as_slice();
-    let y = y.as_slice();
-
-    let o = [
+    let mat = [
         x[0] * y[0] + x[1] * y[3],
         x[0] * y[1] + x[1] * y[4],
         x[0] * y[2] + x[1] * y[5] + x[2],
@@ -223,11 +224,9 @@ fn matmul(x: &Tensor, y: &Tensor) -> Tensor {
         x[3] * y[0] + x[4] * y[3],
         x[3] * y[1] + x[4] * y[4],
         x[3] * y[2] + x[4] * y[5] + x[5],
-
-        0.,
-        0.,
-        1.,
     ];
 
-    Tensor::from(o).reshape([3, 3])
+    Affine2d {
+        mat,
+    }
 }
