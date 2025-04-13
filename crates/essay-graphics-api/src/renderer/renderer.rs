@@ -1,10 +1,7 @@
 use essay_tensor::tensor::Tensor;
 
 use crate::{
-    form::{Form, FormId, Matrix4, Shape, ShapeId}, 
-    input::Input, 
-    Affine2d, Bounds, FontStyle, FontTypeId, ImageId, 
-    Path, PathOpt, Point, Size, TextStyle, TextureId
+    form::{Form, FormId, Matrix4, Shape, ShapeId}, input::Input, mesh2d::BezierMesh2d, Affine2d, Bounds, Color, FontStyle, FontTypeId, ImageId, Path, PathOpt, Point, Size, TextStyle, TextureId
 };
 
 use super::{Canvas, Drawable, RenderErr, Result};
@@ -60,6 +57,12 @@ pub trait Renderer {
         text: &str,
         text_style: &TextStyle
     ) -> Size;
+
+    fn draw_bezier_mesh(
+        &mut self,
+        mesh: &BezierMesh2d,
+        color: Color,
+    ) -> Result<()>;
 
     fn draw_triangles(
         &mut self,

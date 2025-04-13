@@ -1,12 +1,13 @@
 use essay_graphics_api::{
-    affine2d, form::{Form, FormId, Matrix4, Shape, ShapeId}, input::Input, renderer::{Canvas, Drawable, RenderErr, Renderer, Result}, Affine2d, Bounds, CapStyle, Clip, Color, FontStyle, FontTypeId, HorizAlign, ImageId, JoinStyle, LineStyle, Path, PathCode, PathOpt, Point, Size, TextStyle, TextureId, VertAlign
+    affine2d, form::{Form, FormId, Matrix4, Shape, ShapeId}, input::Input, renderer::{Canvas, Drawable, RenderErr, Renderer, Result}, Affine2d, BezierMesh2d, Bounds, CapStyle, Clip, Color, FontStyle, FontTypeId, HorizAlign, ImageId, JoinStyle, LineStyle, Path, PathCode, PathOpt, Point, Size, TextStyle, TextureId, VertAlign
 };
 use essay_tensor::tensor::Tensor;
+use wgpu::util::StagingBelt;
 
 use crate::PlotRenderer;
 
 use super::{
-    bezier::BezierRender, form3d::Form3dRender, image::ImageRender, render::{render_draw, render_draw_inner}, shape2d::Shape2dRender, shape2d_tex2::Shape2dTex2Render, shape2d_texture::Shape2dTextureRender, text::TextRender, text_cache::FontId, texture_store::TextureCache, triangle2d::Triangle2dRenderer, triangulate::triangulate2
+    bezier::BezierRender, bezier_mesh::BezierMeshRender, form3d::Form3dRender, image::ImageRender, render::{render_draw, render_draw_inner, RenderWgpu}, shape2d::Shape2dRender, shape2d_tex2::Shape2dTex2Render, shape2d_texture::Shape2dTextureRender, text::TextRender, text_cache::FontId, texture_store::TextureCache, triangle2d::Triangle2dRenderer, triangulate::triangulate2
 };
 
 
@@ -24,9 +25,12 @@ pub struct PlotCanvas {
     pub(crate) shape2d_render: Shape2dRender,
     pub(crate) shape2d_texture_render: Shape2dTextureRender,
     pub(crate) bezier_render: BezierRender,
+    pub(crate) bezier_mesh_render: BezierMeshRender,
     pub(crate) text_render: TextRender,
 
     pub(crate) texture_store: TextureCache,
+
+    staging: Option<StagingBelt>,
 
     font_id_default: FontId,
 
@@ -46,6 +50,7 @@ impl PlotCanvas {
     
         let image_render = ImageRender::new(device, format);
         let triangle_render = Triangle2dRenderer::new(device, format);
+        let bezier_mesh_render = BezierMeshRender::new(device, format);
         let triangle3d_render = Form3dRender::new(device, format, width, height);
         let shape2d_tex2_render = Shape2dTex2Render::new(device, format);
         let shape2d_render = Shape2dRender::new(device, format);
@@ -54,6 +59,8 @@ impl PlotCanvas {
         let mut text_render = TextRender::new(device, format, 512, 512);
 
         let font_id_default = text_render.font("default");
+
+        let staging = StagingBelt::new(2048 * 128);
 
         // let texture_store = TextureCache::new();
         
@@ -68,6 +75,7 @@ impl PlotCanvas {
             shape2d_texture_render,
             text_render,
             triangle_render,
+            bezier_mesh_render,
             form3d_render: triangle3d_render,
             shape2d_tex2_render,
             bezier_render,
@@ -75,6 +83,7 @@ impl PlotCanvas {
             font_id_default,
             texture_store: TextureCache::new(),
 
+            staging: Some(staging),
             to_gpu: Affine2d::eye(),
 
             is_request_redraw: false,
@@ -103,11 +112,12 @@ impl PlotCanvas {
     ) -> Result<R> {
         self.clear();
 
-        let result = render_draw_inner(self, device, queue, view, is_flush, draw);
-        // let result = render_draw_inner(canvas, device, queue, view, draw);
-    
-        // self.input_mut().update_after_draw();
-        
+        let staging = self.take_staging();
+
+        let (result, staging) = render_draw_inner(self, device, queue, view, staging, is_flush, draw);
+
+        self.replace_staging(staging);
+
         result
     }
     
@@ -673,6 +683,17 @@ impl PlotCanvas {
         Ok(())
     }
 
+    pub(crate) fn draw_bezier_mesh(
+        &mut self, 
+        wgpu: &mut RenderWgpu,
+        mesh: &BezierMesh2d, 
+        color: Color
+    ) -> Result<(), RenderErr> {
+        self.bezier_mesh_render.draw(wgpu, mesh, color, &self.to_gpu);
+
+        Ok(())
+    }
+
     pub fn create_form(
         &mut self,
         form: &Form,
@@ -767,7 +788,17 @@ impl PlotCanvas {
 
         Ok(())
     }
+    
+    pub(super) fn take_staging(&mut self) -> wgpu::util::StagingBelt {
+        self.staging.take().unwrap()
+    }
+    
+    pub(super) fn replace_staging(&mut self, staging: wgpu::util::StagingBelt) {
+        assert!(self.staging.is_none());
 
+        self.staging.replace(staging);
+    }
+    
     /*
     pub(crate) fn draw<R>(
         &mut self,

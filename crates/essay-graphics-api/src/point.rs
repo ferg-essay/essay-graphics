@@ -1,4 +1,4 @@
-use std::f32::consts::{FRAC_PI_2, TAU};
+use std::{f32::consts::{FRAC_PI_2, TAU}, ops};
 
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -52,6 +52,24 @@ impl Point {
 impl Default for Point {
     fn default() -> Self {
         Self(0., 0.)
+    }
+}
+
+impl ops::Add for Point {
+    type Output = Point;
+
+    #[inline]
+    fn add(self, rhs: Self) -> Self::Output {
+        Point(self.0 + rhs.0, self.1 + rhs.1)
+    }
+}
+
+impl ops::Sub for Point {
+    type Output = Point;
+
+    #[inline]
+    fn sub(self, rhs: Self) -> Self::Output {
+        Point(self.0 - rhs.0, self.1 - rhs.1)
     }
 }
 

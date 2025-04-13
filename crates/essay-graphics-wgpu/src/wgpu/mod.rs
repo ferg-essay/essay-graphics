@@ -1,6 +1,7 @@
 mod mesh2d;
 mod canvas;
 mod bezier;
+mod bezier_mesh;
 mod image;
 mod main_loop_wgpu;
 mod main_loop_winit;

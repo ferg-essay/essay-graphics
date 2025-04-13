@@ -1,13 +1,10 @@
-use std::mem;
+use std::{mem, num::NonZero};
 
 use essay_graphics_api::{
-    form::{Form, FormId, Matrix4, Shape, ShapeId}, 
-    input::Input,
-    renderer::{self, Canvas, RenderErr, Renderer, Result}, 
-    Affine2d, Bounds, FontStyle, FontTypeId, ImageId, Path, PathOpt, 
-    Point, Size, TextStyle, TextureId
+    form::{Form, FormId, Matrix4, Shape, ShapeId}, input::Input, renderer::{self, Canvas, RenderErr, Renderer, Result}, Affine2d, BezierMesh2d, Bounds, Color, FontStyle, FontTypeId, ImageId, Path, PathOpt, Point, Size, TextStyle, TextureId
 };
 use essay_tensor::tensor::Tensor;
+use wgpu::util::StagingBelt;
 
 use super::canvas::PlotCanvas;
 
@@ -17,6 +14,7 @@ pub(super) struct RenderWgpu<'a> {
     pub view: &'a wgpu::TextureView,
 
     pub encoder: Option<wgpu::CommandEncoder>,
+    pub staging: StagingBelt,
 
     pub scissor: Option<(u32, u32, u32, u32)>,
     pub state: State,
@@ -38,15 +36,35 @@ impl<'a> RenderWgpu<'a> {
         }
     }
 
-    pub fn init_encoder(&mut self) {
+    pub fn init_encoder(&mut self) -> &mut wgpu::CommandEncoder {
         if self.encoder.is_none() {
             self.encoder = Some(
                 self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None })
             );
 
-            self.init();
-        }
+            self.staging.recall();
 
+            self.init();
+        };
+
+        self.encoder.as_mut().unwrap()
+
+    }
+
+    pub fn write_buffer(&mut self, target: &wgpu::Buffer, data: &[u8]) {
+        let len = NonZero::new(data.len() as u64).unwrap();
+
+        self.init_encoder();
+
+        if let Some(encoder) = &mut self.encoder {
+            self.staging.write_buffer(
+                encoder,
+                target,
+                0,
+                len,
+                self.device,
+            ).copy_from_slice(data)
+        }
     }
 
     pub fn render_pass<'b>(
@@ -54,30 +72,30 @@ impl<'a> RenderWgpu<'a> {
         draw: impl FnOnce(&mut wgpu::RenderPass<'b>) + 'b
     ) {
         self.init();
-
         self.init_encoder();
-        if let Some(encoder) = &mut self.encoder {
-        let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-            label: None,
-                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                    view: self.view,
-                    resolve_target: None,
-                    ops: wgpu::Operations {
-                        load: wgpu::LoadOp::Load,
-                        store: wgpu::StoreOp::Store,
-                    }
-                })],
-                depth_stencil_attachment: None,
-                timestamp_writes: None,
-                occlusion_query_set: None,
-        });
 
-        if let Some(scissor) = self.scissor {
-            println!("Scissor {:?}", scissor);
-            rpass.set_scissor_rect(scissor.0, scissor.1, scissor.2, scissor.3);
-        }
+        if let Some(encoder) = &mut self.encoder {
+            let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                label: None,
+                    color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                        view: self.view,
+                        resolve_target: None,
+                        ops: wgpu::Operations {
+                            load: wgpu::LoadOp::Load,
+                            store: wgpu::StoreOp::Store,
+                        }
+                    })],
+                    depth_stencil_attachment: None,
+                    timestamp_writes: None,
+                    occlusion_query_set: None,
+            });
+
+            if let Some(scissor) = self.scissor {
+                println!("Scissor {:?}", scissor);
+                rpass.set_scissor_rect(scissor.0, scissor.1, scissor.2, scissor.3);
+            }
     
-        (draw)(&mut rpass);
+            (draw)(&mut rpass);
         }
 
         // self.queue.submit(self.encoder..finish());
@@ -115,6 +133,7 @@ impl<'a> RenderWgpu<'a> {
 
     fn flush(&mut self) {
         if let Some(encoder) = self.encoder.take() {
+            self.staging.finish();
             self.queue.submit(Some(encoder.finish()));
             // self.commands.push(encoder.finish());
             // self.queue.submit(Some(encoder.finish()));
@@ -141,8 +160,9 @@ pub(super) fn wgpu_rpass<'a: 'b, 'b, R>(
     queue: &'a wgpu::Queue,
     view: &'a wgpu::TextureView,
     // scissor: Option<(u32, u32, u32, u32)>,
+    staging: StagingBelt,
     draw: impl FnOnce(&mut RenderWgpu<'a>) -> renderer::Result<R> + 'b
-) -> renderer::Result<R> {
+) -> (renderer::Result<R>, StagingBelt) {
     //let encoder =
     //    device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
     
@@ -153,6 +173,7 @@ pub(super) fn wgpu_rpass<'a: 'b, 'b, R>(
         scissor: None,
         encoder: None,
         state: State::PreInit,
+        staging,
         commands: Vec::new(),
     };
 
@@ -172,7 +193,7 @@ pub(super) fn wgpu_rpass<'a: 'b, 'b, R>(
 
     wgpu.close();
 
-    result
+    (result, wgpu.staging)
 }
 
 pub(crate) fn render_draw<'a, R>(
@@ -183,9 +204,13 @@ pub(crate) fn render_draw<'a, R>(
     is_flush: bool,
     draw: impl FnOnce(&mut dyn Renderer) -> Result<R> + 'a
 ) -> Result<R> {
-    let result = render_draw_inner(canvas, device, queue, view, is_flush, draw);
+    let staging = canvas.take_staging();
 
-    canvas.input_mut().update_after_draw();
+    let (result, staging) = render_draw_inner(canvas, device, queue, view, staging, is_flush, draw);
+
+    canvas.replace_staging(staging);
+
+    // canvas.input_mut().update_after_draw();
 
     result
 }
@@ -195,11 +220,13 @@ pub(crate) fn render_draw<'a, R>(
         device: &'a wgpu::Device,
         queue: &'a wgpu::Queue,
         view: Option<&'a wgpu::TextureView>,
+        staging: StagingBelt,
         is_flush: bool,
         draw: impl FnOnce(&mut dyn Renderer) -> Result<R> + 'a
-    ) -> Result<R> {
+    ) -> (Result<R>, StagingBelt) {
     if let Some(view) = view {
-        wgpu_rpass(device, queue, view, |wgpu: &mut RenderWgpu<'a>| {
+        wgpu_rpass(device, queue, view, staging,
+            |wgpu: &mut RenderWgpu<'a>| {
             let pos = canvas.bounds().clone();
 
             let mut ui = PlotRenderer {
@@ -237,7 +264,7 @@ pub(crate) fn render_draw<'a, R>(
             ui.flush();
         }
 
-        result
+        (result, staging)
     }
 }
 
@@ -279,6 +306,7 @@ impl<'a, 'b> PlotRenderer<'a, 'b> {
             self.canvas.shape2d_render.flush(wgpu);
             // TODO: order issues with bezier and shape2d
             self.canvas.bezier_render.flush(wgpu);
+            self.canvas.bezier_mesh_render.flush(wgpu);
             self.canvas.shape2d_texture_render.flush(wgpu);
             self.canvas.text_render.flush(wgpu);
             self.canvas.form3d_render.flush(
@@ -292,32 +320,6 @@ impl<'a, 'b> PlotRenderer<'a, 'b> {
 
             wgpu.flush();
         }
-        /*
-        if let Some(queue) = self.queue {
-            if let Some(texture) = self.view {
-                // self.get_scissor()
-                wgpu_rpass(self.device, queue, texture, |wgpu| {
-                    self.canvas.image_render.flush(wgpu);
-                    self.canvas.triangle_render.flush(wgpu);
-                    self.canvas.shape2d_render.flush(wgpu);
-                    // TODO: order issues with bezier and shape2d
-                    self.canvas.bezier_render.flush(wgpu);
-                    self.canvas.shape2d_texture_render.flush(wgpu);
-                    self.canvas.text_render.flush(wgpu);
-                    self.canvas.form3d_render.flush(
-                        wgpu,
-                        &self.canvas.texture_store, 
-                    );
-                    self.canvas.shape2d_tex2_render.flush(
-                        wgpu,
-                        &self.canvas.texture_store, 
-                    );
-    
-                    Ok(())
-                }).unwrap();
-            }
-        }
-        */
     }
 
     fn get_scissor(&self) -> Option<(u32, u32, u32, u32)> {
@@ -359,10 +361,19 @@ impl<'a, 'b> Renderer for PlotRenderer<'a, 'b> {
         path: &Path<Canvas>, 
         style: &dyn PathOpt, 
     ) -> Result<(), RenderErr> {
-        self.canvas.draw_path(path, style)?;
-        
-        Ok(())
+        self.canvas.draw_path(path, style)
+    }
+    
+    fn draw_bezier_mesh(
+        &mut self,
+        mesh: &BezierMesh2d,
+        color: Color,
+    ) -> Result<()> {
+        if let Some(wgpu) = self.wgpu.as_mut() {
+            self.canvas.draw_bezier_mesh(wgpu, mesh, color)?;
+        }
 
+        Ok(())
     }
 
     fn draw_markers(

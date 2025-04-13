@@ -7,6 +7,7 @@ mod color_data;
 pub mod form;
 mod image;
 mod instance;
+mod mesh2d;
 mod point;
 pub mod renderer;
 mod path;
@@ -22,6 +23,8 @@ pub use bounds::{Bounds, Coord};
 pub use clip::Clip;
 
 pub use color::{Color, Colors};
+
+pub use mesh2d::BezierMesh2d;
 
 pub use path::{
     Path, PathCode,
