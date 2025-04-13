@@ -1,10 +1,11 @@
-mod mesh2d;
+//mod mesh2d_old;
 mod canvas;
 mod bezier;
 mod bezier_mesh;
 mod image;
 mod main_loop_wgpu;
 mod main_loop_winit;
+mod mesh2d;
 mod render;
 mod shape2d;
 mod shape2d_texture;

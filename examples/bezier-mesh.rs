@@ -46,35 +46,3 @@ fn draw_mesh(
 
     ui.draw_bezier_mesh(&mesh, color.into())
 }
-
-struct Data;
-impl Coord for Data {}
-
-struct PathView {
-    path_data: Path<Data>,
-    path: Path<Canvas>,
-}
-
-impl PathView {
-    fn new(path: Path<Data>) -> Self {
-        Self {
-            path_data: path,
-            path: Path::move_to(0., 0.).to_path(),
-        }
-    }
-
-    fn path(&self) -> Path<Canvas> {
-        self.path.clone()
-    }
-}
-
-impl Drawable for PathView {
-    fn draw(&mut self, renderer: &mut dyn Renderer) -> renderer::Result<()> {
-        let to_canvas = Bounds::<Data>::new([0., 0.], [1., 1.]).affine_to(renderer.extent());
-
-        let path = self.path_data.transform(&to_canvas);
-
-        let style = PathStyle::new();
-        renderer.draw_path(&path, &style)
-    }
-}

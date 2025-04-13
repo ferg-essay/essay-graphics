@@ -1,8 +1,6 @@
-use std::num::NonZero;
-
 use bytemuck_derive::{Pod, Zeroable};
 use essay_graphics_api::{Affine2d, BezierMesh2d, Color};
-use wgpu::util::{DeviceExt, StagingBelt};
+use wgpu::util::DeviceExt;
 
 use super::render::RenderWgpu;
 
@@ -18,8 +16,6 @@ pub struct BezierMeshRender {
     style_offset: usize,
 
     shape_items: Vec<BezierItem>,
-
-    is_stale: bool,
 
     pipeline: wgpu::RenderPipeline,
 }
@@ -43,11 +39,7 @@ impl BezierMeshRender {
         );
 
         let mut style_vec = Vec::<BezierStyle>::new();
-        style_vec.resize(len, BezierStyle { 
-            affine_0: [0.0, 0.0, 0.0, 0.0], 
-            affine_1: [0.0, 0.0, 0.0, 0.0], 
-            color: [0.0, 0.0, 0.0, 0.0],
-        });
+        style_vec.resize(len, BezierStyle::empty());
 
         let style_buffer = device.create_buffer_init(
             &wgpu::util::BufferInitDescriptor {
@@ -72,8 +64,6 @@ impl BezierMeshRender {
             style_vec,
             style_buffer,
             style_offset: 0,
-            // style_bind_group,
-            is_stale: false,
 
             shape_items: Vec::new(),
             pipeline,
@@ -122,20 +112,16 @@ impl BezierMeshRender {
         });
     }
 
-    pub fn draw_style(
+    fn draw_style(
         &mut self, 
         color: Color,
         affine: &Affine2d,
     ) {
         let end = self.vertex_offset;
-
         let len = self.shape_items.len();
 
-        if self.style_offset == self.style_vec.len() {
-            self.is_stale = true;
-            self.style_vec.resize(self.style_vec.len() + 2048, BezierStyle::empty());
-
-        }
+        // todo: flush if overflow
+        assert!(self.style_offset < self.style_vec.len());
 
         let item = &mut self.shape_items[len - 1];
         item.v_end = end;
@@ -154,54 +140,15 @@ impl BezierMeshRender {
             return;
         }
 
-        if self.is_stale {
-            self.is_stale = false;
- 
-            self.vertex_buffer = wgpu.device.create_buffer_init(
-                &wgpu::util::BufferInitDescriptor {
-                    label: None,
-                    contents: bytemuck::cast_slice(self.vertex_vec.as_slice()),
-                    usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
-                }
-            );
-    
-            self.style_buffer = wgpu.device.create_buffer_init(
-                &wgpu::util::BufferInitDescriptor {
-                    label: None,
-                    contents: bytemuck::cast_slice(self.style_vec.as_slice()),
-                    usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
-                }
-            );
-        }
-
-        wgpu.queue.write_buffer(
+        wgpu.write_buffer(
             &mut self.vertex_buffer, 
-            0,
-            bytemuck::cast_slice(self.vertex_vec.as_slice())
+            bytemuck::cast_slice(&self.vertex_vec.as_slice()[0..self.vertex_offset])
         );
 
-        /*
-        wgpu.queue.write_buffer(
-            &mut self.style_buffer, 
-            0,
-            bytemuck::cast_slice(self.style_vec.as_slice())
+        wgpu.write_buffer(
+            &self.style_buffer,
+            bytemuck::cast_slice(&self.style_vec.as_slice()[0..self.style_offset])
         );
-        */
-
-        if let Some(encoder) = wgpu.encoder.as_mut() {
-            let slice: &[u8] = bytemuck::cast_slice(self.style_vec.as_slice());
-            let len = NonZero::new(slice.len() as u64).unwrap();
-
-            let mut staging = StagingBelt::new(1024);
-            staging.write_buffer(
-                encoder, 
-                &mut self.style_buffer,
-                0,
-                len,
-                wgpu.device,
-            ).copy_from_slice(slice);
-            staging.finish();
-        }
 
         wgpu.render_pass(|rpass| {
             rpass.set_pipeline(&self.pipeline);
@@ -236,7 +183,7 @@ impl BezierMeshRender {
     }
 }
 
-pub struct BezierItem {
+struct BezierItem {
     v_start: usize,
     v_end: usize,
 
@@ -246,7 +193,7 @@ pub struct BezierItem {
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug, Pod, Zeroable)]
-pub struct BezierVertex {
+struct BezierVertex {
     position: [f32; 2],
     uv: [f32; 2],
     buv_ab: [f32; 4],
@@ -275,7 +222,7 @@ impl BezierVertex {
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug, Pod, Zeroable)]
-pub struct BezierStyle {
+struct BezierStyle {
     affine_0: [f32; 4],
     affine_1: [f32; 4],
     color: [f32; 4],

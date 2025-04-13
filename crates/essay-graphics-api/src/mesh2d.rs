@@ -1,20 +1,38 @@
 use crate::Point;
 
-pub(super) struct Mesh2d {
-    pub vertices: Vec<[f32; 2]>,
+pub struct Mesh2d {
+    pub vertices: Vec<[f32; 4]>,
 }
 
 impl Mesh2d {
+    #[inline]
     pub fn new() -> Self {
         Self {
             vertices: Vec::new(),
         }
     }
 
-    pub fn triangle(&mut self, p0: Point, p1: Point, p2: Point) {
-        self.vertices.push([p0.0, p0.1]);
-        self.vertices.push([p1.0, p1.1]);
-        self.vertices.push([p2.0, p2.1]);
+    #[inline]
+    pub fn triangle(
+        &mut self, 
+        p0: impl Into<Point>, 
+        p1: impl Into<Point>, 
+        p2: impl Into<Point>
+    ) {
+        let Point(x0, y0) = p0.into();
+        let Point(x1, y1) = p1.into();
+        let Point(x2, y2) = p2.into();
+
+        let (u, v) = (0., 0.);
+
+        self.vertices.push([x0, y0, u, v]);
+        self.vertices.push([x1, y1, u, v]);
+        self.vertices.push([x2, y2, u, v]);
+    }
+
+    #[inline]
+    pub fn as_slice(&self) -> &[[f32; 4]] {
+        self.vertices.as_slice()
     }
 }
 

@@ -1,7 +1,7 @@
 use std::{mem, num::NonZero};
 
 use essay_graphics_api::{
-    form::{Form, FormId, Matrix4, Shape, ShapeId}, input::Input, renderer::{self, Canvas, RenderErr, Renderer, Result}, Affine2d, BezierMesh2d, Bounds, Color, FontStyle, FontTypeId, ImageId, Path, PathOpt, Point, Size, TextStyle, TextureId
+    form::{Form, FormId, Matrix4, Shape, ShapeId}, input::Input, renderer::{self, Canvas, RenderErr, Renderer, Result}, Affine2d, BezierMesh2d, Bounds, Color, FontStyle, FontTypeId, ImageId, Mesh2d, Path, PathOpt, Point, Size, TextStyle, TextureId
 };
 use essay_tensor::tensor::Tensor;
 use wgpu::util::StagingBelt;
@@ -307,6 +307,7 @@ impl<'a, 'b> PlotRenderer<'a, 'b> {
             // TODO: order issues with bezier and shape2d
             self.canvas.bezier_render.flush(wgpu);
             self.canvas.bezier_mesh_render.flush(wgpu);
+            self.canvas.mesh2d_render.flush(wgpu);
             self.canvas.shape2d_texture_render.flush(wgpu);
             self.canvas.text_render.flush(wgpu);
             self.canvas.form3d_render.flush(
@@ -371,6 +372,18 @@ impl<'a, 'b> Renderer for PlotRenderer<'a, 'b> {
     ) -> Result<()> {
         if let Some(wgpu) = self.wgpu.as_mut() {
             self.canvas.draw_bezier_mesh(wgpu, mesh, color)?;
+        }
+
+        Ok(())
+    }
+    
+    fn draw_mesh2d(
+        &mut self,
+        mesh: &Mesh2d,
+        color: Color,
+    ) -> Result<()> {
+        if let Some(wgpu) = self.wgpu.as_mut() {
+            self.canvas.draw_mesh2d(wgpu, mesh, color)?;
         }
 
         Ok(())

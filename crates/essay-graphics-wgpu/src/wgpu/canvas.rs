@@ -1,15 +1,24 @@
 use essay_graphics_api::{
-    affine2d, form::{Form, FormId, Matrix4, Shape, ShapeId}, input::Input, renderer::{Canvas, Drawable, RenderErr, Renderer, Result}, Affine2d, BezierMesh2d, Bounds, CapStyle, Clip, Color, FontStyle, FontTypeId, HorizAlign, ImageId, JoinStyle, LineStyle, Path, PathCode, PathOpt, Point, Size, TextStyle, TextureId, VertAlign
+    affine2d, 
+    form::{Form, FormId, Matrix4, Shape, ShapeId}, input::Input, 
+    renderer::{Canvas, RenderErr, Renderer, Result}, 
+    Affine2d, BezierMesh2d, Bounds, CapStyle, Clip, Color, FontStyle, 
+    FontTypeId, HorizAlign, ImageId, JoinStyle, 
+    LineStyle, Mesh2d, Path, PathCode, PathOpt, Point, Size, 
+    TextStyle, TextureId, VertAlign
 };
 use essay_tensor::tensor::Tensor;
 use wgpu::util::StagingBelt;
 
-use crate::PlotRenderer;
-
 use super::{
-    bezier::BezierRender, bezier_mesh::BezierMeshRender, form3d::Form3dRender, image::ImageRender, render::{render_draw, render_draw_inner, RenderWgpu}, shape2d::Shape2dRender, shape2d_tex2::Shape2dTex2Render, shape2d_texture::Shape2dTextureRender, text::TextRender, text_cache::FontId, texture_store::TextureCache, triangle2d::Triangle2dRenderer, triangulate::triangulate2
+    bezier::BezierRender, bezier_mesh::BezierMeshRender, form3d::Form3dRender, 
+    image::ImageRender, mesh2d::Mesh2dRender, 
+    render::{render_draw_inner, RenderWgpu}, 
+    shape2d::Shape2dRender, shape2d_tex2::Shape2dTex2Render, 
+    shape2d_texture::Shape2dTextureRender, text::TextRender, text_cache::FontId, 
+    texture_store::TextureCache, triangle2d::Triangle2dRenderer, 
+    triangulate::triangulate2
 };
-
 
 pub struct PlotCanvas {
     bounds: Bounds<Canvas>,
@@ -22,10 +31,13 @@ pub struct PlotCanvas {
     pub(crate) form3d_render: Form3dRender,
     pub(crate) shape2d_tex2_render: Shape2dTex2Render,
 
-    pub(crate) shape2d_render: Shape2dRender,
+    pub(super) shape2d_render: Shape2dRender,
     pub(crate) shape2d_texture_render: Shape2dTextureRender,
     pub(crate) bezier_render: BezierRender,
+
+    pub(super) mesh2d_render: Mesh2dRender,
     pub(crate) bezier_mesh_render: BezierMeshRender,
+
     pub(crate) text_render: TextRender,
 
     pub(crate) texture_store: TextureCache,
@@ -50,7 +62,10 @@ impl PlotCanvas {
     
         let image_render = ImageRender::new(device, format);
         let triangle_render = Triangle2dRenderer::new(device, format);
+
+        let mesh2d_render = Mesh2dRender::new(device, format);
         let bezier_mesh_render = BezierMeshRender::new(device, format);
+
         let triangle3d_render = Form3dRender::new(device, format, width, height);
         let shape2d_tex2_render = Shape2dTex2Render::new(device, format);
         let shape2d_render = Shape2dRender::new(device, format);
@@ -75,6 +90,7 @@ impl PlotCanvas {
             shape2d_texture_render,
             text_render,
             triangle_render,
+            mesh2d_render,
             bezier_mesh_render,
             form3d_render: triangle3d_render,
             shape2d_tex2_render,
@@ -683,13 +699,24 @@ impl PlotCanvas {
         Ok(())
     }
 
-    pub(crate) fn draw_bezier_mesh(
+    pub(super) fn draw_bezier_mesh(
         &mut self, 
         wgpu: &mut RenderWgpu,
         mesh: &BezierMesh2d, 
         color: Color
     ) -> Result<(), RenderErr> {
         self.bezier_mesh_render.draw(wgpu, mesh, color, &self.to_gpu);
+
+        Ok(())
+    }
+
+    pub(super) fn draw_mesh2d(
+        &mut self, 
+        wgpu: &mut RenderWgpu,
+        mesh: &Mesh2d, 
+        color: Color
+    ) -> Result<(), RenderErr> {
+        self.mesh2d_render.draw(wgpu, mesh, color, &self.to_gpu);
 
         Ok(())
     }

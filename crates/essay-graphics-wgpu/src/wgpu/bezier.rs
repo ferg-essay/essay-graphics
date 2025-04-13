@@ -252,22 +252,6 @@ impl BezierRender {
         }
     }
 
-        //self.vertex_buffer.push(p0.x(), p0.y(), 0x000000ff);
-        //self.vertex_buffer.push(p1.x(), p1.y(), 0x000000ff);
-        //self.vertex_buffer.push(p2.x(), p2.y(), 0x0000000ff);
-
-        //self.bezier_vertex.push_tex(p0.x(), p0.y(), -1.0,0.0, color);
-        //self.bezier_vertex.push_tex(p1.x(), p1.y(), 0.0, 2.0, color);
-        //self.bezier_vertex.push_tex(p2.x(), p2.y(), 1.0, 0.0, color);
-
-        //self.vertex_bezier(p0.x(), p0.y(), -1.0,1.0);
-        //self.vertex_bezier(p1.x(), p1.y(), 0.0, -1.0);
-        //self.vertex_bezier(p2.x(), p2.y(), 1.0, 1.0);
-
-        //self.bezier_rev_vertex.push_tex(p0.x(), p0.y(), -1.0,1.0, color);
-        //self.bezier_rev_vertex.push_tex(p1.x(), p1.y(), 0.0, -1.0, color);
-        //self.bezier_rev_vertex.push_tex(p2.x(), p2.y(), 1.0, 1.0, color);
-
     pub(crate) fn draw_bezier_fill(
         &mut self, 
         p0: &Point,
