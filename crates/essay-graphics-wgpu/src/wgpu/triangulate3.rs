@@ -1,8 +1,32 @@
 use std::ops::{Index, IndexMut};
 
-use essay_graphics_api::{renderer::Canvas, Mesh2d, Path, PathCode, Point};
+use essay_graphics_api::{renderer::Canvas, BezierMesh2d, Mesh2d, Path, PathCode, Point};
 
-use super::bezier::intersection;
+use super::{bezier::intersection, lines::ccw};
+
+pub fn fill_shape(
+    path: &Path<Canvas>, 
+) -> (Mesh2d, BezierMesh2d) {
+    let mut bezier = BezierMesh2d::new();
+
+    let mut last = Point(0., 0.);
+    for code in path.codes() {
+        if let PathCode::Bezier2(p1, p2) = code {
+            if ccw(last, *p1, *p2) < 0. {
+                bezier.triangle(last, p1, p2, 1., 0.);
+            } else {
+                bezier.triangle(last, p1, p2, 0., 1.);
+            }
+        }
+
+        last = code.tail();
+    }
+
+    let mesh2d = triangulate3(path);
+
+    (mesh2d, bezier)
+}
+
 
 // Seidel's algorithm
 

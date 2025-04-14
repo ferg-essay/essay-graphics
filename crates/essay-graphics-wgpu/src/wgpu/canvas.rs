@@ -12,12 +12,12 @@ use wgpu::util::StagingBelt;
 
 use super::{
     bezier::BezierRender, bezier_mesh::BezierMeshRender, form3d::Form3dRender, 
-    image::ImageRender, mesh2d::Mesh2dRender, 
-    render::{render_draw_inner, RenderWgpu}, 
-    shape2d::Shape2dRender, shape2d_tex2::Shape2dTex2Render, 
-    shape2d_texture::Shape2dTextureRender, text::TextRender, text_cache::FontId, 
-    texture_store::TextureCache, triangle2d::Triangle2dRenderer, 
-    triangulate::triangulate2, triangulate3
+    image::ImageRender, lines::lines, mesh2d::Mesh2dRender, 
+    render::{render_draw_inner, RenderWgpu}, shape2d::Shape2dRender, 
+    shape2d_tex2::Shape2dTex2Render, shape2d_texture::Shape2dTextureRender, 
+    text::TextRender, text_cache::FontId, texture_store::TextureCache, 
+    triangle2d::Triangle2dRenderer, triangulate::triangulate2, 
+    triangulate3::fill_shape
 };
 
 pub struct PlotCanvas {
@@ -214,29 +214,7 @@ impl PlotCanvas {
         &mut self.input
     }
 
-    fn fill_path(
-        &mut self, 
-        path: &Path<Canvas>, 
-    ) {
-        self.shape2d_render.start_shape();
-        self.bezier_render.start_shape();
-
-        let mut last = Point(0., 0.);
-        for code in path.codes() {
-            if let PathCode::Bezier2(p1, p2) = code {
-                self.bezier_render.draw_bezier_fill(&last, p1, p2);
-            }
-
-            last = code.tail();
-        }
-
-        let triangles = triangulate2(path);
-
-        for triangle in &triangles {
-            self.shape2d_render.draw_triangle(&triangle[0], &triangle[1], &triangle[2]);
-        }
-    }
-
+    /*
     fn fill_shape(
         &mut self, 
         path: &Path<Canvas>, 
@@ -246,10 +224,11 @@ impl PlotCanvas {
         let mut last = Point(0., 0.);
         for code in path.codes() {
             if let PathCode::Bezier2(p1, p2) = code {
-                // TODO: CW/CCW code
-                // self.bezier_render.draw_bezier_fill(&last, p1, p2);
-
-                bezier.triangle(last, p1, p2, 1., 0.);
+                if ccw(last, *p1, *p2) < 0. {
+                    bezier.triangle(last, p1, p2, 1., 0.);
+                } else {
+                    bezier.triangle(last, p1, p2, 0., 1.);
+                }
             }
 
             last = code.tail();
@@ -259,6 +238,7 @@ impl PlotCanvas {
 
         (mesh2d, bezier)
     }
+    */
 
     pub(crate) fn fill_texture_path(
         &mut self, 
@@ -275,7 +255,7 @@ impl PlotCanvas {
         }
     }
 
-    pub(crate) fn draw_lines(
+    fn draw_lines(
         &mut self, 
         path: &Path<Canvas>, 
         style: &dyn PathOpt, 
@@ -519,7 +499,7 @@ impl PlotCanvas {
 
                 is_texture = true;
             } else {
-                let (mesh, bezier) = self.fill_shape(&path);
+                let (mesh, bezier) = fill_shape(&path);
 
                 let style = vec![(face_color, &self.to_gpu).into()];
 
@@ -528,23 +508,50 @@ impl PlotCanvas {
             }
 
             if face_color != edge_color || is_texture {
-                self.draw_lines(&path, style);
-
-                self.shape2d_render.draw_style(edge_color, &self.to_gpu);
-                self.bezier_render.draw_style(edge_color, &self.to_gpu);
+                self.draw_lines2(wgpu, &path, style, &vec![(edge_color, &self.to_gpu).into()]);
+                //self.draw_lines(&path, style);
+                //self.shape2d_render.draw_style(edge_color, &self.to_gpu);
+                //self.bezier_render.draw_style(edge_color, &self.to_gpu);
             }
         } else {
-            self.draw_lines(&path, style);
-
-            self.shape2d_render.draw_style(edge_color, &self.to_gpu);
-            self.bezier_render.draw_style(edge_color, &self.to_gpu);
+            self.draw_lines2(wgpu, &path, style, &vec![(edge_color, &self.to_gpu).into()]);
+            //self.draw_lines(&path, style);
+            //self.shape2d_render.draw_style(edge_color, &self.to_gpu);
+            //self.bezier_render.draw_style(edge_color, &self.to_gpu);
         }
 
 
         return Ok(());
     }
 
-    pub(crate) fn draw_markers(
+    fn draw_lines2(
+        &mut self, 
+        wgpu: &mut RenderWgpu,
+        path: &Path<Canvas>, 
+        style: &dyn PathOpt, 
+        styles: &Vec<MarkerStyle>,
+    ) {
+        let linewidth  = style.get_line_width().unwrap_or(0.5);
+
+        if linewidth <= 0. {
+            return;
+        }
+
+        let joinstyle  = style.get_join_style()
+            .unwrap_or(JoinStyle::Bevel);
+
+        let capstyle  = style.get_cap_style()
+            .unwrap_or(CapStyle::Butt);
+        
+        let linewidth = self.to_px(linewidth); // / self.canvas.width();
+
+        if let Some((mesh, bezier)) = lines(path, joinstyle, capstyle, linewidth) {
+            self.mesh2d_render.draw(wgpu, &mesh, styles);
+            self.bezier_mesh_render.draw(wgpu, &bezier, styles);
+        }
+    }
+
+    pub(super) fn draw_markers(
         &mut self, 
         wgpu: &mut RenderWgpu,
         path: &Path<Canvas>, 
@@ -574,7 +581,7 @@ impl PlotCanvas {
                     MarkerStyle::from((color, &self.to_gpu.matmul(&affine)))
                 }).collect();
 
-            let (mesh, bezier) = self.fill_shape(&path);
+            let (mesh, bezier) = fill_shape(&path);
 
             self.mesh2d_render.draw(wgpu, &mesh, &marker_style);
             self.bezier_mesh_render.draw(wgpu, &bezier, &marker_style);
@@ -864,39 +871,6 @@ impl PlotCanvas {
 
         self.staging.replace(staging);
     }
-    
-    /*
-    pub(crate) fn draw<R>(
-        &mut self,
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
-        view: Option<&wgpu::TextureView>,
-        draw: impl FnOnce(&mut dyn Renderer) -> Result<R>
-    ) -> Result<R> {
-        self.clear();
-
-        // let result = (draw)(&mut self._renderer(device, queue, view))?;
-        let result = render_draw(self, device, queue, view, draw)?;
-
-        self.input.update_after_draw();
-
-        Ok(result)
-    }
-    */
-
-    /*
-    pub fn _renderer<'a>(
-        &'a mut self, 
-        device: &'a wgpu::Device, 
-        queue: &'a wgpu::Queue, 
-        view: Option<&'a wgpu::TextureView>
-    ) -> PlotRenderer<'a> {
-        self.clear();
-
-        // PlotRenderer::new(self, device, Some(queue), view)
-        PlotRenderer::new(self, device, queue, view)
-    }
-    */
 }
 
 fn clamp_miter(center: Point, miter: Point, lim: f32) -> Point {

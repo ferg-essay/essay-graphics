@@ -42,6 +42,11 @@ impl Point {
 
     #[inline]
     pub fn dist(self, p: Point) -> f32 {
+        self.hypot(p)
+    }
+
+    #[inline]
+    pub fn hypot(self, p: Point) -> f32 {
         let dx = self.0 - p.0;
         let dy = self.1 - p.1;
 
