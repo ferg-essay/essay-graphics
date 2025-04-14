@@ -209,32 +209,6 @@ impl PlotCanvas {
         &mut self.input
     }
 
-    /*
-    fn fill_shape(
-        &mut self, 
-        path: &Path<Canvas>, 
-    ) -> (Mesh2d, BezierMesh2d) {
-        let mut bezier = BezierMesh2d::new();
-
-        let mut last = Point(0., 0.);
-        for code in path.codes() {
-            if let PathCode::Bezier2(p1, p2) = code {
-                if ccw(last, *p1, *p2) < 0. {
-                    bezier.triangle(last, p1, p2, 1., 0.);
-                } else {
-                    bezier.triangle(last, p1, p2, 0., 1.);
-                }
-            }
-
-            last = code.tail();
-        }
-
-        let mesh2d = triangulate3::triangulate3(path);
-
-        (mesh2d, bezier)
-    }
-    */
-
     pub(crate) fn fill_texture_path(
         &mut self, 
         path: &Path<Canvas>, 
