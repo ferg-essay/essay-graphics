@@ -1,10 +1,7 @@
 use essay_tensor::tensor::Tensor;
 
 use crate::{
-    form::{Form, FormId, Matrix4, Shape, ShapeId}, 
-    input::Input, 
-    mesh2d::{BezierMesh2d, Mesh2d}, 
-    Affine2d, Bounds, Color, FontStyle, FontTypeId, ImageId, Path, PathOpt, Point, Size, TextStyle, TextureId
+    form::{Form, FormId, Matrix4, Shape, ShapeId}, input::Input, mesh2d::{BezierMesh2d, Mesh2d}, path_style::MarkerStyle, Affine2d, Bounds, Color, FontStyle, FontTypeId, ImageId, Path, PathOpt, Point, Size, TextStyle, TextureId
 };
 
 use super::{Canvas, RenderErr, Result};
@@ -70,7 +67,8 @@ pub trait Renderer {
     fn draw_mesh2d(
         &mut self,
         mesh: &Mesh2d,
-        color: Color,
+        texture: TextureId,
+        style: &[MarkerStyle],
     ) -> Result<()>;
 
     fn draw_triangles(
@@ -118,6 +116,7 @@ pub trait Renderer {
         camera: &Matrix4,
     ) -> Result<()>;
 
+    /*
     fn create_shape(
         &mut self,
         form: &Shape,
@@ -128,6 +127,7 @@ pub trait Renderer {
         form: ShapeId,
         camera: &Affine2d,
     ) -> Result<()>;
+     */
 
     fn flush(
         &mut self,

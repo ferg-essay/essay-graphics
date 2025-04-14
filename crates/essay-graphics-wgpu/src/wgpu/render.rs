@@ -1,7 +1,7 @@
 use std::{mem, num::NonZero};
 
 use essay_graphics_api::{
-    form::{Form, FormId, Matrix4, Shape, ShapeId}, input::Input, renderer::{self, Canvas, RenderErr, Renderer, Result}, Affine2d, BezierMesh2d, Bounds, Color, FontStyle, FontTypeId, ImageId, Mesh2d, Path, PathOpt, Point, Size, TextStyle, TextureId
+    form::{Form, FormId, Matrix4, Shape, ShapeId}, input::Input, path_style::MarkerStyle, renderer::{self, Canvas, RenderErr, Renderer, Result}, Affine2d, BezierMesh2d, Bounds, Color, FontStyle, FontTypeId, ImageId, Mesh2d, Path, PathOpt, Point, Size, TextStyle, TextureId
 };
 use essay_tensor::tensor::Tensor;
 use wgpu::util::StagingBelt;
@@ -384,10 +384,11 @@ impl<'a, 'b> Renderer for PlotRenderer<'a, 'b> {
     fn draw_mesh2d(
         &mut self,
         mesh: &Mesh2d,
-        color: Color,
+        texture: TextureId,
+        style: &[MarkerStyle],
     ) -> Result<()> {
         if let Some(wgpu) = self.wgpu.as_mut() {
-            self.canvas.draw_mesh2d(wgpu, mesh, color)?;
+            self.canvas.draw_mesh2d(wgpu, mesh, texture, style)?;
         }
 
         Ok(())
@@ -458,6 +459,7 @@ impl<'a, 'b> Renderer for PlotRenderer<'a, 'b> {
         self.canvas.draw_form(form, camera)
     }
 
+    /*
     fn create_shape(
         &mut self,
         shape: &Shape,
@@ -472,6 +474,7 @@ impl<'a, 'b> Renderer for PlotRenderer<'a, 'b> {
     ) -> Result<(), RenderErr> {
         self.canvas.draw_shape(shape, camera)
     }
+    */
 
     fn request_redraw(
         &mut self,

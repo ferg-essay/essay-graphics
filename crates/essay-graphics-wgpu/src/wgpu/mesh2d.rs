@@ -1,8 +1,8 @@
 use bytemuck_derive::{Zeroable, Pod};
-use essay_graphics_api::{Affine2d, Color, Mesh2d, TextureId};
+use essay_graphics_api::{path_style::MarkerStyle, Affine2d, Color, Mesh2d, TextureId};
 use wgpu::util::DeviceExt;
 
-use super::{canvas::MarkerStyle, render::RenderWgpu, texture_store::TextureCache};
+use super::{render::RenderWgpu, texture_store::TextureCache};
 
 pub(super) struct Mesh2dRender {
     vertex_stride: usize,
@@ -76,7 +76,8 @@ impl Mesh2dRender {
         wgpu: &mut RenderWgpu,
         textures: &TextureCache,
         mesh: &Mesh2d,
-        style: &Vec<MarkerStyle>,
+        texture: TextureId,
+        style: &[MarkerStyle],
     ) {
         let len = mesh.vertices.len();
 
@@ -96,7 +97,7 @@ impl Mesh2dRender {
 
         let offset = self.vertex_offset;
 
-        self.start_shape();
+        self.start_shape(texture);
 
         for (dst, src) in self.vertex_vec.iter_mut().skip(offset).zip(mesh.as_slice()) {
             dst.position[0] = src[0];
@@ -112,7 +113,7 @@ impl Mesh2dRender {
         }
     }
 
-    fn start_shape(&mut self) {
+    fn start_shape(&mut self, texture: TextureId) {
         let start = self.vertex_offset;
 
         self.shape_items.push(Item {
@@ -120,6 +121,7 @@ impl Mesh2dRender {
             v_end: usize::MAX,
             s_start: self.style_offset,
             s_end: usize::MAX,
+            texture,
         });
     }
 
@@ -165,10 +167,9 @@ impl Mesh2dRender {
         wgpu.render_pass(|rpass| {
             rpass.set_pipeline(&self.pipeline);
 
-            let texture_id = TextureId::default();
-            rpass.set_bind_group(0, textures.texture_bind_group(texture_id), &[]);
-
             for item in self.shape_items.drain(..) {
+                rpass.set_bind_group(0, textures.texture_bind_group(item.texture), &[]);
+    
                 if item.v_start < item.v_end && item.s_start < item.s_end {
                     let stride = self.vertex_stride;
                     rpass.set_vertex_buffer(0, self.vertex_buffer.slice(
@@ -233,7 +234,7 @@ pub struct Item {
     s_start: usize,
     s_end: usize,
 
-    // clip: Option<[f32; 4]>,
+    texture: TextureId,
 }
 #[repr(C)]
 #[derive(Copy, Clone, Debug, Pod, Zeroable)]

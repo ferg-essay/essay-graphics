@@ -170,6 +170,7 @@ impl Renderer for TestRenderer {
         todo!()
     }
 
+    /*
     fn create_shape(
         &mut self,
         _shape: &Shape,
@@ -184,6 +185,7 @@ impl Renderer for TestRenderer {
     ) -> Result<(), RenderErr> {
         todo!()
     }
+    */
 
     fn flush(
         &mut self,
@@ -223,8 +225,9 @@ impl Renderer for TestRenderer {
     
     fn draw_mesh2d(
         &mut self,
-        _mesh: &Mesh2d,
-        _color: Color,
+        mesh: &Mesh2d,
+        texture: TextureId,
+        style: &[essay_graphics_api::path_style::MarkerStyle],
     ) -> Result<()> {
         todo!()
     }

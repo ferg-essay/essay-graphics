@@ -1,6 +1,6 @@
 use core::fmt;
 
-use crate::{CapStyle, Color, Hatch, JoinStyle, LineStyle, PathOpt, TextureId};
+use crate::{Affine2d, CapStyle, Color, Hatch, JoinStyle, LineStyle, PathOpt, TextureId};
 
 #[derive(Clone)]
 pub struct PathStyle {
@@ -198,6 +198,39 @@ impl Default for PathStyle {
             alpha: None,
             texture: None,
             hatch: None,
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct MarkerStyle {
+    pub color: Color,
+    pub affine: Affine2d,
+}
+
+impl From<Color> for MarkerStyle {
+    fn from(color: Color) -> Self {
+        Self {
+            color,
+            affine: Affine2d::eye(),
+        }
+    }
+}
+
+impl From<(Color, Affine2d)> for MarkerStyle {
+    fn from((color, affine): (Color, Affine2d)) -> Self {
+        Self {
+            color,
+            affine,
+        }
+    }
+}
+
+impl From<(Color, &Affine2d)> for MarkerStyle {
+    fn from((color, affine): (Color, &Affine2d)) -> Self {
+        Self {
+            color,
+            affine: affine.clone(),
         }
     }
 }

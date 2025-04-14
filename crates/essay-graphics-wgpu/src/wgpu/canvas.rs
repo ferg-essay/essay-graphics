@@ -1,11 +1,5 @@
 use essay_graphics_api::{
-    affine2d, 
-    form::{Form, FormId, Matrix4, Shape, ShapeId}, input::Input, 
-    renderer::{Canvas, RenderErr, Renderer, Result}, 
-    Affine2d, BezierMesh2d, Bounds, CapStyle, Clip, Color, FontStyle, 
-    FontTypeId, HorizAlign, ImageId, JoinStyle, 
-    LineStyle, Mesh2d, Path, PathCode, PathOpt, Point, Size, 
-    TextStyle, TextureId, VertAlign
+    affine2d, form::{Form, FormId, Matrix4, Shape, ShapeId}, input::Input, path_style::MarkerStyle, renderer::{Canvas, RenderErr, Renderer, Result}, Affine2d, BezierMesh2d, Bounds, CapStyle, Clip, Color, FontStyle, FontTypeId, HorizAlign, ImageId, JoinStyle, LineStyle, Mesh2d, Path, PathCode, PathOpt, Point, Size, TextStyle, TextureId, VertAlign
 };
 use essay_tensor::tensor::Tensor;
 use wgpu::util::StagingBelt;
@@ -463,6 +457,8 @@ impl PlotCanvas {
             edge_color = edge_color.with_alpha(alpha);
         }
 
+        let texture = TextureId::default();
+
         let path = match style.get_line_style() {
             Some(LineStyle::Solid) | None => {
                 transform_solid_path(path)
@@ -503,7 +499,7 @@ impl PlotCanvas {
 
                 let style = vec![(face_color, &self.to_gpu).into()];
 
-                self.mesh2d_render.draw(wgpu, &self.texture_store, &mesh, &style);
+                self.mesh2d_render.draw(wgpu, &self.texture_store, &mesh, texture, &style);
                 self.bezier_mesh_render.draw(wgpu, &bezier, &style);
             }
 
@@ -544,9 +540,10 @@ impl PlotCanvas {
             .unwrap_or(CapStyle::Butt);
         
         let linewidth = self.to_px(linewidth); // / self.canvas.width();
+        let texture = TextureId::default();
 
         if let Some((mesh, bezier)) = lines(path, joinstyle, capstyle, linewidth) {
-            self.mesh2d_render.draw(wgpu, &self.texture_store, &mesh, styles);
+            self.mesh2d_render.draw(wgpu, &self.texture_store, &mesh, texture, styles);
             self.bezier_mesh_render.draw(wgpu, &bezier, styles);
         }
     }
@@ -572,18 +569,20 @@ impl PlotCanvas {
             None => face_color
         };
 
-        let marker_style: Vec<MarkerStyle> = xy.iter_row().enumerate()
-        .map(|(i,xy)| {
-            let affine = marker_affine(xy[0], xy[1], i, scale);
-            let color = marker_color(i, color, face_color);
+        let texture = TextureId::default();
 
-            MarkerStyle::from((color, &self.to_gpu.matmul(&affine)))
-        }).collect();
+        let marker_style: Vec<MarkerStyle> = xy.iter_row().enumerate()
+            .map(|(i,xy)| {
+                let affine = marker_affine(xy[0], xy[1], i, scale);
+                let color = marker_color(i, color, face_color);
+
+                MarkerStyle::from((color, &self.to_gpu.matmul(&affine)))
+            }).collect();
 
         if path.is_closed_path() && ! face_color.is_none() {
             let (mesh, bezier) = fill_shape(&path);
 
-            self.mesh2d_render.draw(wgpu, &self.texture_store, &mesh, &marker_style);
+            self.mesh2d_render.draw(wgpu, &self.texture_store, &mesh, texture, &marker_style);
             self.bezier_mesh_render.draw(wgpu, &bezier, &marker_style);
 
 
@@ -766,13 +765,22 @@ impl PlotCanvas {
         &mut self, 
         wgpu: &mut RenderWgpu,
         mesh: &Mesh2d, 
-        color: Color
+        texture: TextureId,
+        style: &[MarkerStyle],
     ) -> Result<(), RenderErr> {
+        let style: Vec<MarkerStyle> = style.iter().map(|marker| {
+            MarkerStyle {
+                color: marker.color,
+                affine: marker.affine.compose(&self.to_gpu),
+            }
+        }).collect();
+
         self.mesh2d_render.draw(
             wgpu, 
             &self.texture_store, 
             mesh, 
-            &vec![(color, &self.to_gpu).into()]
+            texture,
+            style.as_slice(),
         );
 
         Ok(())
@@ -1173,28 +1181,5 @@ impl Cursor {
     fn next(&mut self) {
         self.i = (self.i + 1) % self.dashes.len();
         self.t = 0.;
-    }
-}
-
-pub(super) struct MarkerStyle {
-    pub color: Color,
-    pub affine: Affine2d,
-}
-
-impl From<(Color, Affine2d)> for MarkerStyle {
-    fn from((color, affine): (Color, Affine2d)) -> Self {
-        Self {
-            color,
-            affine
-        }
-    }
-}
-
-impl From<(Color, &Affine2d)> for MarkerStyle {
-    fn from((color, affine): (Color, &Affine2d)) -> Self {
-        Self {
-            color,
-            affine: affine.clone()
-        }
     }
 }

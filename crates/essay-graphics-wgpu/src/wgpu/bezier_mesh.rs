@@ -1,8 +1,8 @@
 use bytemuck_derive::{Pod, Zeroable};
-use essay_graphics_api::{Affine2d, BezierMesh2d, Color};
+use essay_graphics_api::{path_style::MarkerStyle, Affine2d, BezierMesh2d, Color};
 use wgpu::util::DeviceExt;
 
-use super::{canvas::MarkerStyle, render::RenderWgpu};
+use super::render::RenderWgpu;
 
 pub struct BezierMeshRender {
     vertex_stride: usize,

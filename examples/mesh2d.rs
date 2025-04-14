@@ -9,7 +9,11 @@ fn main() {
         let p = Point(100., 200.);
         mesh.triangle(Point(0., 0.) + p, Point(100., 0.) + p, Point(100., 100.) + p);
 
-        ui.draw_mesh2d(&mesh, Color::from("teal"))?;
+        ui.draw_mesh2d(
+            &mesh, 
+            TextureId::default(),
+            &[Color::from("teal").into()]
+        )?;
 
         let mut mesh = Mesh2d::new();
 
@@ -20,7 +24,11 @@ fn main() {
         mesh.triangle(Point(0., 100.) + p, Point(100., 100.) + p, Point(0., 0.) + p);
         mesh.triangle(Point(0., 100.) + p, Point(100., 100.) + p, Point(50., 200.) + p);
 
-        ui.draw_mesh2d(&mesh, Color::from("orange"))?;
+        ui.draw_mesh2d(
+            &mesh, 
+            TextureId::default(), 
+            &[Color::from("orange").into()]
+        )?;
 
         let p = Point(500., 200.);
 
@@ -29,7 +37,11 @@ fn main() {
         mesh.triangle(Point(0., 0.) + p, Point(100., 0.) + p, Point(100., 100.) + p);
         mesh.triangle(Point(0., 0.) + p, Point(100., 0.) + p, Point(0., 100.) + p);
 
-        ui.draw_mesh2d(&mesh, Color::from("azure").with_alpha(0.25))?;
+        ui.draw_mesh2d(
+            &mesh, 
+            TextureId::default(),
+            &[Color::from("azure").with_alpha(0.25).into()]
+        )?;
 
         Ok(())
     });
