@@ -24,7 +24,7 @@ pub use clip::Clip;
 
 pub use color::{Color, Colors};
 
-pub use mesh2d::{Mesh2d, BezierMesh2d};
+pub use mesh2d::{Mesh2d, Mesh2dColor, BezierMesh2d};
 
 pub use path::{
     Path, PathCode,

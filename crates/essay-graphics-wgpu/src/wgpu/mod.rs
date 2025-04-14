@@ -8,6 +8,7 @@ mod triangulate3;
 mod main_loop_wgpu;
 mod main_loop_winit;
 mod mesh2d;
+mod mesh2d_color;
 mod render;
 mod triangle2d;
 mod text;

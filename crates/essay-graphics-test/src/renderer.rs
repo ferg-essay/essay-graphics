@@ -105,50 +105,10 @@ impl Renderer for TestRenderer {
         todo!()
     }
 
-    #[allow(unused_variables)]
-    fn draw_triangles(
-        &mut self,
-        vertices: &Tensor<f32>,  // Nx2 x,y in canvas coordinates
-        colors: &Tensor<u32>,    // N in rgba
-        triangles: &Tensor<u32>, // Mx3 vertex indices
-    ) -> Result<(), RenderErr> {
-        todo!()
-    }
-
-    fn draw_image(
-        &mut self,
-        _bounds: Bounds<Canvas>,
-        _colors: &Tensor<u8>,  // [rows, cols, 4]
-    ) -> Result<(), RenderErr> {
-        todo!()
-    }
-
-    fn create_image(
-        &mut self,
-        _colors: &Tensor<u8>, // [rows, cols, 4]
-    ) -> ImageId {
-        todo!()
-    }
-
-    fn create_texture_r8(
-        &mut self,
-        _image: &Tensor<u8>, // [rows, cols, 4]
-    ) -> TextureId {
-        todo!()
-    }
-
     fn create_texture_rgba8(
         &mut self,
         _texture: &Tensor<u8>, // [rows, cols, 4]
     ) -> TextureId {
-        todo!()
-    }
-
-    fn draw_image_ref(
-        &mut self,
-        _bounds: Bounds<Canvas>,
-        _image: ImageId,
-    ) -> Result<(), RenderErr> {
         todo!()
     }
 
@@ -166,23 +126,6 @@ impl Renderer for TestRenderer {
     ) -> Result<(), RenderErr> {
         todo!()
     }
-
-    /*
-    fn create_shape(
-        &mut self,
-        _shape: &Shape,
-    ) -> ShapeId {
-        todo!()
-    }
-
-    fn draw_shape(
-        &mut self,
-        _shape: ShapeId,
-        _camera: &Affine2d,
-    ) -> Result<(), RenderErr> {
-        todo!()
-    }
-    */
 
     fn flush(
         &mut self,
@@ -226,6 +169,13 @@ impl Renderer for TestRenderer {
         mesh: &BezierMesh2d,
         texture: TextureId,
         style: &[essay_graphics_api::path_style::MeshStyle],
+    ) -> Result<()> {
+        todo!()
+    }
+    
+    fn draw_mesh2d_color(
+        &mut self,
+        mesh: &essay_graphics_api::Mesh2dColor,
     ) -> Result<()> {
         todo!()
     }

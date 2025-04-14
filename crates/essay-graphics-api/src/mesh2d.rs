@@ -1,4 +1,4 @@
-use crate::Point;
+use crate::{Color, Point};
 
 pub struct Mesh2d {
     pub vertices: Vec<[f32; 4]>,
@@ -49,6 +49,40 @@ impl Mesh2d {
 
     #[inline]
     pub fn as_slice(&self) -> &[[f32; 4]] {
+        self.vertices.as_slice()
+    }
+}
+
+pub struct Mesh2dColor {
+    pub vertices: Vec<([f32; 2], Color)>,
+}
+
+impl Mesh2dColor {
+    #[inline]
+    pub fn new() -> Self {
+        Self {
+            vertices: Vec::new(),
+        }
+    }
+
+    #[inline]
+    pub fn triangle(
+        &mut self, 
+        p0: (impl Into<Point>, impl Into<Color>),
+        p1: (impl Into<Point>, impl Into<Color>), 
+        p2: (impl Into<Point>, impl Into<Color>),
+    ) {
+        let (Point(x0, y0), color0) = (p0.0.into(), p0.1.into());
+        let (Point(x1, y1), color1) = (p1.0.into(), p1.1.into());
+        let (Point(x2, y2), color2) = (p2.0.into(), p2.1.into());
+
+        self.vertices.push(([x0, y0], color0));
+        self.vertices.push(([x1, y1], color1));
+        self.vertices.push(([x2, y2], color2));
+    }
+
+    #[inline]
+    pub fn as_slice(&self) -> &[([f32; 2], Color)] {
         self.vertices.as_slice()
     }
 }

@@ -21,6 +21,11 @@ impl Affine2d {
     }
 
     #[inline]
+    pub fn as_slice(&self) -> &[f32] {
+        &self.mat
+    }
+
+    #[inline]
     pub fn mat(&self) -> Tensor {
         let m = &self.mat;
 

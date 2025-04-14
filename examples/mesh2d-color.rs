@@ -1,10 +1,9 @@
-use essay_graphics::layout::MainLoop;
-use essay_graphics_api::{renderer::{self, Drawable, Renderer}, Color, Mesh2dColor};
+use essay_tensor::tensor::Tensor;
+use renderer::{Drawable, Renderer};
+use essay_graphics::{layout::MainLoop, prelude::*};
 
-fn main() {
-    let view = Mesh2dColorView::new();
-
-    MainLoop::new().save("../test.png", view, 144.);
+fn main() { 
+    MainLoop::new().show(Mesh2dColorView::new());
 }
 
 struct Mesh2dColorView {

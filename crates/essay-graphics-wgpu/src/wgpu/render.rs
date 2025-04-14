@@ -1,11 +1,7 @@
 use std::{mem, num::NonZero};
 
 use essay_graphics_api::{
-    form::{Form, FormId, Matrix4},
-    input::Input, path_style::MeshStyle, 
-    renderer::{self, Canvas, RenderErr, Renderer, Result}, 
-    BezierMesh2d, Bounds, Color, FontStyle, FontTypeId, ImageId, Mesh2d, Path, 
-    PathOpt, Point, Size, TextStyle, TextureId
+    form::{Form, FormId, Matrix4}, input::Input, path_style::MeshStyle, renderer::{self, Canvas, RenderErr, Renderer, Result}, BezierMesh2d, Bounds, Color, FontStyle, FontTypeId, ImageId, Mesh2d, Mesh2dColor, Path, PathOpt, Point, Size, TextStyle, TextureId
 };
 use essay_tensor::tensor::Tensor;
 use wgpu::util::StagingBelt;
@@ -381,6 +377,17 @@ impl<'a, 'b> Renderer for PlotRenderer<'a, 'b> {
 
         Ok(())
     }
+    
+    fn draw_mesh2d_color(
+        &mut self,
+        mesh: &Mesh2dColor,
+    ) -> Result<()> {
+        if let Some(wgpu) = self.wgpu.as_mut() {
+            self.canvas.draw_mesh2d_color(wgpu, mesh)?;
+        }
+
+        Ok(())
+    }
 
     fn draw_markers(
         &mut self, 
@@ -419,15 +426,6 @@ impl<'a, 'b> Renderer for PlotRenderer<'a, 'b> {
         text_style: &TextStyle,
     ) -> Size {
         self.canvas.text_size(text, text_style)
-    }
-
-    fn draw_triangles(
-        &mut self,
-        vertices: &Tensor<f32>,  // Nx2 x,y in canvas coordinates
-        colors: &Tensor<u32>,    // N in rgba
-        triangles: &Tensor<u32>, // Mx3 vertex indices
-    ) -> Result<(), RenderErr> {
-        self.canvas.draw_triangles(vertices, colors, triangles)
     }
 
     fn create_form(
@@ -469,43 +467,11 @@ impl<'a, 'b> Renderer for PlotRenderer<'a, 'b> {
         self.canvas.request_redraw(true)
     }
 
-    fn draw_image(
-        &mut self,
-        bounds: Bounds<Canvas>,
-        colors: &Tensor<u8>,
-    ) -> Result<(), RenderErr> {
-        let image = self.canvas.create_image(self.device, colors);
-
-        self.canvas.draw_image_ref(self.device, bounds, image)
-    }
-
-    fn create_image(
-        &mut self,
-        colors: &Tensor<u8>, // [rows, cols, 4]
-    ) -> ImageId {
-        self.canvas.create_image(self.device, colors)
-    }
-
-    fn create_texture_r8(
-        &mut self,
-        colors: &Tensor<u8>, // [rows, cols, 4]
-    ) -> TextureId {
-        self.canvas.create_texture(colors)
-    }
-
     fn create_texture_rgba8(
         &mut self,
         colors: &Tensor<u8>, // [rows, cols, 4]
     ) -> TextureId {
         self.canvas.create_texture_rgba8(self.device, self.queue.unwrap(), colors)
-    }
-
-    fn draw_image_ref(
-        &mut self,
-        bounds: Bounds<Canvas>,
-        image: ImageId,
-    ) -> Result<(), RenderErr> {
-        self.canvas.draw_image_ref(self.device, bounds, image)
     }
 
     fn flush(

@@ -1,7 +1,10 @@
 use essay_tensor::tensor::Tensor;
 
 use crate::{
-    form::{Form, FormId, Matrix4, Shape, ShapeId}, input::Input, mesh2d::{BezierMesh2d, Mesh2d}, path_style::MeshStyle, Affine2d, Bounds, Color, FontStyle, FontTypeId, ImageId, Path, PathOpt, Point, Size, TextStyle, TextureId
+    form::{Form, FormId, Matrix4},
+    input::Input, mesh2d::{BezierMesh2d, Mesh2d}, 
+    path_style::MeshStyle, Bounds, FontStyle, FontTypeId, ImageId, 
+    Mesh2dColor, Path, PathOpt, Point, Size, TextStyle, TextureId
 };
 
 use super::{Canvas, RenderErr, Result};
@@ -60,11 +63,9 @@ pub trait Renderer {
         style: &[MeshStyle],
     ) -> Result<()>;
 
-    fn draw_triangles(
+    fn draw_mesh2d_color(
         &mut self,
-        vertices: &Tensor<f32>,  // Nx2 x,y in canvas coordinates
-        colors: &Tensor<u32>,    // N in rgba
-        triangles: &Tensor<u32>, // Mx3 vertex indices
+        mesh: &Mesh2dColor,
     ) -> Result<()>;
 
     fn font(
@@ -81,32 +82,10 @@ pub trait Renderer {
         text_style: &TextStyle,
     ) -> Result<()>;
 
-    fn draw_image(
-        &mut self,
-        bounds: Bounds<Canvas>,
-        colors: &Tensor<u8>,  // [rows, cols, 4]
-    ) -> Result<()>;
-
-    fn create_image(
-        &mut self,
-        colors: &Tensor<u8>, // [rows, cols, 4]
-    ) -> ImageId;
-
-    fn create_texture_r8(
-        &mut self,
-        image: &Tensor<u8>, // [rows, cols, 4]
-    ) -> TextureId;
-
     fn create_texture_rgba8(
         &mut self,
         texture: &Tensor<u8>, // [rows, cols, 4]
     ) -> TextureId;
-
-    fn draw_image_ref(
-        &mut self,
-        bounds: Bounds<Canvas>,
-        image: ImageId,
-    ) -> Result<()>;
 
     fn create_form(
         &mut self,

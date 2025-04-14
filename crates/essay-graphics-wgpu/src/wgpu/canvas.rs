@@ -1,21 +1,14 @@
 use std::collections::HashMap;
 
 use essay_graphics_api::{
-    affine2d, form::{Form, FormId, Matrix4}, 
-    input::Input, path_style::MeshStyle, 
-    renderer::{Canvas, RenderErr, Renderer, Result}, 
-    Affine2d, BezierMesh2d, Bounds, CapStyle, Clip, Color, FontStyle, FontTypeId, Hatch, HorizAlign, ImageId, 
-    JoinStyle, LineStyle, Mesh2d, Path, PathCode, PathOpt, Point, Size, TextStyle, TextureId, VertAlign
+    affine2d, form::{Form, FormId, Matrix4}, input::Input, path_style::MeshStyle, renderer::{Canvas, RenderErr, Renderer, Result}, Affine2d, BezierMesh2d, Bounds, CapStyle, Clip, Color, FontStyle, FontTypeId, Hatch, HorizAlign, ImageId, JoinStyle, LineStyle, Mesh2d, Mesh2dColor, Path, PathCode, PathOpt, Point, Size, TextStyle, TextureId, VertAlign
 };
 use essay_tensor::tensor::Tensor;
 use wgpu::util::StagingBelt;
 
 use super::{
-    bezier_mesh::BezierMeshRender, form3d::Form3dRender, 
-    hatch::init_hatch, image::ImageRender, lines::lines, mesh2d::Mesh2dRender, 
-    render::{render_draw_inner, RenderWgpu}, 
-    text::TextRender, text_cache::FontId, texture_store::TextureCache, 
-    triangle2d::Triangle2dRenderer, triangulate3::fill_shape
+    bezier_mesh::BezierMeshRender, form3d::Form3dRender, hatch::init_hatch, image::ImageRender, lines::lines, 
+    mesh2d::Mesh2dRender, mesh2d_color::Mesh2dColorRender, render::{render_draw_inner, RenderWgpu}, text::TextRender, text_cache::FontId, texture_store::TextureCache, triangle2d::Triangle2dRenderer, triangulate3::fill_shape
 };
 
 pub struct PlotCanvas {
@@ -26,18 +19,14 @@ pub struct PlotCanvas {
     mesh2d_render: Mesh2dRender,
     bezier_mesh_render: BezierMeshRender,
 
+    mesh2d_color_render: Mesh2dColorRender,
+
     text_render: TextRender,
 
-    image_render: ImageRender,
-    triangle_render: Triangle2dRenderer,
+    //image_render: ImageRender,
+    //triangle_render: Triangle2dRenderer,
 
     form3d_render: Form3dRender,
-
-    //shape2d_tex2_render: Shape2dTex2Render,
-
-    //shape2d_render: Shape2dRender,
-    //shape2d_texture_render: Shape2dTextureRender,
-    //bezier_render: BezierRender,
 
     texture_store: TextureCache,
     hatch_map: HashMap<Hatch, TextureId>,
@@ -60,20 +49,19 @@ impl PlotCanvas {
         height: u32,
     ) -> Self {
     
-        let image_render = ImageRender::new(device, format);
-        let triangle_render = Triangle2dRenderer::new(device, format);
+        //let image_render = ImageRender::new(device, format);
+        //let triangle_render = Triangle2dRenderer::new(device, format);
 
         let mesh2d_render = Mesh2dRender::new(device, format);
         let bezier_mesh_render = BezierMeshRender::new(device, format);
 
-        let triangle3d_render = Form3dRender::new(device, format, width, height);
-        //let shape2d_tex2_render = Shape2dTex2Render::new(device, format);
-        //let shape2d_render = Shape2dRender::new(device, format);
-        //let shape2d_texture_render = Shape2dTextureRender::new(device, queue, format);
-        //let bezier_render = BezierRender::new(device, format);
+        let mesh2d_color_render = Mesh2dColorRender::new(device, format);
+
         let mut text_render = TextRender::new(device, format, 512, 512);
 
         let font_id_default = text_render.font("default");
+
+        let form3d_render = Form3dRender::new(device, format, width, height);
 
         let staging = StagingBelt::new(2048 * 128);
 
@@ -88,16 +76,11 @@ impl PlotCanvas {
 
             input: Input::default(),
 
-            image_render,
-            //shape2d_render,
-            //shape2d_texture_render,
-            text_render,
-            triangle_render,
             mesh2d_render,
             bezier_mesh_render,
-            form3d_render: triangle3d_render,
-            //shape2d_tex2_render,
-            //bezier_render,
+            mesh2d_color_render,
+            form3d_render,
+            text_render,
 
             font_id_default,
             texture_store,
@@ -243,6 +226,20 @@ impl PlotCanvas {
             mesh, 
             texture,
             style.as_slice(),
+        );
+
+        Ok(())
+    }
+
+    pub(super) fn draw_mesh2d_color(
+        &mut self, 
+        wgpu: &mut RenderWgpu,
+        mesh: &Mesh2dColor,
+    ) -> Result<(), RenderErr> {
+        self.mesh2d_color_render.draw(
+            wgpu, 
+            mesh, 
+            &self.to_gpu,
         );
 
         Ok(())
@@ -485,43 +482,6 @@ impl PlotCanvas {
         )
     }
 
-    pub fn draw_triangles(
-        &mut self,
-        vertices: &Tensor<f32>,  // Nx2 x,y in canvas coordinates
-        rgba: &Tensor<u32>,    // N in rgba
-        triangles: &Tensor<u32>, // Mx3 vertex indices
-    ) -> Result<(), RenderErr> {
-        assert!(vertices.rank() == 2, 
-            "vertices must be 2d (rank2) shape={:?}",
-            vertices.shape().as_vec());
-        assert!(vertices.cols() == 2, 
-            "vertices must be rows of 2 columns (x, y) shape={:?}",
-            vertices.shape().as_vec());
-        assert!(rgba.rank() == 1,
-            "colors must be a 1D vector shape={:?}",
-            rgba.shape().as_vec());
-        assert!(vertices.rows() == rgba.cols(), 
-            "number of vertices and colors must match. vertices={:?} colors={:?}",
-            vertices.shape().as_vec(), rgba.shape().as_vec());
-        assert!(triangles.cols() == 3, 
-            "triangle indices must have 3 vertices (3 columns) shape={:?}",
-            triangles.shape().as_vec());
-
-        self.triangle_render.start_triangles();
-
-        for (xy, color) in vertices.iter_row().zip(rgba.iter()) {
-            self.triangle_render.draw_vertex(xy[0], xy[1], *color);
-        }
-
-        for tri in triangles.iter_row() {
-            self.triangle_render.draw_triangle(tri[0], tri[1], tri[2]);
-        }
-
-        self.triangle_render.draw_style(&self.to_gpu);
-
-        Ok(())
-    }
-
     pub fn create_form(
         &mut self,
         form: &Form,
@@ -538,28 +498,6 @@ impl PlotCanvas {
         self.form3d_render.draw_form(form);
         
         Ok(())
-    }
-
-    fn _draw_image(
-        &mut self,
-        device: &wgpu::Device,
-        bounds: &Bounds<Canvas>,  // Nx2 x,y in canvas coordinates
-        colors: &Tensor<u8>,    // N in rgba
-        _clip: &Clip,
-    ) -> Result<(), RenderErr> {
-        assert!(colors.rank() == 3, "colors rank must be 3 shape={:?}", colors.shape().as_vec());
-        assert!(colors.cols() == 4, "colors must have 4-width columns shape={:?}", colors.shape().as_vec());
-
-        self.image_render._draw(device, bounds, colors, &self.to_gpu);
-
-        Ok(())
-    }
-
-    pub fn create_image(&mut self, device: &wgpu::Device, colors: &Tensor<u8>) -> ImageId {
-        assert!(colors.rank() == 3, "colors rank must be 3 shape={:?}", colors.shape().as_vec());
-        assert!(colors.cols() == 4, "colors must have 4-width columns shape={:?}", colors.shape().as_vec());
-
-        self.image_render.create_image(device, colors)
     }
 
     pub fn create_texture(&mut self, image: &Tensor<u8>) -> TextureId {
@@ -587,29 +525,13 @@ impl PlotCanvas {
         )
     }
 
-    pub fn draw_image_ref(
-        &mut self,
-        device: &wgpu::Device,
-        pos: Bounds<Canvas>,  // Nx2 x,y in canvas coordinates
-        image: ImageId,    // N in rgba
-    ) -> Result<(), RenderErr> {
-        self.image_render.draw_image(device, pos, &image, &self.to_gpu);
-
-        Ok(())
-    }
     pub(super) fn flush(&mut self, wgpu: &mut RenderWgpu) {
-        self.image_render.flush(wgpu);
-        self.triangle_render.flush(wgpu);
-        //self.shape2d_render.flush(wgpu);
-            // TODO: order issues with bezier and shape2d
-        //self.bezier_render.flush(wgpu);
         self.bezier_mesh_render.flush(wgpu);
         self.mesh2d_render.flush(wgpu, &self.texture_store);
-        //self.shape2d_texture_render.flush(wgpu);
+        self.mesh2d_color_render.flush(wgpu);
         self.text_render.flush(wgpu);
         self.form3d_render.flush(wgpu, &self.texture_store);
-        //self.shape2d_tex2_render.flush(wgpu, &self.texture_store);
-    }
+     }
     
     pub(super) fn take_staging(&mut self) -> wgpu::util::StagingBelt {
         self.staging.take().unwrap()
