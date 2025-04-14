@@ -23,11 +23,12 @@ impl Mesh2d {
         let Point(x1, y1) = p1.into();
         let Point(x2, y2) = p2.into();
 
-        let (u, v) = (0., 0.);
+        // default UV assumes 64x64 hatch-like texture
+        let f = 1. / 64.;
 
-        self.vertices.push([x0, y0, u, v]);
-        self.vertices.push([x1, y1, u, v]);
-        self.vertices.push([x2, y2, u, v]);
+        self.vertices.push([x0, y0, f * x0, f * y0]);
+        self.vertices.push([x1, y1, f * x1, f * y1]);
+        self.vertices.push([x2, y2, f * x2, f * y2]);
     }
 
     #[inline]

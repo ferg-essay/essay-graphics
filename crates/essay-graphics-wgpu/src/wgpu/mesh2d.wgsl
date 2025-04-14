@@ -32,6 +32,7 @@ fn vs_shape(
     let y0 = model.pos[1];
     let x = a0[0] * x0 + a0[1] * y0 + a0[3];
     let y = a1[0] * x0 + a1[1] * y0 + a1[3];
+
     var out: VertexOutput;
     out.pos = vec4<f32>(x, y, 0.0, 1.0);
     out.color = style.color;

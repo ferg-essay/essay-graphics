@@ -1,23 +1,24 @@
+use std::collections::HashMap;
+
 use essay_graphics_api::{
-    affine2d, form::{Form, FormId, Matrix4, Shape, ShapeId}, input::Input, path_style::MeshStyle, renderer::{Canvas, RenderErr, Renderer, Result}, Affine2d, BezierMesh2d, Bounds, CapStyle, Clip, Color, FontStyle, FontTypeId, HorizAlign, ImageId, JoinStyle, LineStyle, Mesh2d, Path, PathCode, PathOpt, Point, Size, TextStyle, TextureId, VertAlign
+    affine2d, form::{Form, FormId, Matrix4, Shape, ShapeId}, input::Input, path_style::MeshStyle, renderer::{Canvas, RenderErr, Renderer, Result}, Affine2d, BezierMesh2d, Bounds, CapStyle, Clip, Color, FontStyle, FontTypeId, Hatch, HorizAlign, ImageId, JoinStyle, LineStyle, Mesh2d, Path, PathCode, PathOpt, Point, Size, TextStyle, TextureId, VertAlign
 };
 use essay_tensor::tensor::Tensor;
 use wgpu::util::StagingBelt;
 
 use super::{
-    bezier::BezierRender, bezier_mesh::BezierMeshRender, form3d::Form3dRender, 
-    image::ImageRender, lines::lines, mesh2d::Mesh2dRender, 
-    render::{render_draw_inner, RenderWgpu}, shape2d::Shape2dRender, 
-    shape2d_tex2::Shape2dTex2Render, shape2d_texture::Shape2dTextureRender, 
-    text::TextRender, text_cache::FontId, texture_store::TextureCache, 
-    triangle2d::Triangle2dRenderer, triangulate::triangulate2, 
-    triangulate3::fill_shape
+    bezier::BezierRender, bezier_mesh::BezierMeshRender, form3d::Form3dRender, hatch::init_hatch, image::ImageRender, lines::lines, mesh2d::Mesh2dRender, render::{render_draw_inner, RenderWgpu}, shape2d::Shape2dRender, shape2d_tex2::Shape2dTex2Render, shape2d_texture::Shape2dTextureRender, text::TextRender, text_cache::FontId, texture_store::TextureCache, triangle2d::Triangle2dRenderer, triangulate::triangulate2, triangulate3::fill_shape
 };
 
 pub struct PlotCanvas {
     bounds: Bounds<Canvas>,
     scale_factor: f32,
     input: Input,
+
+    pub(super) mesh2d_render: Mesh2dRender,
+    pub(crate) bezier_mesh_render: BezierMeshRender,
+
+    pub(crate) text_render: TextRender,
 
     pub(crate) image_render: ImageRender,
     pub(crate) triangle_render: Triangle2dRenderer,
@@ -29,12 +30,8 @@ pub struct PlotCanvas {
     pub(crate) shape2d_texture_render: Shape2dTextureRender,
     pub(crate) bezier_render: BezierRender,
 
-    pub(super) mesh2d_render: Mesh2dRender,
-    pub(crate) bezier_mesh_render: BezierMeshRender,
-
-    pub(crate) text_render: TextRender,
-
     pub(crate) texture_store: TextureCache,
+    hatch_map: HashMap<Hatch, TextureId>,
 
     staging: Option<StagingBelt>,
 
@@ -72,7 +69,10 @@ impl PlotCanvas {
         let staging = StagingBelt::new(2048 * 128);
 
         // let texture_store = TextureCache::new();
-        
+        let mut texture_store = TextureCache::new(device, queue);
+
+        let hatch_map = init_hatch(device, queue, &mut texture_store);
+
         let mut canvas = Self {
             bounds: Bounds::from([width as f32, height as f32]),
             scale_factor: 1.,
@@ -91,7 +91,8 @@ impl PlotCanvas {
             bezier_render,
 
             font_id_default,
-            texture_store: TextureCache::new(device, queue),
+            texture_store,
+            hatch_map,
 
             staging: Some(staging),
             to_gpu: Affine2d::eye(),
@@ -479,19 +480,32 @@ impl PlotCanvas {
             let mut is_texture = true;
 
             if let Some(hatch) = style.get_hatch() {
-                let texture = self.shape2d_texture_render.hatch_texture(hatch);
+                let (mesh, bezier) = fill_shape(&path);
 
-                self.fill_texture_path(&path, texture);
+                let texture = self.hatch_map[&hatch];
 
-                self.shape2d_texture_render.draw_style(face_color, &self.to_gpu);
+                let style = vec![(face_color, &self.to_gpu).into()];
+
+                self.mesh2d_render.draw(wgpu, &self.texture_store, &mesh, texture, &style);
+                self.bezier_mesh_render.draw(wgpu, &bezier, &style);
+
+                //self.fill_texture_path(&path, texture);
+                //self.shape2d_texture_render.draw_style(face_color, &self.to_gpu);
                 //self.bezier_render.draw_style(face_color, &self.to_gpu);
 
                 is_texture = true;
             } else if let Some(texture) = style.get_texture() {
-                self.fill_texture_path(&path, texture);
+                let (mesh, bezier) = fill_shape(&path);
+
+                // self.fill_texture_path(&path, texture);
     
-                self.shape2d_texture_render.draw_style(face_color, &self.to_gpu);
-                self.bezier_render.draw_style(face_color, &self.to_gpu);
+                //self.shape2d_texture_render.draw_style(face_color, &self.to_gpu);
+                //self.bezier_render.draw_style(face_color, &self.to_gpu);
+
+                let style = vec![(face_color, &self.to_gpu).into()];
+
+                self.mesh2d_render.draw(wgpu, &self.texture_store, &mesh, texture, &style);
+                self.bezier_mesh_render.draw(wgpu, &bezier, &style);
 
                 is_texture = true;
             } else {
@@ -503,17 +517,11 @@ impl PlotCanvas {
                 self.bezier_mesh_render.draw(wgpu, &bezier, &style);
             }
 
-            if face_color != edge_color || is_texture {
+            if (face_color != edge_color || is_texture) && edge_color.alpha() > 0. {
                 self.draw_lines2(wgpu, &path, style, &vec![(edge_color, &self.to_gpu).into()]);
-                //self.draw_lines(&path, style);
-                //self.shape2d_render.draw_style(edge_color, &self.to_gpu);
-                //self.bezier_render.draw_style(edge_color, &self.to_gpu);
             }
-        } else {
+        } else if edge_color.alpha() > 0. {
             self.draw_lines2(wgpu, &path, style, &vec![(edge_color, &self.to_gpu).into()]);
-            //self.draw_lines(&path, style);
-            //self.shape2d_render.draw_style(edge_color, &self.to_gpu);
-            //self.bezier_render.draw_style(edge_color, &self.to_gpu);
         }
 
 
@@ -580,41 +588,11 @@ impl PlotCanvas {
             self.mesh2d_render.draw(wgpu, &self.texture_store, &mesh, texture, &marker_style);
             self.bezier_mesh_render.draw(wgpu, &bezier, &marker_style);
 
-
-                /*
-            self.fill_path(&path);
-            for (i, xy) in xy.iter_row().enumerate() {
-                self.shape2d_render.draw_style(color, &self.to_gpu.matmul(&affine));
-                self.bezier_render.draw_style(color, &self.to_gpu.matmul(&affine));
-            }
-            */
-
             if face_color != edge_color && ! edge_color.is_none() {
                 self.draw_lines2(wgpu, &path, path_style, &marker_style);
-                /*
-                self.draw_lines(&path, style);
-
-                for (i, xy) in xy.iter_row().enumerate() {
-                    let affine = marker_affine(xy[0], xy[1], i, scale);
-    
-                    self.shape2d_render.draw_style(edge_color, &self.to_gpu.matmul(&affine));
-                    self.bezier_render.draw_style(edge_color, &self.to_gpu.matmul(&affine));
-                }
-                */
             }
         } else if ! edge_color.is_none() {
             self.draw_lines2(wgpu, &path, path_style, &marker_style);
-            /*
-            self.draw_lines(&path, style);
-
-            for (i, xy) in xy.iter_row().enumerate() {
-                let affine = marker_affine(xy[0], xy[1], i, scale);
-                let color = marker_color(i, color, edge_color);
-
-                self.shape2d_render.draw_style(color, &self.to_gpu.matmul(&affine));
-                self.bezier_render.draw_style(color, &self.to_gpu.matmul(&affine));
-            }
-            */
         }
 
         Ok(())

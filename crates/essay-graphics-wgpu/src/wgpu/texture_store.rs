@@ -93,9 +93,16 @@ impl TextureItem {
         width: u32, 
         height: u32
     ) -> Self {
+        let is_repeat = true;
+        let address_mode = if is_repeat {
+            wgpu::AddressMode::Repeat
+        } else {
+            wgpu::AddressMode::ClampToEdge
+        };
+
         let texture = create_texture(device, format, width, height);
         let layout = create_bind_group_layout(device);
-        let bind_group = create_bind_group(device, &layout, &texture);
+        let bind_group = create_bind_group(device, &layout, &texture, address_mode);
 
         Self {
             texture,
@@ -191,16 +198,17 @@ fn create_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
 fn create_bind_group(
     device: &wgpu::Device, 
     layout: &wgpu::BindGroupLayout,
-    texture: &wgpu::Texture
+    texture: &wgpu::Texture,
+    address_mode: wgpu::AddressMode,
 ) -> wgpu::BindGroup {
     let text_view = texture.create_view(&wgpu::TextureViewDescriptor::default());
 
     // wgpu::AddressMode::ClampToEdge
     let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
-        //address_mode_u: wgpu::AddressMode::Repeat,
-        //address_mode_v: wgpu::AddressMode::Repeat,
-        address_mode_u: wgpu::AddressMode::ClampToEdge,
-        address_mode_v: wgpu::AddressMode::ClampToEdge,
+        address_mode_u: address_mode,
+        address_mode_v: address_mode,
+        //address_mode_u: wgpu::AddressMode::ClampToEdge,
+        //address_mode_v: wgpu::AddressMode::ClampToEdge,
         address_mode_w: wgpu::AddressMode::ClampToEdge,
         mag_filter: wgpu::FilterMode::Linear,
         min_filter: wgpu::FilterMode::Nearest,

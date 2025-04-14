@@ -1,3 +1,4 @@
+mod hatch;
 mod lines;
 mod triangulate3;
 //mod mesh2d_old;
