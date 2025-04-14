@@ -1,3 +1,4 @@
+use essay_graphics_api::path_style::MeshStyle;
 use essay_tensor::ten;
 use renderer::Renderer;
 use essay_graphics::prelude::*;
@@ -15,9 +16,9 @@ fn main() {
         [0.75, 0.75]
     ];
 
-    let colors = ten![
-        Color::from("red").to_rgba(),
-        Color::from("teal").to_rgba(),
+    let colors = vec![
+        Color::from("red"),
+        Color::from("teal"),
     ];
 
     let scale = ten!([
@@ -32,8 +33,19 @@ fn main() {
         let path = to_canvas.transform_path(&path);
         let xy = to_canvas.transform(&markers);
 
+        let styles: Vec<MeshStyle> = xy.iter_row()
+            .zip(colors.as_slice().iter())
+            .zip(scale.iter())
+            .map(|((xy, color), scale)| {
+                let affine = affine2d::scale(*scale as f32, *scale as f32)
+                    .translate(xy[0], xy[1]);
+
+                MeshStyle::from((*color, affine))
+            })
+            .collect();
+
         let style = PathStyle::new();
-        ui.draw_markers(&path, &xy, &scale, &colors, &style)
+        ui.draw_markers(&path, &style, styles.as_slice())
     })
 }
 

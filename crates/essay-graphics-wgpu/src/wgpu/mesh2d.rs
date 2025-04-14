@@ -1,5 +1,5 @@
 use bytemuck_derive::{Zeroable, Pod};
-use essay_graphics_api::{path_style::MarkerStyle, Affine2d, Color, Mesh2d, TextureId};
+use essay_graphics_api::{path_style::MeshStyle, Affine2d, Color, Mesh2d, TextureId};
 use wgpu::util::DeviceExt;
 
 use super::{render::RenderWgpu, texture_store::TextureCache};
@@ -77,7 +77,7 @@ impl Mesh2dRender {
         textures: &TextureCache,
         mesh: &Mesh2d,
         texture: TextureId,
-        style: &[MarkerStyle],
+        style: &[MeshStyle],
     ) {
         let len = mesh.vertices.len();
 
@@ -108,7 +108,7 @@ impl Mesh2dRender {
 
         self.vertex_offset += len;
         
-        for MarkerStyle { color, affine } in style {
+        for MeshStyle { color, affine } in style {
             self.draw_style(*color, affine);
         }
     }

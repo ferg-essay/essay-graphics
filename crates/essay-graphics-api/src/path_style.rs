@@ -203,12 +203,12 @@ impl Default for PathStyle {
 }
 
 #[derive(Clone, Debug)]
-pub struct MarkerStyle {
+pub struct MeshStyle {
     pub color: Color,
     pub affine: Affine2d,
 }
 
-impl From<Color> for MarkerStyle {
+impl From<Color> for MeshStyle {
     fn from(color: Color) -> Self {
         Self {
             color,
@@ -217,7 +217,7 @@ impl From<Color> for MarkerStyle {
     }
 }
 
-impl From<(Color, Affine2d)> for MarkerStyle {
+impl From<(Color, Affine2d)> for MeshStyle {
     fn from((color, affine): (Color, Affine2d)) -> Self {
         Self {
             color,
@@ -226,7 +226,7 @@ impl From<(Color, Affine2d)> for MarkerStyle {
     }
 }
 
-impl From<(Color, &Affine2d)> for MarkerStyle {
+impl From<(Color, &Affine2d)> for MeshStyle {
     fn from((color, affine): (Color, &Affine2d)) -> Self {
         Self {
             color,

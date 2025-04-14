@@ -1,5 +1,5 @@
 use bytemuck_derive::{Pod, Zeroable};
-use essay_graphics_api::{path_style::MarkerStyle, Affine2d, BezierMesh2d, Color};
+use essay_graphics_api::{path_style::MeshStyle, Affine2d, BezierMesh2d, Color};
 use wgpu::util::DeviceExt;
 
 use super::render::RenderWgpu;
@@ -74,7 +74,7 @@ impl BezierMeshRender {
         &mut self, 
         wgpu: &mut RenderWgpu,
         mesh: &BezierMesh2d, 
-        style: &[MarkerStyle],
+        style: &[MeshStyle],
     ) {
         let mesh_vertices = mesh.as_slice();
 
@@ -102,7 +102,7 @@ impl BezierMeshRender {
 
         self.vertex_offset += mesh_vertices.len();
 
-        for MarkerStyle { color, affine } in style {
+        for MeshStyle { color, affine } in style {
             self.draw_style(*color, affine);
         }
     }

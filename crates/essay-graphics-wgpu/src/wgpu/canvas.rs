@@ -1,5 +1,5 @@
 use essay_graphics_api::{
-    affine2d, form::{Form, FormId, Matrix4, Shape, ShapeId}, input::Input, path_style::MarkerStyle, renderer::{Canvas, RenderErr, Renderer, Result}, Affine2d, BezierMesh2d, Bounds, CapStyle, Clip, Color, FontStyle, FontTypeId, HorizAlign, ImageId, JoinStyle, LineStyle, Mesh2d, Path, PathCode, PathOpt, Point, Size, TextStyle, TextureId, VertAlign
+    affine2d, form::{Form, FormId, Matrix4, Shape, ShapeId}, input::Input, path_style::MeshStyle, renderer::{Canvas, RenderErr, Renderer, Result}, Affine2d, BezierMesh2d, Bounds, CapStyle, Clip, Color, FontStyle, FontTypeId, HorizAlign, ImageId, JoinStyle, LineStyle, Mesh2d, Path, PathCode, PathOpt, Point, Size, TextStyle, TextureId, VertAlign
 };
 use essay_tensor::tensor::Tensor;
 use wgpu::util::StagingBelt;
@@ -525,7 +525,7 @@ impl PlotCanvas {
         wgpu: &mut RenderWgpu,
         path: &Path<Canvas>, 
         style: &dyn PathOpt, 
-        styles: &Vec<MarkerStyle>,
+        styles: &Vec<MeshStyle>,
     ) {
         let linewidth  = style.get_line_width().unwrap_or(0.5);
 
@@ -552,31 +552,26 @@ impl PlotCanvas {
         &mut self, 
         wgpu: &mut RenderWgpu,
         path: &Path<Canvas>, 
-        xy: &Tensor,
-        scale: &Tensor,
-        color: &Tensor<u32>,
-        style: &dyn PathOpt, 
+        path_style: &dyn PathOpt, 
+        marker_style: &[MeshStyle],
     ) -> Result<(), RenderErr> {
         let path = transform_solid_path(path);
 
-        let face_color = match style.get_face_color() {
+        let face_color = match path_style.get_face_color() {
             Some(color) => color,
             None => Color(0x000000ff)
         };
 
-        let edge_color = match style.get_edge_color() {
+        let edge_color = match path_style.get_edge_color() {
             Some(color) => color,
             None => face_color
         };
 
         let texture = TextureId::default();
 
-        let marker_style: Vec<MarkerStyle> = xy.iter_row().enumerate()
-            .map(|(i,xy)| {
-                let affine = marker_affine(xy[0], xy[1], i, scale);
-                let color = marker_color(i, color, face_color);
-
-                MarkerStyle::from((color, &self.to_gpu.matmul(&affine)))
+        let marker_style: Vec<MeshStyle> = marker_style.iter()
+            .map(|style| {
+                MeshStyle::from((style.color, &self.to_gpu.matmul(&style.affine)))
             }).collect();
 
         if path.is_closed_path() && ! face_color.is_none() {
@@ -595,7 +590,7 @@ impl PlotCanvas {
             */
 
             if face_color != edge_color && ! edge_color.is_none() {
-                self.draw_lines2(wgpu, &path, style, &marker_style);
+                self.draw_lines2(wgpu, &path, path_style, &marker_style);
                 /*
                 self.draw_lines(&path, style);
 
@@ -608,7 +603,7 @@ impl PlotCanvas {
                 */
             }
         } else if ! edge_color.is_none() {
-            self.draw_lines2(wgpu, &path, style, &marker_style);
+            self.draw_lines2(wgpu, &path, path_style, &marker_style);
             /*
             self.draw_lines(&path, style);
 
@@ -755,10 +750,10 @@ impl PlotCanvas {
         wgpu: &mut RenderWgpu,
         mesh: &BezierMesh2d, 
         texture: TextureId,
-        style: &[MarkerStyle],
+        style: &[MeshStyle],
     ) -> Result<(), RenderErr> {
-        let style: Vec<MarkerStyle> = style.iter().map(|marker| {
-            MarkerStyle {
+        let style: Vec<MeshStyle> = style.iter().map(|marker| {
+            MeshStyle {
                 color: marker.color,
                 affine: marker.affine.compose(&self.to_gpu),
             }
@@ -774,10 +769,10 @@ impl PlotCanvas {
         wgpu: &mut RenderWgpu,
         mesh: &Mesh2d,
         texture: TextureId,
-        style: &[MarkerStyle],
+        style: &[MeshStyle],
     ) -> Result<(), RenderErr> {
-        let style: Vec<MarkerStyle> = style.iter().map(|marker| {
-            MarkerStyle {
+        let style: Vec<MeshStyle> = style.iter().map(|marker| {
+            MeshStyle {
                 color: marker.color,
                 affine: marker.affine.compose(&self.to_gpu),
             }

@@ -2,7 +2,7 @@ use std::{mem, num::NonZero};
 
 use essay_graphics_api::{
     form::{Form, FormId, Matrix4},
-    input::Input, path_style::MarkerStyle, 
+    input::Input, path_style::MeshStyle, 
     renderer::{self, Canvas, RenderErr, Renderer, Result}, 
     BezierMesh2d, Bounds, Color, FontStyle, FontTypeId, ImageId, Mesh2d, Path, 
     PathOpt, Point, Size, TextStyle, TextureId
@@ -376,7 +376,7 @@ impl<'a, 'b> Renderer for PlotRenderer<'a, 'b> {
         &mut self,
         mesh: &BezierMesh2d,
         texture: TextureId,
-        style: &[MarkerStyle],
+        style: &[MeshStyle],
     ) -> Result<()> {
         if let Some(wgpu) = self.wgpu.as_mut() {
             self.canvas.draw_bezier_mesh(wgpu, mesh, texture, style)?;
@@ -389,7 +389,7 @@ impl<'a, 'b> Renderer for PlotRenderer<'a, 'b> {
         &mut self,
         mesh: &Mesh2d,
         texture: TextureId,
-        style: &[MarkerStyle],
+        style: &[MeshStyle],
     ) -> Result<()> {
         if let Some(wgpu) = self.wgpu.as_mut() {
             self.canvas.draw_mesh2d(wgpu, mesh, texture, style)?;
@@ -401,13 +401,11 @@ impl<'a, 'b> Renderer for PlotRenderer<'a, 'b> {
     fn draw_markers(
         &mut self, 
         marker: &Path<Canvas>, 
-        xy: &Tensor,
-        scale: &Tensor,
-        color: &Tensor<u32>,
-        style: &dyn PathOpt, 
+        path_style: &dyn PathOpt, 
+        marker_style: &[MeshStyle],
     ) -> Result<(), RenderErr> {
         if let Some(wgpu) = self.wgpu.as_mut() {
-            self.canvas.draw_markers(wgpu, marker, xy, scale, color, style)?;
+            self.canvas.draw_markers(wgpu, marker, path_style, marker_style)?;
         }
 
         Ok(())

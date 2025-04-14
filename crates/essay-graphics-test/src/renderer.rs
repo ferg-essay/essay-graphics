@@ -1,6 +1,5 @@
 use essay_graphics_api::{
-    form::{Form, FormId, Matrix4, Shape, ShapeId}, input::Input, 
-    renderer::{Canvas, RenderErr, Renderer, Result}, Affine2d, BezierMesh2d, Bounds, Color, FontStyle, FontTypeId, ImageId, Mesh2d, Path, PathOpt, Point, Size, TextStyle, TextureId
+    form::{Form, FormId, Matrix4, Shape, ShapeId}, input::Input, path_style::MeshStyle, renderer::{Canvas, RenderErr, Renderer, Result}, Affine2d, BezierMesh2d, Bounds, Color, FontStyle, FontTypeId, ImageId, Mesh2d, Path, PathOpt, Point, Size, TextStyle, TextureId
 };
 use essay_tensor::tensor::Tensor;
 
@@ -72,10 +71,8 @@ impl Renderer for TestRenderer {
     fn draw_markers(
         &mut self, 
         _marker: &Path<Canvas>, 
-        _xy: &Tensor,
-        _scale: &Tensor,
-        _color: &Tensor<u32>,
-        _style: &dyn PathOpt, 
+        _path_style: &dyn PathOpt, 
+        _marker_style: &[MeshStyle],
     ) -> Result<(), RenderErr> {
         todo!()
     }
@@ -219,7 +216,7 @@ impl Renderer for TestRenderer {
         &mut self,
         mesh: &Mesh2d,
         texture: TextureId,
-        style: &[essay_graphics_api::path_style::MarkerStyle],
+        style: &[essay_graphics_api::path_style::MeshStyle],
     ) -> Result<()> {
         todo!()
     }
@@ -228,7 +225,7 @@ impl Renderer for TestRenderer {
         &mut self,
         mesh: &BezierMesh2d,
         texture: TextureId,
-        style: &[essay_graphics_api::path_style::MarkerStyle],
+        style: &[essay_graphics_api::path_style::MeshStyle],
     ) -> Result<()> {
         todo!()
     }

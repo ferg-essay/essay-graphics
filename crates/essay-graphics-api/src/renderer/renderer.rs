@@ -1,7 +1,7 @@
 use essay_tensor::tensor::Tensor;
 
 use crate::{
-    form::{Form, FormId, Matrix4, Shape, ShapeId}, input::Input, mesh2d::{BezierMesh2d, Mesh2d}, path_style::MarkerStyle, Affine2d, Bounds, Color, FontStyle, FontTypeId, ImageId, Path, PathOpt, Point, Size, TextStyle, TextureId
+    form::{Form, FormId, Matrix4, Shape, ShapeId}, input::Input, mesh2d::{BezierMesh2d, Mesh2d}, path_style::MeshStyle, Affine2d, Bounds, Color, FontStyle, FontTypeId, ImageId, Path, PathOpt, Point, Size, TextStyle, TextureId
 };
 
 use super::{Canvas, RenderErr, Result};
@@ -23,6 +23,16 @@ pub trait Renderer {
         size * self.scale_factor()
     }
 
+    fn text_size(
+        &mut self,
+        text: &str,
+        text_style: &TextStyle
+    ) -> Size;
+
+    //
+    // drawing primitives
+    //
+
     fn draw_path(
         &mut self, 
         path: &Path<Canvas>, 
@@ -32,10 +42,29 @@ pub trait Renderer {
     fn draw_markers(
         &mut self, 
         marker: &Path<Canvas>, 
-        xy: &Tensor,
-        scale: &Tensor,
-        color: &Tensor<u32>,
-        style: &dyn PathOpt, 
+        path_style: &dyn PathOpt,
+        marker_style: &[MeshStyle],
+    ) -> Result<()>;
+
+    fn draw_bezier_mesh(
+        &mut self,
+        mesh: &BezierMesh2d,
+        texture: TextureId,
+        style: &[MeshStyle],
+    ) -> Result<()>;
+
+    fn draw_mesh2d(
+        &mut self,
+        mesh: &Mesh2d,
+        texture: TextureId,
+        style: &[MeshStyle],
+    ) -> Result<()>;
+
+    fn draw_triangles(
+        &mut self,
+        vertices: &Tensor<f32>,  // Nx2 x,y in canvas coordinates
+        colors: &Tensor<u32>,    // N in rgba
+        triangles: &Tensor<u32>, // Mx3 vertex indices
     ) -> Result<()>;
 
     fn font(
@@ -50,33 +79,6 @@ pub trait Renderer {
         angle: f32,
         style: &dyn PathOpt, 
         text_style: &TextStyle,
-    ) -> Result<()>;
-
-    fn text_size(
-        &mut self,
-        text: &str,
-        text_style: &TextStyle
-    ) -> Size;
-
-    fn draw_bezier_mesh(
-        &mut self,
-        mesh: &BezierMesh2d,
-        texture: TextureId,
-        style: &[MarkerStyle],
-    ) -> Result<()>;
-
-    fn draw_mesh2d(
-        &mut self,
-        mesh: &Mesh2d,
-        texture: TextureId,
-        style: &[MarkerStyle],
-    ) -> Result<()>;
-
-    fn draw_triangles(
-        &mut self,
-        vertices: &Tensor<f32>,  // Nx2 x,y in canvas coordinates
-        colors: &Tensor<u32>,    // N in rgba
-        triangles: &Tensor<u32>, // Mx3 vertex indices
     ) -> Result<()>;
 
     fn draw_image(
@@ -116,19 +118,6 @@ pub trait Renderer {
         form: FormId,
         camera: &Matrix4,
     ) -> Result<()>;
-
-    /*
-    fn create_shape(
-        &mut self,
-        form: &Shape,
-    ) -> ShapeId;
-
-    fn draw_shape(
-        &mut self,
-        form: ShapeId,
-        camera: &Affine2d,
-    ) -> Result<()>;
-     */
 
     fn flush(
         &mut self,
