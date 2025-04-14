@@ -11,8 +11,15 @@ struct StyleInput {
 
 struct VertexOutput {
     @location(1) color: vec4<f32>,
+    @location(2) uv: vec2<f32>,
     @builtin(position) pos: vec4<f32>,
 };
+
+@group(0) @binding(0)
+var t_texture: texture_2d<f32>;
+
+@group(0) @binding(1)
+var s_texture: sampler;
 
 @vertex
 fn vs_shape(
@@ -28,6 +35,8 @@ fn vs_shape(
     var out: VertexOutput;
     out.pos = vec4<f32>(x, y, 0.0, 1.0);
     out.color = style.color;
+    out.uv = model.uv;
+
     return out;
 }
 
@@ -35,5 +44,12 @@ fn vs_shape(
 fn fs_shape(
     in: VertexOutput,
 ) -> @location(0) vec4<f32> {
-    return in.color;
+    let sample = textureSample(t_texture, s_texture, in.uv);
+
+    return vec4<f32>(
+        sample.r * in.color[0], 
+        sample.g * in.color[1], 
+        sample.b * in.color[2], 
+        sample.a * in.color[3]
+    );
 }

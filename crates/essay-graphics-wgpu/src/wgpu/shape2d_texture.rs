@@ -64,7 +64,7 @@ impl Shape2dTextureRender {
             }
         );
 
-        let mut textures = TextureCache::new();
+        let mut textures = TextureCache::new(device, queue);
         let hatch_map = init_hatch(device, queue, &mut textures);
 
         let pipeline = create_shape2d_pipeline(

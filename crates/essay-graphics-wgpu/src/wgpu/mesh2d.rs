@@ -1,8 +1,8 @@
 use bytemuck_derive::{Zeroable, Pod};
-use essay_graphics_api::{Affine2d, Color, Mesh2d};
+use essay_graphics_api::{Affine2d, Color, Mesh2d, TextureId};
 use wgpu::util::DeviceExt;
 
-use super::{canvas::MarkerStyle, render::RenderWgpu};
+use super::{canvas::MarkerStyle, render::RenderWgpu, texture_store::TextureCache};
 
 pub(super) struct Mesh2dRender {
     vertex_stride: usize,
@@ -74,6 +74,7 @@ impl Mesh2dRender {
     pub(super) fn draw(
         &mut self, 
         wgpu: &mut RenderWgpu,
+        textures: &TextureCache,
         mesh: &Mesh2d,
         style: &Vec<MarkerStyle>,
     ) {
@@ -85,7 +86,7 @@ impl Mesh2dRender {
 
         if self.vertex_vec.len() < self.vertex_offset + mesh.as_slice().len()
             || self.style_vec.len() <= self.style_offset + style.len() {
-            self.flush(wgpu);
+            self.flush(wgpu, textures);
         }
 
         if self.vertex_vec.len() < self.vertex_offset + mesh.as_slice().len()
@@ -142,7 +143,11 @@ impl Mesh2dRender {
         item.s_end = self.style_offset;
     }
 
-    pub(super) fn flush(&mut self, wgpu: &mut RenderWgpu) {
+    pub(super) fn flush(
+        &mut self, wgpu: 
+        &mut RenderWgpu,
+        textures: &TextureCache,
+    ) {
         if self.shape_items.len() == 0 {
             return;
         }
@@ -159,6 +164,9 @@ impl Mesh2dRender {
 
         wgpu.render_pass(|rpass| {
             rpass.set_pipeline(&self.pipeline);
+
+            let texture_id = TextureId::default();
+            rpass.set_bind_group(0, textures.texture_bind_group(texture_id), &[]);
 
             for item in self.shape_items.drain(..) {
                 if item.v_start < item.v_end && item.s_start < item.s_end {
@@ -290,6 +298,8 @@ fn create_shape2d_pipeline(
     let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
         label: None,
         bind_group_layouts: &[
+            &texture_bind_group_layout(device),
+        //    &camera_bind_group_layout(device),
         ],
         push_constant_ranges: &[],
     });
@@ -330,5 +340,29 @@ fn create_shape2d_pipeline(
         depth_stencil: None,
         multisample: wgpu::MultisampleState::default(),
         multiview: None,
+    })
+}
+
+fn texture_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
+    device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+        entries: &[
+            wgpu::BindGroupLayoutEntry {
+                binding: 0,
+                visibility: wgpu::ShaderStages::FRAGMENT,
+                ty: wgpu::BindingType::Texture {
+                    multisampled: false,
+                    view_dimension: wgpu::TextureViewDimension::D2,
+                    sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                },
+                count: None,
+            },
+            wgpu::BindGroupLayoutEntry {
+                binding: 1,
+                visibility: wgpu::ShaderStages::FRAGMENT,
+                ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+                count: None,
+            },
+        ],
+        label: Some("texture bind_group layout"),
     })
 }

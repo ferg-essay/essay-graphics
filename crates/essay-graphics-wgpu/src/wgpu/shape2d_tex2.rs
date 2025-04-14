@@ -196,33 +196,30 @@ impl Shape2dTex2Render {
         );
 
         wgpu.render_pass(|rpass| {
-        rpass.set_pipeline(&self.pipeline);
+            rpass.set_pipeline(&self.pipeline);
 
-        // rpass.set_stencil_ref
-        rpass.set_bind_group(1, &self.camera_bind_group, &[]);
+            // rpass.set_stencil_ref
+            rpass.set_bind_group(1, &self.camera_bind_group, &[]);
 
-        //if let Some((x, y, w, h)) = clip {
-        //    rpass.set_scissor_rect(x, y, w, h);
-        //}
+            for draw_item in self.draw_items.drain(..) {
+                let item = &self.form_items[draw_item.id.0];
 
-        for draw_item in self.draw_items.drain(..) {
-            let item = &self.form_items[draw_item.id.0];
+                rpass.set_bind_group(0, textures.texture_bind_group(item.texture), &[]);
 
-            rpass.set_bind_group(0, textures.texture_bind_group(item.texture), &[]);
+                if item.v_start < item.v_end {
+                    let stride = self.vertex_stride;
+                    rpass.set_vertex_buffer(0, self.vertex_buffer.slice(
+                        (stride * item.v_start) as u64..(stride * item.v_end) as u64
+                    ));
 
-            if item.v_start < item.v_end {
-                let stride = self.vertex_stride;
-                rpass.set_vertex_buffer(0, self.vertex_buffer.slice(
-                    (stride * item.v_start) as u64..(stride * item.v_end) as u64
-                ));
-
-                rpass.draw(
-                    0..(item.v_end - item.v_start) as u32,
-                    0..1,
-                );
+                    rpass.draw(
+                        0..(item.v_end - item.v_start) as u32,
+                        0..1,
+                    );
+                }
             }
-        }
-    });
+        });
+        
         self.clear();
     }
 }

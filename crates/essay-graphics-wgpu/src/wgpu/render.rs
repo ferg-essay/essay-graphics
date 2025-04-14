@@ -307,7 +307,7 @@ impl<'a, 'b> PlotRenderer<'a, 'b> {
             // TODO: order issues with bezier and shape2d
             self.canvas.bezier_render.flush(wgpu);
             self.canvas.bezier_mesh_render.flush(wgpu);
-            self.canvas.mesh2d_render.flush(wgpu);
+            self.canvas.mesh2d_render.flush(wgpu, &self.canvas.texture_store);
             self.canvas.shape2d_texture_render.flush(wgpu);
             self.canvas.text_render.flush(wgpu);
             self.canvas.form3d_render.flush(

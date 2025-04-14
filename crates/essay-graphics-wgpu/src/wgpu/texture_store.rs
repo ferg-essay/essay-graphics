@@ -6,10 +6,20 @@ pub struct TextureCache {
 }
 
 impl TextureCache {
-    pub fn new() -> Self {
-        Self {
+    pub fn new(device: &wgpu::Device, queue: &wgpu::Queue) -> Self {
+        let mut textures = Self {
             texture_items: Vec::new(),
-        }
+        };
+
+        let (width, height) = (64, 4);
+
+        let mut data = Vec::<u8>::new();
+        data.resize(width * height * 4, 0xff);
+        let id = textures.add_rgba_u8(device, queue, width as u32, height as u32, data.as_slice());
+
+        assert_eq!(id, TextureId::default());
+
+        textures
     }
 
     pub fn add_r_u8(
@@ -71,6 +81,7 @@ impl TextureCache {
 
 struct TextureItem {
     texture: wgpu::Texture,
+    format: wgpu::TextureFormat,
     _layout: wgpu::BindGroupLayout,
     bind_group: wgpu::BindGroup,
 }
@@ -88,9 +99,14 @@ impl TextureItem {
 
         Self {
             texture,
+            format,
             _layout: layout,
             bind_group,
         }
+    }
+
+    fn format(&self) -> wgpu::TextureFormat {
+        self.format
     }
 
     fn _layout(&self) -> &wgpu::BindGroupLayout {

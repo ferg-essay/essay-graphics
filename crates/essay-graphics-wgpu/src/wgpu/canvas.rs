@@ -97,7 +97,7 @@ impl PlotCanvas {
             bezier_render,
 
             font_id_default,
-            texture_store: TextureCache::new(),
+            texture_store: TextureCache::new(device, queue),
 
             staging: Some(staging),
             to_gpu: Affine2d::eye(),
@@ -503,7 +503,7 @@ impl PlotCanvas {
 
                 let style = vec![(face_color, &self.to_gpu).into()];
 
-                self.mesh2d_render.draw(wgpu, &mesh, &style);
+                self.mesh2d_render.draw(wgpu, &self.texture_store, &mesh, &style);
                 self.bezier_mesh_render.draw(wgpu, &bezier, &style);
             }
 
@@ -546,7 +546,7 @@ impl PlotCanvas {
         let linewidth = self.to_px(linewidth); // / self.canvas.width();
 
         if let Some((mesh, bezier)) = lines(path, joinstyle, capstyle, linewidth) {
-            self.mesh2d_render.draw(wgpu, &mesh, styles);
+            self.mesh2d_render.draw(wgpu, &self.texture_store, &mesh, styles);
             self.bezier_mesh_render.draw(wgpu, &bezier, styles);
         }
     }
@@ -572,18 +572,18 @@ impl PlotCanvas {
             None => face_color
         };
 
+        let marker_style: Vec<MarkerStyle> = xy.iter_row().enumerate()
+        .map(|(i,xy)| {
+            let affine = marker_affine(xy[0], xy[1], i, scale);
+            let color = marker_color(i, color, face_color);
+
+            MarkerStyle::from((color, &self.to_gpu.matmul(&affine)))
+        }).collect();
+
         if path.is_closed_path() && ! face_color.is_none() {
-            let marker_style: Vec<MarkerStyle> = xy.iter_row().enumerate()
-                .map(|(i,xy)| {
-                    let affine = marker_affine(xy[0], xy[1], i, scale);
-                    let color = marker_color(i, color, face_color);
-
-                    MarkerStyle::from((color, &self.to_gpu.matmul(&affine)))
-                }).collect();
-
             let (mesh, bezier) = fill_shape(&path);
 
-            self.mesh2d_render.draw(wgpu, &mesh, &marker_style);
+            self.mesh2d_render.draw(wgpu, &self.texture_store, &mesh, &marker_style);
             self.bezier_mesh_render.draw(wgpu, &bezier, &marker_style);
 
 
@@ -596,6 +596,8 @@ impl PlotCanvas {
             */
 
             if face_color != edge_color && ! edge_color.is_none() {
+                self.draw_lines2(wgpu, &path, style, &marker_style);
+                /*
                 self.draw_lines(&path, style);
 
                 for (i, xy) in xy.iter_row().enumerate() {
@@ -604,8 +606,11 @@ impl PlotCanvas {
                     self.shape2d_render.draw_style(edge_color, &self.to_gpu.matmul(&affine));
                     self.bezier_render.draw_style(edge_color, &self.to_gpu.matmul(&affine));
                 }
+                */
             }
         } else if ! edge_color.is_none() {
+            self.draw_lines2(wgpu, &path, style, &marker_style);
+            /*
             self.draw_lines(&path, style);
 
             for (i, xy) in xy.iter_row().enumerate() {
@@ -615,6 +620,7 @@ impl PlotCanvas {
                 self.shape2d_render.draw_style(color, &self.to_gpu.matmul(&affine));
                 self.bezier_render.draw_style(color, &self.to_gpu.matmul(&affine));
             }
+            */
         }
 
         Ok(())
@@ -762,7 +768,12 @@ impl PlotCanvas {
         mesh: &Mesh2d, 
         color: Color
     ) -> Result<(), RenderErr> {
-        self.mesh2d_render.draw(wgpu, mesh, &vec![(color, &self.to_gpu).into()]);
+        self.mesh2d_render.draw(
+            wgpu, 
+            &self.texture_store, 
+            mesh, 
+            &vec![(color, &self.to_gpu).into()]
+        );
 
         Ok(())
     }

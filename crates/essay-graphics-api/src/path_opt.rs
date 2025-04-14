@@ -262,3 +262,10 @@ impl TextureId {
         TextureId(0)
     }
 }
+
+/// The default texture is a blank texture
+impl Default for TextureId {
+    fn default() -> Self {
+        Self(Default::default())
+    }
+}
