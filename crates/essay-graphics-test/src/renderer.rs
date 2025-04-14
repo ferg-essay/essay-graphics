@@ -1,5 +1,9 @@
 use essay_graphics_api::{
-    form::{Form, FormId, Matrix4, Shape, ShapeId}, input::Input, path_style::MeshStyle, renderer::{Canvas, RenderErr, Renderer, Result}, Affine2d, BezierMesh2d, Bounds, Color, FontStyle, FontTypeId, ImageId, Mesh2d, Path, PathOpt, Point, Size, TextStyle, TextureId
+    form::{Form, FormId, Matrix4}, 
+    input::Input, path_style::MeshStyle, 
+    renderer::{Canvas, RenderErr, Renderer, Result}, 
+    BezierMesh2d, Bounds, FontStyle, FontTypeId, Mesh2d, Path, PathOpt, 
+    Point, Size, TextStyle, TextureId
 };
 use essay_tensor::tensor::Tensor;
 
@@ -155,6 +159,7 @@ impl Renderer for TestRenderer {
         todo!()
     }
     
+    #[allow(unused)]
     fn draw_mesh2d(
         &mut self,
         mesh: &Mesh2d,
@@ -164,6 +169,7 @@ impl Renderer for TestRenderer {
         todo!()
     }
     
+    #[allow(unused)]
     fn draw_bezier_mesh(
         &mut self,
         mesh: &BezierMesh2d,
@@ -173,6 +179,7 @@ impl Renderer for TestRenderer {
         todo!()
     }
     
+    #[allow(unused)]
     fn draw_mesh2d_color(
         &mut self,
         mesh: &essay_graphics_api::Mesh2dColor,

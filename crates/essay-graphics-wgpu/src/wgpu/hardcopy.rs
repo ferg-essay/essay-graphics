@@ -4,7 +4,7 @@ use essay_graphics_api::renderer::{self, Drawable, Renderer};
 use wgpu::BufferView;
 use image::{ImageBuffer, Rgba};
 
-use crate::{PlotCanvas, PlotRenderer};
+use crate::PlotCanvas;
 
 use super::render::render_draw;
 

@@ -1,4 +1,4 @@
-use std::{sync::{Arc, Mutex}, time::{Duration, Instant}};
+use std::{sync::{Arc, Mutex}, time::Instant};
 
 use essay_graphics_api::{
     input::Input,

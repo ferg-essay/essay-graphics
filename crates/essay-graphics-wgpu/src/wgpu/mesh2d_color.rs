@@ -1,8 +1,8 @@
 use bytemuck_derive::{Zeroable, Pod};
-use essay_graphics_api::{path_style::MeshStyle, Affine2d, Color, Mesh2d, Mesh2dColor, TextureId};
+use essay_graphics_api::{Affine2d, Color, Mesh2dColor};
 use wgpu::util::DeviceExt;
 
-use super::{render::RenderWgpu, texture_store::TextureCache};
+use super::render::RenderWgpu;
 
 pub(super) struct Mesh2dColorRender {
     vertex_stride: usize,

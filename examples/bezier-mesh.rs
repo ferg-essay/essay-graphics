@@ -1,7 +1,6 @@
-use renderer::{Canvas, Drawable, Renderer};
+use renderer::Renderer;
 use essay_graphics::prelude::*;
-use essay_graphics::layout::{MainLoop, View};
-use essay_graphics_api::Coord;
+use essay_graphics::layout::MainLoop;
 
 fn main() { 
     MainLoop::new().show(move |ui: &mut dyn Renderer| {

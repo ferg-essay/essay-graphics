@@ -117,16 +117,6 @@ impl HatchBuilder {
             rgba.as_slice()
         )
     }
-
-    fn as_slice(&self) -> &[u8] {
-        self.data.as_slice()
-    }
-
-    fn _set(&mut self, x: usize, y: usize, v: u8) -> &mut Self {
-        self.data[x + y * self.width] = v;
-
-        self
-    }
 }
 
 impl Index<(usize, usize)> for HatchBuilder {

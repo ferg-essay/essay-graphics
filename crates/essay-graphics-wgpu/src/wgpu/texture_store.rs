@@ -22,32 +22,6 @@ impl TextureCache {
         textures
     }
 
-    pub fn add_r_u8(
-        &mut self, 
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
-        width: u32, 
-        height: u32, 
-        data: &[u8]
-    ) -> TextureId {
-        assert!(width * height == data.len() as u32);
-        
-        let id = TextureId::new(self.texture_items.len());
-        
-        let mut item = TextureItem::new(
-            device,             
-            wgpu::TextureFormat::R8Unorm,
-            width, 
-            height
-        );
-
-        item.write(queue, width, width, height, data);
-
-        self.texture_items.push(item);
-
-        id
-    }
-
     pub fn add_rgba_u8(
         &mut self, 
         device: &wgpu::Device,
@@ -81,7 +55,7 @@ impl TextureCache {
 
 struct TextureItem {
     texture: wgpu::Texture,
-    format: wgpu::TextureFormat,
+    _format: wgpu::TextureFormat,
     _layout: wgpu::BindGroupLayout,
     bind_group: wgpu::BindGroup,
 }
@@ -106,26 +80,10 @@ impl TextureItem {
 
         Self {
             texture,
-            format,
+            _format: format,
             _layout: layout,
             bind_group,
         }
-    }
-
-    fn format(&self) -> wgpu::TextureFormat {
-        self.format
-    }
-
-    fn _layout(&self) -> &wgpu::BindGroupLayout {
-        &self._layout
-    }
-
-    fn _texture(&self) -> &wgpu::Texture {
-        &self.texture
-    }
-
-    fn _bind_group(&self) -> &wgpu::BindGroup {
-        &self.bind_group
     }
 
     fn write(&mut self, queue: &wgpu::Queue, bytes_per_row: u32, width: u32, height: u32, data: &[u8]) {

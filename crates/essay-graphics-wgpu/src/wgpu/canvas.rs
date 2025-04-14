@@ -1,14 +1,21 @@
 use std::collections::HashMap;
 
 use essay_graphics_api::{
-    affine2d, form::{Form, FormId, Matrix4}, input::Input, path_style::MeshStyle, renderer::{Canvas, RenderErr, Renderer, Result}, Affine2d, BezierMesh2d, Bounds, CapStyle, Clip, Color, FontStyle, FontTypeId, Hatch, HorizAlign, ImageId, JoinStyle, LineStyle, Mesh2d, Mesh2dColor, Path, PathCode, PathOpt, Point, Size, TextStyle, TextureId, VertAlign
+    form::{Form, FormId, Matrix4}, 
+    input::Input, path_style::MeshStyle, 
+    renderer::{Canvas, RenderErr, Renderer, Result}, 
+    Affine2d, BezierMesh2d, Bounds, CapStyle, Clip, Color, FontStyle, FontTypeId, 
+    Hatch, HorizAlign, JoinStyle, LineStyle, Mesh2d, Mesh2dColor, 
+    Path, PathCode, PathOpt, Point, Size, TextStyle, TextureId, VertAlign
 };
 use essay_tensor::tensor::Tensor;
 use wgpu::util::StagingBelt;
 
 use super::{
-    bezier_mesh::BezierMeshRender, form3d::Form3dRender, hatch::init_hatch, image::ImageRender, lines::lines, 
-    mesh2d::Mesh2dRender, mesh2d_color::Mesh2dColorRender, render::{render_draw_inner, RenderWgpu}, text::TextRender, text_cache::FontId, texture_store::TextureCache, triangle2d::Triangle2dRenderer, triangulate3::fill_shape
+    bezier_mesh::BezierMeshRender, form3d::Form3dRender, hatch::init_hatch, lines::lines, 
+    mesh2d::Mesh2dRender, mesh2d_color::Mesh2dColorRender, 
+    render::{render_draw_inner, RenderWgpu}, text::TextRender, text_cache::FontId, 
+    texture_store::TextureCache, triangulate3::fill_shape
 };
 
 pub struct PlotCanvas {
@@ -22,9 +29,6 @@ pub struct PlotCanvas {
     mesh2d_color_render: Mesh2dColorRender,
 
     text_render: TextRender,
-
-    //image_render: ImageRender,
-    //triangle_render: Triangle2dRenderer,
 
     form3d_render: Form3dRender,
 
@@ -48,10 +52,6 @@ impl PlotCanvas {
         width: u32,
         height: u32,
     ) -> Self {
-    
-        //let image_render = ImageRender::new(device, format);
-        //let triangle_render = Triangle2dRenderer::new(device, format);
-
         let mesh2d_render = Mesh2dRender::new(device, format);
         let bezier_mesh_render = BezierMeshRender::new(device, format);
 
@@ -65,7 +65,6 @@ impl PlotCanvas {
 
         let staging = StagingBelt::new(2048 * 128);
 
-        // let texture_store = TextureCache::new();
         let mut texture_store = TextureCache::new(device, queue);
 
         let hatch_map = init_hatch(device, queue, &mut texture_store);
@@ -251,8 +250,6 @@ impl PlotCanvas {
         path: &Path<Canvas>, 
         style: &dyn PathOpt, 
     ) -> Result<(), RenderErr> {
-        // let to_unit = self.to_gpu.matmul(to_device);
-
         let mut face_color = style.get_face_color()
             .unwrap_or(Color::black());
 
@@ -611,37 +608,6 @@ fn transform_solid_path(path: &Path<Canvas>) -> Path<Canvas> {
     }
 
     Path::<Canvas>::new(codes)
-}
-
-fn marker_affine(x: f32, y: f32, i: usize, scale: &Tensor) -> Affine2d {
-    let mut affine = Affine2d::eye();
-
-    // optional scaling
-    if scale.len() > 1 {
-       affine = match scale.rank() {
-            1 => affine2d::scale(scale[i], scale[i]),
-            2 => affine2d::scale(scale[(i, 0)], scale[(i, 1)]),
-            _ => panic!("Marker scale must be 1 or 2 dimensional {:?}", scale.shape().as_vec())
-        }
-    } else if scale.len() == 1 {
-        affine = match scale.cols() {
-            1 => affine2d::scale(scale[0], scale[0]),
-            2 => affine2d::scale(scale[(0, 0)], scale[(0, 1)]),
-            _ => panic!("Marker scale must be 1 or 2 dimensional {:?}", scale.shape().as_vec())
-        }
-    }
-
-    affine.translate(x, y)
-}
-
-fn marker_color(i: usize, color: &Tensor<u32>, default: Color) -> Color {
-    if color.len() == 0 {
-        default
-    } else if color.len() == 1 {
-        Color(color[0])
-    } else {
-        Color(color[i])
-    }
 }
 
 fn transform_dashed_path(path: &Path<Canvas>, pattern: Vec<f32>) -> Path<Canvas> {

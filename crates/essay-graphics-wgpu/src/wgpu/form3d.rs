@@ -20,7 +20,6 @@ pub struct Form3dRender {
     style_buffer: wgpu::Buffer,
     style_offset: usize,
 
-    // texture_cache: TextureCache,
     depth_buffer: DepthBuffer,
 
     camera: CameraUniform,
@@ -114,12 +113,10 @@ impl Form3dRender {
             style_vec,
             style_buffer,
             style_offset: 0,
-            // style_bind_group,
 
             form_items: Vec::new(),
             draw_items: Vec::new(),
 
-            // texture_cache: TextureCache::new(),
             depth_buffer,
 
             camera,
@@ -140,10 +137,6 @@ impl Form3dRender {
         height: u32,
     ) {
         self.depth_buffer.resize(device, width, height);
-    }
-
-    pub fn clear(&mut self) {
-        self.draw_items.drain(..);
     }
 
     pub fn create_form(&mut self, form: &Form) -> FormId {
@@ -332,14 +325,6 @@ impl Form3dRender {
                 0,
                 bytemuck::cast_slice(self.index_vec.as_slice())
             );
-
-            /*
-            queue.write_buffer(
-                &mut self.style_buffer, 
-                0,
-                bytemuck::cast_slice(self.style_vec.as_slice())
-            );
-            */
         }
 
         wgpu.queue.write_buffer(
@@ -359,14 +344,6 @@ impl Form3dRender {
 
         for draw_item in self.draw_items.drain(..) {
             let item = &self.form_items[draw_item.id.0];
-
-            /*
-            if let Clip::Bounds(p0, p1) = draw_item.clip {
-                rpass.set_scissor_rect(p0.0 as u32, p0.1 as u32, (p1.0 - p0.0) as u32, (p1.1 - p0.1) as u32);
-            } else {
-                // rpass.set_scissor_rect(0, u32::MAX, 0, u32::MAX);
-            }
-            */
     
             rpass.set_bind_group(0, textures.texture_bind_group(item.texture), &[]);
 

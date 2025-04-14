@@ -1,4 +1,3 @@
-use essay_tensor::tensor::Tensor;
 use renderer::{Drawable, Renderer};
 use essay_graphics::{layout::MainLoop, prelude::*};
 
