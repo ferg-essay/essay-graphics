@@ -1,13 +1,21 @@
 use std::collections::HashMap;
 
 use essay_graphics_api::{
-    affine2d, form::{Form, FormId, Matrix4, Shape, ShapeId}, input::Input, path_style::MeshStyle, renderer::{Canvas, RenderErr, Renderer, Result}, Affine2d, BezierMesh2d, Bounds, CapStyle, Clip, Color, FontStyle, FontTypeId, Hatch, HorizAlign, ImageId, JoinStyle, LineStyle, Mesh2d, Path, PathCode, PathOpt, Point, Size, TextStyle, TextureId, VertAlign
+    affine2d, form::{Form, FormId, Matrix4}, 
+    input::Input, path_style::MeshStyle, 
+    renderer::{Canvas, RenderErr, Renderer, Result}, 
+    Affine2d, BezierMesh2d, Bounds, CapStyle, Clip, Color, FontStyle, FontTypeId, Hatch, HorizAlign, ImageId, 
+    JoinStyle, LineStyle, Mesh2d, Path, PathCode, PathOpt, Point, Size, TextStyle, TextureId, VertAlign
 };
 use essay_tensor::tensor::Tensor;
 use wgpu::util::StagingBelt;
 
 use super::{
-    bezier::BezierRender, bezier_mesh::BezierMeshRender, form3d::Form3dRender, hatch::init_hatch, image::ImageRender, lines::lines, mesh2d::Mesh2dRender, render::{render_draw_inner, RenderWgpu}, shape2d::Shape2dRender, shape2d_tex2::Shape2dTex2Render, shape2d_texture::Shape2dTextureRender, text::TextRender, text_cache::FontId, texture_store::TextureCache, triangle2d::Triangle2dRenderer, triangulate::triangulate2, triangulate3::fill_shape
+    bezier_mesh::BezierMeshRender, form3d::Form3dRender, 
+    hatch::init_hatch, image::ImageRender, lines::lines, mesh2d::Mesh2dRender, 
+    render::{render_draw_inner, RenderWgpu}, 
+    text::TextRender, text_cache::FontId, texture_store::TextureCache, 
+    triangle2d::Triangle2dRenderer, triangulate3::fill_shape
 };
 
 pub struct PlotCanvas {
@@ -15,22 +23,23 @@ pub struct PlotCanvas {
     scale_factor: f32,
     input: Input,
 
-    pub(super) mesh2d_render: Mesh2dRender,
-    pub(crate) bezier_mesh_render: BezierMeshRender,
+    mesh2d_render: Mesh2dRender,
+    bezier_mesh_render: BezierMeshRender,
 
-    pub(crate) text_render: TextRender,
+    text_render: TextRender,
 
-    pub(crate) image_render: ImageRender,
-    pub(crate) triangle_render: Triangle2dRenderer,
+    image_render: ImageRender,
+    triangle_render: Triangle2dRenderer,
 
-    pub(crate) form3d_render: Form3dRender,
-    pub(crate) shape2d_tex2_render: Shape2dTex2Render,
+    form3d_render: Form3dRender,
 
-    pub(super) shape2d_render: Shape2dRender,
-    pub(crate) shape2d_texture_render: Shape2dTextureRender,
-    pub(crate) bezier_render: BezierRender,
+    //shape2d_tex2_render: Shape2dTex2Render,
 
-    pub(crate) texture_store: TextureCache,
+    //shape2d_render: Shape2dRender,
+    //shape2d_texture_render: Shape2dTextureRender,
+    //bezier_render: BezierRender,
+
+    texture_store: TextureCache,
     hatch_map: HashMap<Hatch, TextureId>,
 
     staging: Option<StagingBelt>,
@@ -58,10 +67,10 @@ impl PlotCanvas {
         let bezier_mesh_render = BezierMeshRender::new(device, format);
 
         let triangle3d_render = Form3dRender::new(device, format, width, height);
-        let shape2d_tex2_render = Shape2dTex2Render::new(device, format);
-        let shape2d_render = Shape2dRender::new(device, format);
-        let shape2d_texture_render = Shape2dTextureRender::new(device, queue, format);
-        let bezier_render = BezierRender::new(device, format);
+        //let shape2d_tex2_render = Shape2dTex2Render::new(device, format);
+        //let shape2d_render = Shape2dRender::new(device, format);
+        //let shape2d_texture_render = Shape2dTextureRender::new(device, queue, format);
+        //let bezier_render = BezierRender::new(device, format);
         let mut text_render = TextRender::new(device, format, 512, 512);
 
         let font_id_default = text_render.font("default");
@@ -80,15 +89,15 @@ impl PlotCanvas {
             input: Input::default(),
 
             image_render,
-            shape2d_render,
-            shape2d_texture_render,
+            //shape2d_render,
+            //shape2d_texture_render,
             text_render,
             triangle_render,
             mesh2d_render,
             bezier_mesh_render,
             form3d_render: triangle3d_render,
-            shape2d_tex2_render,
-            bezier_render,
+            //shape2d_tex2_render,
+            //bezier_render,
 
             font_id_default,
             texture_store,
@@ -133,20 +142,6 @@ impl PlotCanvas {
     }
     
     pub fn clear(&mut self) {
-        if true {
-            return;
-        }
-        /*
-        self.bezier_render.clear();
-        self.text_render.clear();
-        self.shape2d_render.clear();
-        self.shape2d_texture_render.clear();
-        self.triangle_render.clear();
-        self.image_render.clear();
-
-        self.form3d_render.clear();
-        self.shape2d_tex2_render.clear();
-        */
     }
 
     pub fn resize(&mut self, device: &wgpu::Device, width: u32, height: u32) {
@@ -209,208 +204,48 @@ impl PlotCanvas {
         &mut self.input
     }
 
-    pub(crate) fn fill_texture_path(
+    pub(super) fn draw_bezier_mesh(
         &mut self, 
-        path: &Path<Canvas>, 
+        wgpu: &mut RenderWgpu,
+        mesh: &BezierMesh2d, 
+        _texture: TextureId,
+        style: &[MeshStyle],
+    ) -> Result<(), RenderErr> {
+        let style: Vec<MeshStyle> = style.iter().map(|marker| {
+            MeshStyle {
+                color: marker.color,
+                affine: marker.affine.compose(&self.to_gpu),
+            }
+        }).collect();
+
+        self.bezier_mesh_render.draw(wgpu, mesh, style.as_slice());
+
+        Ok(())
+    }
+
+    pub(super) fn draw_mesh2d(
+        &mut self, 
+        wgpu: &mut RenderWgpu,
+        mesh: &Mesh2d,
         texture: TextureId,
-    ) {
-        self.shape2d_texture_render.start_shape(texture, None);
-        // TODO: bezier
-
-        let triangles = triangulate2(path);
-
-        for triangle in &triangles {
-            self.shape2d_texture_render.draw_triangle(&triangle[0], &triangle[1], &triangle[2]);
-        }
-    }
-
-    fn draw_lines(
-        &mut self, 
-        path: &Path<Canvas>, 
-        style: &dyn PathOpt, 
-    ) {
-        let linewidth  = style.get_line_width().unwrap_or(0.5);
-
-        if linewidth <= 0. {
-            return;
-        }
-
-        let joinstyle  = style.get_join_style()
-            .unwrap_or(JoinStyle::Bevel);
-
-        let capstyle  = style.get_cap_style()
-            .unwrap_or(CapStyle::Butt);
-        
-        let lw2 = self.to_px(0.5 * linewidth); // / self.canvas.width();
-        let lw2 = lw2.max(0.5);
-        
-        self.shape2d_render.start_shape();
-        self.bezier_render.start_shape();
-
-        let mut p0 = Point(0.0f32, 0.0f32);
-        let mut p_move = p0;
-        let mut p_first = p0;
-        let mut p_last = p0;
-
-        for code in path.codes() {
-            let p_next = match code {
-                PathCode::MoveTo(p) => {
-                    self.cap_line(p_last, p0, lw2, &capstyle);
-                    
-                    p0 = *p;
-                    p_move = p0;
-                    p_first = p0;
-                    p_last = p0;
-                    p0
-                }
-                PathCode::LineTo(p1) => {
-                    self.shape2d_render.draw_line(&p0, p1, lw2);
-                    // TODO: clip
-                    *p1
-                }
-                PathCode::Bezier2(p1, p2) => {
-                    self.bezier_render.draw_bezier_line(&p0, p1, p2, lw2);
-
-                    *p2
-                }
-                PathCode::Bezier3(_, _, _) => {
-                    panic!("Bezier3 should already be split into Bezier2");
-                }
-                PathCode::ClosePoly(p1) => {
-                    //self.draw_line(p0.x(), p0.y(), p1.x(), p1.y(), lw_x, lw_y, rgba);
-                    self.shape2d_render.draw_line(&p0, p1, lw2);
-                    self.shape2d_render.draw_line(p1, &p_move, lw2);
-
-                    self.join_lines(p0, *p1, p_move, lw2, &joinstyle);
-                    self.join_lines(*p1, p_move, p_first, lw2, &joinstyle);
-
-                    *p1
-                }
-            };
-
-            self.join_lines(p_last, p0, p_next, lw2, &joinstyle);
-
-            if p_first == p_move {
-                p_first = p_next;
-                self.cap_line(p_next, p_move, lw2, &capstyle);
+        style: &[MeshStyle],
+    ) -> Result<(), RenderErr> {
+        let style: Vec<MeshStyle> = style.iter().map(|marker| {
+            MeshStyle {
+                color: marker.color,
+                affine: marker.affine.compose(&self.to_gpu),
             }
-            p_last = p0;
-            p0 = p_next;
-        }
-        self.cap_line(p_last, p0, lw2, &capstyle);
-    }
+        }).collect();
 
-    fn join_lines(
-        &mut self, 
-        b0: Point, 
-        b1: Point, 
-        b2: Point, 
-        lw2: f32, 
-        join_style: &JoinStyle
-    ) {
-        let min_join = 1.;
+        self.mesh2d_render.draw(
+            wgpu, 
+            &self.texture_store, 
+            mesh, 
+            texture,
+            style.as_slice(),
+        );
 
-        if b0 == b1 || b1 == b2 || lw2 < min_join {
-            // small lines can ignore joining.
-            return;
-        }
-
-        self.join_lines_sign(b0, b1, b2, lw2, join_style, 1.);
-        self.join_lines_sign(b0, b1, b2, lw2, join_style, -1.);
-    }
-
-
-    fn join_lines_sign(
-        &mut self, 
-        b0: Point, 
-        b1: Point, 
-        b2: Point,
-        lw2: f32, 
-        join_style: &JoinStyle,
-        sign: f32,
-    ) {
-        let (nx, ny) = line_normal(b0, b1, lw2);
-        let (nx, ny) = (sign * nx, sign * ny);
-
-        // outside edge
-        let p0 = Point(b0.x() + nx, b0.y() - ny);
-        let p1 = Point(b1.x() + nx, b1.y() - ny);
-
-        let (nx, ny) = line_normal(b1, b2, lw2);
-        let (nx, ny) = (sign * nx, sign * ny);
-
-        // outside edge
-        let q1 = Point(b1.x() + nx, b1.y() - ny);
-        let q2 = Point(b2.x() + nx, b2.y() - ny);
-
-        // add bevel triangle
-        self.shape2d_render.draw_triangle(&p1, &q1, &b1);
-
-        match join_style {
-            JoinStyle::Bevel => {},
-            JoinStyle::Miter => {
-                // TODO: clamp intersections of too-long length
-                let mp = line_intersection(p0, p1, q1, q2);
-
-                if mp != p0 { // non-parallel
-                    let mp = clamp_miter(b1, mp, lw2 * 2.);
-
-                    self.shape2d_render.draw_triangle(&p1, &mp, &q1);
-                }
-            },
-            JoinStyle::Round => {
-                let mp = line_intersection(p0, p1, q1, q2);
-
-                if mp != p0 && p0.dist(p1) > 1. && q1.dist(q2) > 1. { // non-parallel
-                    let mp = clamp_miter(b1, mp, lw2 * 2.);
-                    
-                    self.bezier_render.draw_bezier_fill(&p1, &mp, &q1);
-                }
-            }
-        }
-    }
-
-    fn cap_line(
-        &mut self, 
-        b0: Point, 
-        b1: Point,
-        lw2: f32, 
-        cap_style: &CapStyle
-    ) {
-        if b0 == b1 || cap_style == &CapStyle::Butt {
-            // small lines can ignore joining.
-            return;
-        }
-
-        let (nx, ny) = line_normal(b0, b1, lw2);
-        let (dx, dy) = (ny, nx);
-
-        // outside edge
-        let p0 = Point(b1.x() + nx, b1.y() - ny);
-        // extended edge
-        let p1 = Point(b1.x() + nx + dx, b1.y() - ny + dy);
-
-        // inside edge
-        let q0 = Point(b1.x() - nx, b1.y() + ny);
-        // extended edge
-        let q1 = Point(b1.x() - nx + dx, b1.y() + ny + dy);
-
-        let mp = Point(b1.x() + dx, b1.y() + dy);
-
-        match cap_style {
-            CapStyle::Round => {
-                self.shape2d_render.draw_triangle(&p0, &mp, &q0);
-                self.bezier_render.draw_bezier_fill(&p0, &p1, &mp);
-                self.bezier_render.draw_bezier_fill(&mp, &q1, &q0);
-            }
-            CapStyle::Projecting => {
-                self.shape2d_render.draw_triangle(&p0, &p1, &q1);
-                self.shape2d_render.draw_triangle(&q1, &q0, &p0);
-            },
-            CapStyle::Butt => {
-                panic!(); // Butt has early exit
-            }
-        }
+        Ok(())
     }
 
     pub(super) fn draw_path(
@@ -463,19 +298,9 @@ impl PlotCanvas {
                 self.mesh2d_render.draw(wgpu, &self.texture_store, &mesh, texture, &style);
                 self.bezier_mesh_render.draw(wgpu, &bezier, &style);
 
-                //self.fill_texture_path(&path, texture);
-                //self.shape2d_texture_render.draw_style(face_color, &self.to_gpu);
-                //self.bezier_render.draw_style(face_color, &self.to_gpu);
-
                 is_texture = true;
             } else if let Some(texture) = style.get_texture() {
                 let (mesh, bezier) = fill_shape(&path);
-
-                // self.fill_texture_path(&path, texture);
-    
-                //self.shape2d_texture_render.draw_style(face_color, &self.to_gpu);
-                //self.bezier_render.draw_style(face_color, &self.to_gpu);
-
                 let style = vec![(face_color, &self.to_gpu).into()];
 
                 self.mesh2d_render.draw(wgpu, &self.texture_store, &mesh, texture, &style);
@@ -500,34 +325,6 @@ impl PlotCanvas {
 
 
         return Ok(());
-    }
-
-    fn draw_lines2(
-        &mut self, 
-        wgpu: &mut RenderWgpu,
-        path: &Path<Canvas>, 
-        style: &dyn PathOpt, 
-        styles: &Vec<MeshStyle>,
-    ) {
-        let linewidth  = style.get_line_width().unwrap_or(0.5);
-
-        if linewidth <= 0. {
-            return;
-        }
-
-        let joinstyle  = style.get_join_style()
-            .unwrap_or(JoinStyle::Bevel);
-
-        let capstyle  = style.get_cap_style()
-            .unwrap_or(CapStyle::Butt);
-        
-        let linewidth = self.to_px(linewidth); // / self.canvas.width();
-        let texture = TextureId::default();
-
-        if let Some((mesh, bezier)) = lines(path, joinstyle, capstyle, linewidth) {
-            self.mesh2d_render.draw(wgpu, &self.texture_store, &mesh, texture, styles);
-            self.bezier_mesh_render.draw(wgpu, &bezier, styles);
-        }
     }
 
     pub(super) fn draw_markers(
@@ -570,6 +367,34 @@ impl PlotCanvas {
         }
 
         Ok(())
+    }
+
+    fn draw_lines2(
+        &mut self, 
+        wgpu: &mut RenderWgpu,
+        path: &Path<Canvas>, 
+        style: &dyn PathOpt, 
+        styles: &Vec<MeshStyle>,
+    ) {
+        let linewidth  = style.get_line_width().unwrap_or(0.5);
+
+        if linewidth <= 0. {
+            return;
+        }
+
+        let joinstyle  = style.get_join_style()
+            .unwrap_or(JoinStyle::Bevel);
+
+        let capstyle  = style.get_cap_style()
+            .unwrap_or(CapStyle::Butt);
+        
+        let linewidth = self.to_px(linewidth); // / self.canvas.width();
+        let texture = TextureId::default();
+
+        if let Some((mesh, bezier)) = lines(path, joinstyle, capstyle, linewidth) {
+            self.mesh2d_render.draw(wgpu, &self.texture_store, &mesh, texture, styles);
+            self.bezier_mesh_render.draw(wgpu, &bezier, styles);
+        }
     }
 
     pub fn font(
@@ -697,50 +522,6 @@ impl PlotCanvas {
         Ok(())
     }
 
-    pub(super) fn draw_bezier_mesh(
-        &mut self, 
-        wgpu: &mut RenderWgpu,
-        mesh: &BezierMesh2d, 
-        texture: TextureId,
-        style: &[MeshStyle],
-    ) -> Result<(), RenderErr> {
-        let style: Vec<MeshStyle> = style.iter().map(|marker| {
-            MeshStyle {
-                color: marker.color,
-                affine: marker.affine.compose(&self.to_gpu),
-            }
-        }).collect();
-
-        self.bezier_mesh_render.draw(wgpu, mesh, style.as_slice());
-
-        Ok(())
-    }
-
-    pub(super) fn draw_mesh2d(
-        &mut self, 
-        wgpu: &mut RenderWgpu,
-        mesh: &Mesh2d,
-        texture: TextureId,
-        style: &[MeshStyle],
-    ) -> Result<(), RenderErr> {
-        let style: Vec<MeshStyle> = style.iter().map(|marker| {
-            MeshStyle {
-                color: marker.color,
-                affine: marker.affine.compose(&self.to_gpu),
-            }
-        }).collect();
-
-        self.mesh2d_render.draw(
-            wgpu, 
-            &self.texture_store, 
-            mesh, 
-            texture,
-            style.as_slice(),
-        );
-
-        Ok(())
-    }
-
     pub fn create_form(
         &mut self,
         form: &Form,
@@ -794,8 +575,8 @@ impl PlotCanvas {
         queue: &wgpu::Queue, 
         image: &Tensor<u8>
     ) -> TextureId {
-        assert!(image.rank() == 3, "texture rank must be 3 shape={:?}", image.shape().as_vec());
-        assert!(image.cols() == 4, "texture cols 4 shape={:?}", image.shape().as_vec());
+        assert!(image.rank() == 3, "texture requires rank 3 shape={:?}", image.shape().as_vec());
+        assert!(image.cols() == 4, "texture requires 4 columns shape={:?}", image.shape().as_vec());
     
         self.texture_store.add_rgba_u8(
             device, 
@@ -816,6 +597,19 @@ impl PlotCanvas {
 
         Ok(())
     }
+    pub(super) fn flush(&mut self, wgpu: &mut RenderWgpu) {
+        self.image_render.flush(wgpu);
+        self.triangle_render.flush(wgpu);
+        //self.shape2d_render.flush(wgpu);
+            // TODO: order issues with bezier and shape2d
+        //self.bezier_render.flush(wgpu);
+        self.bezier_mesh_render.flush(wgpu);
+        self.mesh2d_render.flush(wgpu, &self.texture_store);
+        //self.shape2d_texture_render.flush(wgpu);
+        self.text_render.flush(wgpu);
+        self.form3d_render.flush(wgpu, &self.texture_store);
+        //self.shape2d_tex2_render.flush(wgpu, &self.texture_store);
+    }
     
     pub(super) fn take_staging(&mut self) -> wgpu::util::StagingBelt {
         self.staging.take().unwrap()
@@ -826,59 +620,6 @@ impl PlotCanvas {
 
         self.staging.replace(staging);
     }
-}
-
-fn clamp_miter(center: Point, miter: Point, lim: f32) -> Point {
-    Point(
-        miter.0.clamp(center.0 - lim, center.0 + lim),
-        miter.1.clamp(center.1 - lim, center.1 + lim),
-    )
-}
-
-pub(crate) fn line_normal(
-    p0: Point, 
-    p1: Point, 
-    lw2: f32, 
-) -> (f32, f32) {
-    let dx = p1.x() - p0.x();
-    let dy = p1.y() - p0.y();
-
-    let len = dx.hypot(dy).max(f32::EPSILON);
-
-    let dx = dx / len;
-    let dy = dy / len;
-
-    // normal to the line
-    let nx = dy * lw2;
-    let ny = dx * lw2;
-
-    (nx, ny)
-}
-
-pub(crate) fn line_intersection(
-    p0: Point, 
-    p1: Point, 
-    q0: Point, 
-    q1: Point
-) -> Point {
-    let mut det = (p0.x() - p1.x()) * (q0.y() - q1.y())
-        - (p0.y() - p1.y()) * (q0.x() - q1.x());
-
-    if det.abs() <= f32::EPSILON {
-        return p0; // p0 is marker for coincident or parallel lines
-    } else if det.abs() < 0.2 {
-        // clamp long extensions for miter
-        det = 0.2 * det.signum();
-    }
-
-
-    let p_xy = p0.x() * p1.y() - p0.y() * p1.x();
-    let q_xy = q0.x() * q1.y() - q0.y() * q1.x();
-
-    let x = (p_xy * (q0.x() - q1.x()) - (p0.x() - p1.x()) * q_xy) / det;
-    let y = (p_xy * (q0.y() - q1.y()) - (p0.y() - p1.y()) * q_xy) / det;
-
-    Point(x, y)
 }
 
 // transform and normalize path

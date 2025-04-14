@@ -355,6 +355,23 @@ pub(crate) fn line_normal(
     (nx, ny)
 }
 
+pub(crate) fn intersection(p0: Point, p1: Point, q0: Point, q1: Point) -> Point {
+    let det = (p0.x() - p1.x()) * (q0.y() - q1.y())
+        - (p0.y() - p1.y()) * (q0.x() - q1.x());
+
+    if det.abs() <= f32::EPSILON {
+        return p0; // p0 is marker for coincident or parallel lines
+    }
+
+    let p_xy = p0.x() * p1.y() - p0.y() * p1.x();
+    let q_xy = q0.x() * q1.y() - q0.y() * q1.x();
+
+    let x = (p_xy * (q0.x() - q1.x()) - (p0.x() - p1.x()) * q_xy) / det;
+    let y = (p_xy * (q0.y() - q1.y()) - (p0.y() - p1.y()) * q_xy) / det;
+
+    Point(x, y)
+}
+
 pub(crate) fn line_intersection(
     p0: Point, 
     p1: Point, 

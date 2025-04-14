@@ -102,14 +102,6 @@ impl Triangle2dRenderer {
         }
     }
 
-    pub fn clear(&mut self) {
-        self.vertex_offset = 0;
-        self.index_offset = 0;
-        self.style_offset = 0;
-        self.mesh_items.drain(..);
-        self.is_stale = false;
-    }
-
     pub fn start_triangles(&mut self) {
         self.mesh_items.push(Item {
             v_start: self.vertex_offset,

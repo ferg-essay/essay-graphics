@@ -2,7 +2,9 @@ use std::ops::{Index, IndexMut};
 
 use essay_graphics_api::{renderer::Canvas, BezierMesh2d, Mesh2d, Path, PathCode, Point};
 
-use super::{bezier::intersection, lines::ccw};
+use crate::wgpu::lines::intersection;
+
+use super::lines::ccw;
 
 pub fn fill_shape(
     path: &Path<Canvas>, 
