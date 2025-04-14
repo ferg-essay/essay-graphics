@@ -1,7 +1,11 @@
 use std::{mem, num::NonZero};
 
 use essay_graphics_api::{
-    form::{Form, FormId, Matrix4, Shape, ShapeId}, input::Input, path_style::MarkerStyle, renderer::{self, Canvas, RenderErr, Renderer, Result}, Affine2d, BezierMesh2d, Bounds, Color, FontStyle, FontTypeId, ImageId, Mesh2d, Path, PathOpt, Point, Size, TextStyle, TextureId
+    form::{Form, FormId, Matrix4},
+    input::Input, path_style::MarkerStyle, 
+    renderer::{self, Canvas, RenderErr, Renderer, Result}, 
+    BezierMesh2d, Bounds, Color, FontStyle, FontTypeId, ImageId, Mesh2d, Path, 
+    PathOpt, Point, Size, TextStyle, TextureId
 };
 use essay_tensor::tensor::Tensor;
 use wgpu::util::StagingBelt;
@@ -18,7 +22,6 @@ pub(super) struct RenderWgpu<'a> {
 
     pub scissor: Option<(u32, u32, u32, u32)>,
     pub state: State,
-    pub commands: Vec<wgpu::CommandBuffer>,
 }
 
 #[derive(Clone, Copy, PartialEq)]
@@ -174,7 +177,7 @@ pub(super) fn wgpu_rpass<'a: 'b, 'b, R>(
         encoder: None,
         state: State::PreInit,
         staging,
-        commands: Vec::new(),
+        // commands: Vec::new(),
     };
 
     let result = (draw)(&mut wgpu);
@@ -372,10 +375,11 @@ impl<'a, 'b> Renderer for PlotRenderer<'a, 'b> {
     fn draw_bezier_mesh(
         &mut self,
         mesh: &BezierMesh2d,
-        color: Color,
+        texture: TextureId,
+        style: &[MarkerStyle],
     ) -> Result<()> {
         if let Some(wgpu) = self.wgpu.as_mut() {
-            self.canvas.draw_bezier_mesh(wgpu, mesh, color)?;
+            self.canvas.draw_bezier_mesh(wgpu, mesh, texture, style)?;
         }
 
         Ok(())

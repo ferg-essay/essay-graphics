@@ -44,5 +44,5 @@ fn draw_mesh(
 
     mesh.triangle(p0, p1, p2, width_above, width_below);
 
-    ui.draw_bezier_mesh(&mesh, color.into())
+    ui.draw_bezier_mesh(&mesh, TextureId::default(), &[color.into().into()])
 }

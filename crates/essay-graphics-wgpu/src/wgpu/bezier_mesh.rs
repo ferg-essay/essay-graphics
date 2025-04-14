@@ -74,7 +74,7 @@ impl BezierMeshRender {
         &mut self, 
         wgpu: &mut RenderWgpu,
         mesh: &BezierMesh2d, 
-        style: &Vec<MarkerStyle>,
+        style: &[MarkerStyle],
     ) {
         let mesh_vertices = mesh.as_slice();
 

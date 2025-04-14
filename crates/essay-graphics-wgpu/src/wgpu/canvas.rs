@@ -754,9 +754,17 @@ impl PlotCanvas {
         &mut self, 
         wgpu: &mut RenderWgpu,
         mesh: &BezierMesh2d, 
-        color: Color
+        texture: TextureId,
+        style: &[MarkerStyle],
     ) -> Result<(), RenderErr> {
-        self.bezier_mesh_render.draw(wgpu, mesh, &vec![(color, &self.to_gpu).into()]);
+        let style: Vec<MarkerStyle> = style.iter().map(|marker| {
+            MarkerStyle {
+                color: marker.color,
+                affine: marker.affine.compose(&self.to_gpu),
+            }
+        }).collect();
+
+        self.bezier_mesh_render.draw(wgpu, mesh, style.as_slice());
 
         Ok(())
     }
@@ -764,7 +772,7 @@ impl PlotCanvas {
     pub(super) fn draw_mesh2d(
         &mut self, 
         wgpu: &mut RenderWgpu,
-        mesh: &Mesh2d, 
+        mesh: &Mesh2d,
         texture: TextureId,
         style: &[MarkerStyle],
     ) -> Result<(), RenderErr> {
@@ -800,25 +808,6 @@ impl PlotCanvas {
     ) -> Result<(), RenderErr> {
         self.form3d_render.camera(camera);
         self.form3d_render.draw_form(form);
-        
-        Ok(())
-    }
-
-    pub fn create_shape(
-        &mut self,
-        shape: &Shape,
-    ) -> ShapeId {
-        self.shape2d_tex2_render.create_shape(shape)
-    }
-
-    pub fn draw_shape(
-        &mut self,
-        shape: ShapeId,
-        camera: &Affine2d,
-    ) -> Result<(), RenderErr> {
-        let camera = camera.compose(&self.to_gpu);
-        self.shape2d_tex2_render.camera(&camera);
-        self.shape2d_tex2_render.draw_shape(shape);
         
         Ok(())
     }

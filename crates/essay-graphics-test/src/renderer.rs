@@ -215,17 +215,18 @@ impl Renderer for TestRenderer {
         todo!()
     }
     
-    fn draw_bezier_mesh(
+    fn draw_mesh2d(
         &mut self,
-        _mesh: &BezierMesh2d,
-        _color: Color,
+        mesh: &Mesh2d,
+        texture: TextureId,
+        style: &[essay_graphics_api::path_style::MarkerStyle],
     ) -> Result<()> {
         todo!()
     }
     
-    fn draw_mesh2d(
+    fn draw_bezier_mesh(
         &mut self,
-        mesh: &Mesh2d,
+        mesh: &BezierMesh2d,
         texture: TextureId,
         style: &[essay_graphics_api::path_style::MarkerStyle],
     ) -> Result<()> {

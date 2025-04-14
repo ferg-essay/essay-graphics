@@ -1,7 +1,6 @@
 use essay_tensor::tensor::Tensor;
 use renderer::{Canvas, Drawable, Renderer};
 use essay_graphics::{layout::MainLoop, prelude::*};
-use form::{Shape, ShapeId};
 
 fn main() { 
     let mut form = Mesh2d::new();

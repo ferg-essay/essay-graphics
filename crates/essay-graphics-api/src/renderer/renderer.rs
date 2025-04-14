@@ -61,7 +61,8 @@ pub trait Renderer {
     fn draw_bezier_mesh(
         &mut self,
         mesh: &BezierMesh2d,
-        color: Color,
+        texture: TextureId,
+        style: &[MarkerStyle],
     ) -> Result<()>;
 
     fn draw_mesh2d(
