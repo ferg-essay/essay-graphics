@@ -50,7 +50,6 @@ impl<'a> RenderWgpu<'a> {
         };
 
         self.encoder.as_mut().unwrap()
-
     }
 
     pub fn write_buffer(&mut self, target: &wgpu::Buffer, data: &[u8]) {
@@ -223,7 +222,6 @@ pub(crate) fn render_draw<'a, R>(
             device,
             canvas,
             queue: Some(queue),
-            // view: None,
             pos,
             wgpu: None,
         };
@@ -396,23 +394,6 @@ impl<'a, 'b> Renderer for PlotRenderer<'a, 'b> {
         self.canvas.draw_form(form, camera)
     }
 
-    /*
-    fn create_shape(
-        &mut self,
-        shape: &Shape,
-    ) -> ShapeId {
-        self.canvas.create_shape(shape)
-    }
-
-    fn draw_shape(
-        &mut self,
-        shape: ShapeId,
-        camera: &Affine2d,
-    ) -> Result<(), RenderErr> {
-        self.canvas.draw_shape(shape, camera)
-    }
-    */
-
     fn request_redraw(
         &mut self,
         _bounds: Bounds<Canvas>
@@ -456,7 +437,6 @@ impl<'a, 'b> Renderer for PlotRenderer<'a, 'b> {
 
         (f)(push.ptr)?;
 
-        //push.ptr.flush_inner(&push.clip);
         push.ptr.flush_inner();
 
         Ok(())

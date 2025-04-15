@@ -151,17 +151,17 @@ impl Drawable for CubeView {
     // fn update_pos(&mut self, renderer: &mut dyn Renderer, pos: &Bounds<Canvas>) {
     // }
 
-    fn draw(&mut self, renderer: &mut dyn Renderer) -> renderer::Result<()> {
+    fn draw(&mut self, ui: &mut dyn Renderer) -> renderer::Result<()> {
         if self.is_dirty {
             self.is_dirty = false;
-            self.fill_model(renderer);
+            self.fill_model(ui);
         }
 
         if let Some(id) = self.form_id {
-            let pos = renderer.pos().clone();
-            let camera = self.camera(renderer, pos);
+            let pos = ui.pos().clone();
+            let camera = self.camera(ui, pos);
 
-            renderer.draw_form(
+            ui.draw_form(
                 id,
                 &camera,
             )?;

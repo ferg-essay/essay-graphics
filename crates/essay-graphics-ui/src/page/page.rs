@@ -418,7 +418,7 @@ impl ViewItem {
     fn draw(&mut self, renderer: &mut dyn Renderer) -> Result<()> {
         let pos = self.pos(renderer);
 
-        renderer.draw_with(pos, Box::new(|ui| 
+        renderer.draw_with_clip(pos, Box::new(|ui| 
             self.view.draw(ui)
         ))
     }

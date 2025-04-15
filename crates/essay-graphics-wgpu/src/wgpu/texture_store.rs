@@ -171,6 +171,7 @@ fn create_bind_group(
         //address_mode_v: wgpu::AddressMode::ClampToEdge,
         address_mode_w: wgpu::AddressMode::ClampToEdge,
         //mag_filter: wgpu::FilterMode::Linear,
+        // use nearest for magnification for sharp edges
         mag_filter: wgpu::FilterMode::Nearest,
         min_filter: wgpu::FilterMode::Nearest,
         mipmap_filter: wgpu::FilterMode::Nearest,

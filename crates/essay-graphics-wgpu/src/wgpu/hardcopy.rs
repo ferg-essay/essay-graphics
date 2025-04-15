@@ -15,6 +15,7 @@ pub struct WgpuHardcopy {
     canvas: PlotCanvas,
 
     texture: wgpu::Texture,
+    texture_view: wgpu::TextureView,
     // texture_format: wgpu::TextureFormat,
     texture_size: wgpu::Extent3d,
     bytes_per_row: u32,
@@ -52,6 +53,8 @@ impl WgpuHardcopy {
         };
         
         let texture = device.create_texture(&texture_desc);
+        let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
+
 
         let canvas = PlotCanvas::new(
             &device,
@@ -67,6 +70,7 @@ impl WgpuHardcopy {
             canvas,
             texture,
             // texture_format,
+            texture_view: view,
             texture_size,
             bytes_per_row,
             is_short_row,
@@ -139,10 +143,10 @@ impl WgpuHardcopy {
     }
 
     pub fn draw(&mut self, drawable: &mut dyn Drawable) {
-        let view = self.texture
-            .create_view(&wgpu::TextureViewDescriptor::default());
+        //let view = self.texture
+            //.create_view(&wgpu::TextureViewDescriptor::default());
 
-        self.clear_screen(&view);
+        self.clear_screen(&self.texture_view);
 
         self.canvas.clear();
         self.canvas.request_redraw(true);
@@ -154,15 +158,12 @@ impl WgpuHardcopy {
             &self.device, 
             //Some(&self.queue), 
             &self.queue, 
-            Some(&view),
+            Some(&self.texture_view),
             is_flush,
             |ui| {
                 drawable.draw(ui)                
             }
         ).unwrap();
-
-        // drawable.draw(&mut plot_renderer).unwrap();
-        // plot_renderer.flush();
     }
 
     pub fn draw_viewless<R>(
@@ -176,15 +177,11 @@ impl WgpuHardcopy {
         render_draw(
             &mut self.canvas, 
             &self.device, 
-            //Some(&self.queue), 
             &self.queue, 
             None,
             is_flush,
             draw,
         )
-
-        // drawable.draw(&mut plot_renderer).unwrap();
-        // plot_renderer.flush();
     }
 
     pub fn copy_into_buffer(
