@@ -34,9 +34,17 @@ impl TextureCache {
         
         let id = TextureId::new(self.texture_items.len());
         
+        let is_repeat = true;
+        let address_mode = if is_repeat {
+            wgpu::AddressMode::Repeat
+        } else {
+            wgpu::AddressMode::ClampToEdge
+        };
+
         let mut item = TextureItem::new(
             device, 
             wgpu::TextureFormat::Rgba8Unorm,
+            address_mode,
             width, 
             height
         );
@@ -64,16 +72,10 @@ impl TextureItem {
     fn new(
         device: &wgpu::Device, 
         format: wgpu::TextureFormat,
+        address_mode: wgpu::AddressMode,
         width: u32, 
         height: u32
     ) -> Self {
-        let is_repeat = true;
-        let address_mode = if is_repeat {
-            wgpu::AddressMode::Repeat
-        } else {
-            wgpu::AddressMode::ClampToEdge
-        };
-
         let texture = create_texture(device, format, width, height);
         let layout = create_bind_group_layout(device);
         let bind_group = create_bind_group(device, &layout, &texture, address_mode);

@@ -92,7 +92,7 @@ impl Mesh2dRender {
 
         if self.vertex_vec.len() < self.vertex_offset + mesh.as_slice().len()
             || self.style_vec.len() <= self.style_offset + style.len() {
-            todo!("Can't yet resize buffers");
+            self.resize_buffers(wgpu.device, mesh);
         }
 
         let offset = self.vertex_offset;
@@ -111,6 +111,32 @@ impl Mesh2dRender {
         for MeshStyle { color, affine } in style {
             self.draw_style(*color, affine);
         }
+    }
+
+    fn resize_buffers(
+        &mut self, 
+        device: &wgpu::Device,
+        mesh: &Mesh2d,
+    ) {
+        let mut size = self.vertex_vec.len();
+
+        while size < mesh.as_slice().len() {
+            size += 2048;
+        }
+
+        let mut vertex_vec = Vec::new();
+        vertex_vec.resize(size, Vertex::empty());
+
+        let vertex_buffer = device.create_buffer_init(
+            &wgpu::util::BufferInitDescriptor {
+                label: None,
+                contents: bytemuck::cast_slice(vertex_vec.as_slice()),
+                usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
+            }
+        );
+
+        self.vertex_buffer = vertex_buffer;
+        self.vertex_vec = vertex_vec;
     }
 
     fn start_shape(&mut self, texture: TextureId) {

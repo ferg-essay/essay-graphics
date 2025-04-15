@@ -217,6 +217,24 @@ impl From<Color> for MeshStyle {
     }
 }
 
+impl From<Affine2d> for MeshStyle {
+    fn from(affine: Affine2d) -> Self {
+        Self {
+            color: Color::white(),
+            affine,
+        }
+    }
+}
+
+impl From<&Affine2d> for MeshStyle {
+    fn from(affine: &Affine2d) -> Self {
+        Self {
+            color: Color::white(),
+            affine: affine.clone(),
+        }
+    }
+}
+
 impl From<(Color, Affine2d)> for MeshStyle {
     fn from((color, affine): (Color, Affine2d)) -> Self {
         Self {
