@@ -52,6 +52,14 @@ impl Point {
 
         dx.hypot(dy)
     }
+
+    #[inline]
+    pub fn interpolate(self, p: f32, point: Point) -> Point {
+        Self(
+            (1. - p) * self.0 + p * point.0,
+            (1. - p) * self.1 + p * point.1,
+        )
+    }
 }
 
 impl Default for Point {

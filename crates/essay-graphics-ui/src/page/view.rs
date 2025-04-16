@@ -6,11 +6,28 @@ use essay_graphics_api::{
 };
 
 pub struct View<T> {
-    // id: ViewId,
-
     view_arc: ViewArc,
 
     marker: PhantomData<fn(T)>,
+}
+
+impl<T> View<T> {
+    #[inline]
+    pub fn arc(&self) -> &ViewArc {
+        &self.view_arc
+    }
+}
+
+impl<T: 'static> View<T> {
+    #[inline]
+    pub fn read<R>(&self, fun: impl FnOnce(&T) -> R) -> R {
+        self.view_arc.0.lock().unwrap().read(fun)
+    }
+
+    #[inline]
+    pub fn write<R>(&mut self, fun: impl FnOnce(&mut T) -> R) -> R {
+        self.view_arc.0.lock().unwrap().write(fun)
+    }
 }
 
 impl<T: Drawable + Send + 'static> View<T> {
@@ -24,27 +41,8 @@ impl<T: Drawable + Send + 'static> View<T> {
         }
     }
 
-    //#[inline]
-    //pub fn id(&self) -> ViewId {
-    //    self.id.clone()
-    //}
-
-    pub fn arc(&self) -> &ViewArc {
-        &self.view_arc
-    }
-
     pub fn drawable(&self) -> ViewArcDraw {
         self.view_arc.drawable()
-    }
-
-    #[inline]
-    pub fn read<R>(&self, fun: impl FnOnce(&T) -> R) -> R {
-        self.view_arc.0.lock().unwrap().read(fun)
-    }
-
-    #[inline]
-    pub fn write<R>(&mut self, fun: impl FnOnce(&mut T) -> R) -> R {
-        self.view_arc.0.lock().unwrap().write(fun)
     }
 }
 

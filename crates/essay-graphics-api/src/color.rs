@@ -75,13 +75,10 @@ impl Color {
 
     #[inline]
     #[must_use]
-    pub fn with_alpha(self, arg: f32) -> Color {
-        Color::from_rgba(
-            self.red(), 
-            self.green(), 
-            self.blue(),
-            arg
-        )
+    pub fn with_alpha(self, alpha: f32) -> Color {
+        let a = (alpha * 255.).clamp(0., 255.) as u32;
+
+        Color((self.0 & 0xffff_ff00) + a)
     }
 
     #[inline]

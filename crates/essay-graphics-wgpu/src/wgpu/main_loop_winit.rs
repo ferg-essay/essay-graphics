@@ -1,13 +1,13 @@
 use std::{sync::{Arc, Mutex}, time::Instant};
 
 use essay_graphics_api::{
-    input::Input,
+    input::{Event, Input, Key},
     renderer,
     Point, Size
 };
 use winit::{
-    event::{self, ElementState, KeyEvent, MouseButton, StartCause, WindowEvent }, 
-    event_loop::{ControlFlow, EventLoop}, 
+    event::{self, ElementState, MouseButton, StartCause, WindowEvent }, 
+    event_loop::{ControlFlow, EventLoop}, keyboard::{self, NamedKey}, 
 };
 
 pub trait MainLoopHandle {
@@ -74,7 +74,13 @@ pub fn run_event_loop(
                 event: WindowEvent::KeyboardInput { event, .. },
                 ..
             } => {
-                key_input(handle.input_mut(), &event);
+                if let Some(key) = map_key(&event.logical_key) {
+                    if event.state == ElementState::Pressed {
+                        handle.input_mut().event(Event::KeyPress(key));
+                    } else if event.state == ElementState::Released {
+                        handle.input_mut().event(Event::KeyRelease(key));
+                    }
+                }
             }
             event::Event::WindowEvent {
                 event: WindowEvent::CursorEntered {
@@ -162,10 +168,67 @@ fn mouse_input(
     }
 }
 
-fn key_input(
-    _input: &mut Input, 
-    _key: &KeyEvent,
-) {
+fn map_key(key: &keyboard::Key) -> Option<Key> {
+    match key {
+        keyboard::Key::Named(named_key) => {
+            match named_key {
+                NamedKey::Space => Some(Key::Space),
+                _ => None,
+            }
+        }
+        keyboard::Key::Character(key) => {
+            match key.as_str() {
+                " " => Some(Key::Space),
+
+                "a" => Some(Key::A),
+                "b" => Some(Key::B),
+                "c" => Some(Key::C),
+                "d" => Some(Key::D),
+                "e" => Some(Key::E),
+                "f" => Some(Key::F),
+                "g" => Some(Key::G),
+                "h" => Some(Key::H),
+                "i" => Some(Key::I),
+                "j" => Some(Key::J),
+                "k" => Some(Key::K),
+                "l" => Some(Key::L),
+                "m" => Some(Key::M),
+                "n" => Some(Key::N),
+                "o" => Some(Key::O),
+                "p" => Some(Key::P),
+                "q" => Some(Key::Q),
+                "r" => Some(Key::R),
+                "s" => Some(Key::S),
+                "t" => Some(Key::T),
+                "u" => Some(Key::U),
+                "v" => Some(Key::V),
+                "w" => Some(Key::W),
+                "x" => Some(Key::X),
+                "y" => Some(Key::Y),
+                "z" => Some(Key::Z),
+
+                "0" => Some(Key::N0),
+                "1" => Some(Key::N1),
+                "2" => Some(Key::N2),
+                "3" => Some(Key::N3),
+                "4" => Some(Key::N4),
+                "5" => Some(Key::N5),
+                "6" => Some(Key::N6),
+                "7" => Some(Key::N7),
+                "8" => Some(Key::N8),
+                "9" => Some(Key::N9),
+
+                _ => None,
+            }
+        }
+        keyboard::Key::Unidentified(_) => {
+            None
+        }
+        keyboard::Key::Dead(_) => {
+            None
+        }
+    }
+    
 }
 
 struct ResultHandle {

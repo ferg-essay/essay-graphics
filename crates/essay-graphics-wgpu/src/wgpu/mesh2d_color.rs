@@ -1,5 +1,5 @@
 use bytemuck_derive::{Zeroable, Pod};
-use essay_graphics_api::{Affine2d, Color, Mesh2dColor};
+use essay_graphics_api::{Affine2d, Mesh2dColor};
 use wgpu::util::DeviceExt;
 
 use super::render::RenderWgpu;
@@ -99,7 +99,8 @@ impl Mesh2dColorRender {
             dst.position[0] = src.0[0];
             dst.position[1] = src.0[1];
 
-            dst.color = Color::from(src.1.to_lrgb()).to_rgba();
+            //dst.color = Color::from(src.1.to_lrgb()).to_rgba();
+            dst.color = src.1.to_rgba();
         }
 
         self.vertex_offset += len;
