@@ -7,7 +7,7 @@ use super::text_texture::TextTexture;
 pub struct TextCache {
     context: ScaleContext,
     font_map: HashMap<String, FontId>,
-    fonts: Vec<Font>,
+    fonts: Vec<FontSet>,
     glyph_map: HashMap<GlyphId, GlyphRect>,
 
     store: TextStore,
@@ -41,31 +41,20 @@ impl TextCache {
         );
 
         if self.fonts.len() <= id.0 {
-            self.fonts.push(load_font(name));
+            if name == "default" {
+                self.fonts.push(FontSet {
+                    standard: load_default_font().unwrap(),
+                    emoji: load_default_emoji().unwrap(),
+                })
+            } else {
+                self.fonts.push(FontSet {
+                    standard: load_font(name).unwrap(),
+                    emoji: load_default_emoji().unwrap(),
+                });
+            }
         }
 
         *id
-    }
-
-    //#[inline]
-    //pub fn font(&mut self, id: FontId) -> &Font {
-    //    &self.fonts[id.0]
-    //}
-
-    pub fn _font(&mut self, name: &str) -> &Font {
-        let len = self.font_map.len();
-
-        let id = self.font_map.entry(name.to_string())
-            .or_insert_with(|| {
-                FontId(len)
-            }
-        );
-
-        if self.fonts.len() <= id.0 {
-            self.fonts.push(load_font(name));
-        }
-
-        &self.fonts[id.0]
     }
 
     pub fn glyph(&mut self, font_id: FontId, size: u16, glyph: char) -> TextRect {
@@ -91,7 +80,10 @@ impl TextCache {
     }
 
     fn add_glyph(&mut self, font_id: FontId, size: f32, ch: char) -> GlyphRect {
-        let font = &self.fonts[font_id.0];
+        let font_set = &self.fonts[font_id.0];
+
+        // todo: more sophisticated selection
+        let font = if (ch as u32) < 0x2000 { &font_set.standard } else { &font_set.emoji };
 
         let glyph = font.charmap().map(ch);
 
@@ -119,6 +111,8 @@ impl TextCache {
         let metrics = font.as_ref().metrics(&[]).scale(size);
         let descent = (metrics.descent) as i32;
 
+        let glyph_metrics = font.as_ref().glyph_metrics(&[]).scale(size);
+
         self.is_modified = true;
 
         GlyphRect {
@@ -128,6 +122,9 @@ impl TextCache {
             h: p_h,
             left: placement.left as i32,
             top: placement.top as i32 + descent,
+
+            advance_width: glyph_metrics.advance_width(glyph),
+            lsb: glyph_metrics.lsb(glyph),
         }
     }
 
@@ -145,7 +142,7 @@ impl TextCache {
 }
 
 impl Index<FontId> for TextCache {
-    type Output = Font;
+    type Output = FontSet;
 
     #[inline]
     fn index(&self, id: FontId) -> &Self::Output {
@@ -153,16 +150,41 @@ impl Index<FontId> for TextCache {
     }
 }
 
-fn load_font(path: &str) -> Font {
+fn load_font(path: &str) -> Option<Font> {
+    fs::read(path).map_or(None,|font_data| {
+        Font::from_data(font_data.as_slice())
+    })
+    /*
     if let Ok(font_data) = fs::read(path) {
-        Font::from_data(font_data.as_slice()).unwrap()
     } else {
         let font_data = include_bytes!(
-            "../../assets/fonts/DejaVuSans.ttf"
+            "../../assets/fonts/deja-vu/DejaVuSans.ttf"
         );
 
         Font::from_data(font_data).unwrap()
     }
+    */
+}
+
+fn load_default_font() -> Option<Font> {
+    let font_data = include_bytes!(
+        "../../assets/fonts/deja-vu/DejaVuSans.ttf"
+    );
+
+    Font::from_data(font_data)
+}
+
+fn load_default_emoji() -> Option<Font> {
+    let font_data = include_bytes!(
+        "../../assets/fonts/noto-emoji/NotoEmoji-Regular.ttf"
+    );
+
+    Font::from_data(font_data)
+}
+
+pub struct FontSet {
+    standard: Font,
+    emoji: Font,
 }
 
 pub struct Font {
@@ -358,8 +380,10 @@ pub struct TextRect {
 
     pub dx: f32,
     pub dy: f32,
-}
 
+    pub advance_width: f32,
+    pub lsb: f32,
+}
 
 impl TextRect {
     fn new(glyph: &GlyphRect, width: usize, height: usize) -> Self {
@@ -375,6 +399,9 @@ impl TextRect {
 
             dx: glyph.left as f32,
             dy: glyph.top as f32 - glyph.h as f32,
+
+            advance_width: glyph.advance_width,
+            lsb: glyph.lsb,
         }
     }
 
@@ -392,4 +419,7 @@ struct GlyphRect {
 
     left: i32,
     top: i32,
+
+    advance_width: f32,
+    lsb: f32,
 }

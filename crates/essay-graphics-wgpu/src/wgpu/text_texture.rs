@@ -37,6 +37,31 @@ impl TextTexture {
     }
 }
 
+fn write_texture(
+    queue: &wgpu::Queue, 
+    texture: &wgpu::Texture, 
+    data: &[u8], 
+    width: u32, 
+    height: u32) {
+    assert!(width % 256 == 0);
+
+    queue.write_texture(
+        wgpu::ImageCopyTexture {
+            texture: texture,
+            mip_level: 0,
+            origin: wgpu::Origin3d::ZERO,
+            aspect: wgpu::TextureAspect::All,
+        },
+        &data,
+        wgpu::ImageDataLayout {
+            offset: 0,
+            bytes_per_row: Some(width),
+            rows_per_image: Some(height),
+        },
+        texture_size(width, height),
+    );
+}
+
 fn create_texture(device: &wgpu::Device, width: u32, height: u32) -> wgpu::Texture {
     device.create_texture(
         &wgpu::TextureDescriptor {
@@ -119,29 +144,4 @@ fn create_bind_group(
             label: Some("text_bind_group")
         }
     )
-}
-
-fn write_texture(
-    queue: &wgpu::Queue, 
-    texture: &wgpu::Texture, 
-    data: &[u8], 
-    width: u32, 
-    height: u32) {
-    assert!(width % 256 == 0);
-
-    queue.write_texture(
-        wgpu::ImageCopyTexture {
-            texture: texture,
-            mip_level: 0,
-            origin: wgpu::Origin3d::ZERO,
-            aspect: wgpu::TextureAspect::All,
-        },
-        &data,
-        wgpu::ImageDataLayout {
-            offset: 0,
-            bytes_per_row: Some(width),
-            rows_per_image: Some(height),
-        },
-        texture_size(width, height),
-    );
 }

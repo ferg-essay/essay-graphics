@@ -136,18 +136,19 @@ impl TextRender {
         let text_size = (size + 0.5) as u16;
 
         let s = self.text_cache.glyph(font_id, text_size, ' ');
-        let w_space = s.w + s.dx.max(0.);
-        let w_inside = w_space * 0.3;
+        //let w_space = s.w + s.dx.max(0.);
+        //let w_inside = w_space * 0.3;
 
         // let w_inside = size * 0.07;
-        let w_space = size * 0.4;
+        //let w_space = size * 0.4;
+        let w_space = s.advance_width;
         
         let mut x = x0;
         let y = y0.round();
         for ch in text.chars() {
             let r = self.text_cache.glyph(font_id, text_size, ch);
             
-            x = x.round();
+            //x = x.round();
 
             if r.is_none() || ch == ' ' {
                 x += w_space;
@@ -155,7 +156,7 @@ impl TextRender {
             }
 
             let y_ch = y + r.dy;// - r.h as f32;
-            let x_ch = x; //  + r.dx;
+            let x_ch = (x + r.lsb).round(); //  + r.dx;
 
             let w = r.w;
             let h = r.h;
@@ -168,7 +169,8 @@ impl TextRender {
             self.vertex(x_ch, y_ch + h, r.tx_min, r.ty_max);
             self.vertex(x_ch, y_ch, r.tx_min, r.ty_min);
 
-            x += w + w_inside;
+            //x += w + w_inside;
+            x += r.advance_width;
         }
 
         let dx = match halign {
