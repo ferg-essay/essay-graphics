@@ -294,15 +294,16 @@ fn create_pipeline(
         layout: Some(&pipeline_layout),
         vertex: wgpu::VertexState {
             module: &shader,
-            entry_point: vertex_entry,
+            entry_point: Some(vertex_entry),
             buffers: &[
                 vertex_layout,
                 style_layout,
             ],
+            compilation_options: Default::default(),
         },
         fragment: Some(wgpu::FragmentState {
             module: &shader,
-            entry_point: fragment_entry,
+            entry_point: Some(fragment_entry),
             targets: &[
                 Some(wgpu::ColorTargetState {
                     format,
@@ -320,10 +321,12 @@ fn create_pipeline(
                     write_mask: wgpu::ColorWrites::ALL,
                 })
             ],
+            compilation_options: Default::default(),
         }),
         primitive: wgpu::PrimitiveState::default(),
         depth_stencil: None,
         multisample: wgpu::MultisampleState::default(),
         multiview: None,
+        cache: Default::default(),
     })
 }

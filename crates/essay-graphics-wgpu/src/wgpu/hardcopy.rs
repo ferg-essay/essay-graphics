@@ -288,7 +288,8 @@ impl WgpuHardcopy {
                 tx.send(result).unwrap();
             });
 
-            self.device.poll(wgpu::Maintain::Wait);
+            self.device.poll(wgpu::MaintainBase::Wait);
+            
             rx.receive().await.unwrap().unwrap();
 
             buffer_slice.get_mapped_range()
@@ -452,7 +453,7 @@ async fn wgpu_device() -> (wgpu::Device, wgpu::Queue) {
         .expect("Failed to find adapter");
 
     adapter
-        .request_device(&Default::default(), None)
+        .request_device(&Default::default())
         .await
         .expect("Failed to create device")
 }

@@ -9,7 +9,7 @@ log = { version = "0.4.17" }
 #essay-tensor = { git = "git://github.com/ferg-essay/essay-tensor", version="0.1.13" }
 essay-tensor = { path = "../../../essay-tensor" }
 essay-graphics-api = { path = "../essay-graphics-api" }
-wgpu = "0.18"
+wgpu = "25.0"
 #wgpu = { git = "git://github.com/gfx-rs/wgpu", version="0.18" }
 #wgpu_glyph = "0.21"
 #glyphon = "0.3"

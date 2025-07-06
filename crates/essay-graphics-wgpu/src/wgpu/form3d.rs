@@ -291,22 +291,19 @@ impl Form3dRender {
         if self.is_stale {
             self.is_stale = false;
 
-            wgpu.queue.write_buffer(
+            wgpu.write_buffer(
                 &mut self.vertex_buffer, 
-                0,
                 bytemuck::cast_slice(self.vertex_vec.as_slice())
             );
 
-            wgpu.queue.write_buffer(
+            wgpu.write_buffer(
                 &mut self.index_buffer, 
-                0,
                 bytemuck::cast_slice(self.index_vec.as_slice())
             );
         }
 
-        wgpu.queue.write_buffer(
+        wgpu.write_buffer(
             &mut self.camera_buffer,
-            0,
             bytemuck::cast_slice(&[self.camera])
         );
 
@@ -508,15 +505,16 @@ fn form3d_pipeline(
         layout: Some(&pipeline_layout),
         vertex: wgpu::VertexState {
             module: &shader,
-            entry_point: vertex_entry,
+            entry_point: Some(vertex_entry),
             buffers: &[
                 vertex_layout,
                 style_layout,
             ],
+            compilation_options: Default::default(),
         },
         fragment: Some(wgpu::FragmentState {
             module: &shader,
-            entry_point: fragment_entry,
+            entry_point: Some(fragment_entry),
             targets: &[
                 Some(wgpu::ColorTargetState {
                     format,
@@ -534,6 +532,7 @@ fn form3d_pipeline(
                     write_mask: wgpu::ColorWrites::ALL,
                 })
             ],
+            compilation_options: Default::default(),
         }),
         primitive: wgpu::PrimitiveState::default(),
         depth_stencil: Some(wgpu::DepthStencilState {
@@ -545,6 +544,7 @@ fn form3d_pipeline(
         }),
         multisample: wgpu::MultisampleState::default(),
         multiview: None,
+        cache: Default::default(),
     })
 }
 

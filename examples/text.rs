@@ -1,8 +1,6 @@
-use essay_graphics_api::color::Grey;
 use renderer::Renderer;
 use essay_graphics::prelude::*;
 use essay_graphics::layout::MainLoop;
-use essay_graphics_api::Coord;
 
 fn main() { 
     MainLoop::new().show(Box::new(move |ui: &mut dyn Renderer| {

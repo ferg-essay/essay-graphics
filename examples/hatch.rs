@@ -18,7 +18,7 @@ fn main() {
         let mut style = PathStyle::new();
 
         style.line_width(3.);
-        style.color("azure");
+        style.color("red");
         style.edge_color(Grey(0.8));
         style.hatch(Hatch::Horizontal);
 

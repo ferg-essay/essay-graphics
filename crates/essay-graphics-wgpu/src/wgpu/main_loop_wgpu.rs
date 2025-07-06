@@ -56,29 +56,29 @@ impl Default for WgpuMainLoop {
     }
 }
 
-struct MainLoopDevice {
+struct MainLoopDevice<'window> {
     // instance: wgpu::Instance,
     // adapter: wgpu::Adapter,
     device: wgpu::Device,
     queue: wgpu::Queue,
     config: wgpu::SurfaceConfiguration,
-    surface: wgpu::Surface,
+    surface: wgpu::Surface<'window>,
 }
 
-struct MainLoopData {
+struct MainLoopData<'window> {
     // instance: wgpu::Instance,
     // adapter: wgpu::Adapter,
     device: wgpu::Device,
     queue: wgpu::Queue,
     config: wgpu::SurfaceConfiguration,
-    surface: wgpu::Surface,
+    surface: wgpu::Surface<'window>,
 
     canvas: PlotCanvas,
     drawable: Box<dyn Drawable>,
 }
 
-impl MainLoopData {
-    fn new(device: MainLoopDevice, draw: Box<dyn Drawable>) -> Self {
+impl<'window> MainLoopData<'window> {
+    fn new(device: MainLoopDevice<'window>, draw: Box<dyn Drawable>) -> Self {
         let canvas = PlotCanvas::new(
             &device.device,
             &device.queue,
@@ -146,7 +146,7 @@ impl MainLoopData {
     }
 }
 
-impl MainLoopHandle for MainLoopData {
+impl MainLoopHandle for MainLoopData<'_> {
     fn set_scale_factor(&mut self, scale_factor: f32) {
         self.canvas.set_scale_factor(scale_factor);
     }
@@ -181,12 +181,12 @@ impl MainLoopHandle for MainLoopData {
     }
 }
 
-async fn init_wgpu_device(window: &Window) -> MainLoopDevice {
+async fn init_wgpu_device<'window>(window: &'window Window) -> MainLoopDevice<'window> {
     let size = window.inner_size();
 
     let instance = wgpu::Instance::default();
 
-    let surface = unsafe { instance.create_surface(&window) }.unwrap();
+    let surface: wgpu::Surface<'window> = instance.create_surface(window).unwrap();
 
     let adapter = instance
         .request_adapter(&wgpu::RequestAdapterOptions {
@@ -201,11 +201,12 @@ async fn init_wgpu_device(window: &Window) -> MainLoopDevice {
         .request_device(
             &wgpu::DeviceDescriptor {
                 label: None,
-                features: wgpu::Features::empty(),
-                limits: wgpu::Limits::downlevel_webgl2_defaults()
+                required_features: wgpu::Features::empty(),
+                required_limits: wgpu::Limits::downlevel_webgl2_defaults()
                     .using_resolution(adapter.limits()),
+                memory_hints: Default::default(),
+                trace: wgpu::Trace::Off,
             },
-            None,
         )
         .await
         .expect("Failed to create device");
@@ -221,6 +222,7 @@ async fn init_wgpu_device(window: &Window) -> MainLoopDevice {
         present_mode: wgpu::PresentMode::Fifo,
         alpha_mode: swapchain_capabilities.alpha_modes[0],
         view_formats: vec![],
+        desired_maximum_frame_latency: Default::default(),
     };
 
     surface.configure(&device, &config);
