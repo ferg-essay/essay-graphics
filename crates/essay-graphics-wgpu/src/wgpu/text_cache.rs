@@ -269,7 +269,7 @@ impl TextStore {
         let len = self.cursors.len();
         for i in (0..len).rev() {
             if self.cursors[i].height == height_chunk {
-                if width <= self.cursors[i].width - self.cursors[i].x {
+                if width <= self.cursors[i].width.saturating_sub(self.cursors[i].x) {
                     return self.cursors[i].add_x(width);
                 }
 

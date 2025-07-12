@@ -92,7 +92,6 @@ impl<'a> RenderWgpu<'a> {
             });
 
             if let Some(scissor) = self.scissor {
-                println!("Scissor {:?}", scissor);
                 rpass.set_scissor_rect(scissor.0, scissor.1, scissor.2, scissor.3);
             }
     
@@ -257,7 +256,7 @@ impl<'a, 'b> PlotRenderer<'a, 'b> {
         }
     }
 
-    fn _get_scissor(&self) -> Option<(u32, u32, u32, u32)> {
+    fn get_scissor(&self) -> Option<(u32, u32, u32, u32)> {
         let pos = &self.pos;
 
         Some((
@@ -267,6 +266,14 @@ impl<'a, 'b> PlotRenderer<'a, 'b> {
             (pos.width()) as u32, 
             (pos.height()) as u32
         ))
+    }
+
+    fn update_scissor(&mut self) {
+        let scissor = self.get_scissor();
+
+        if let Some(wgpu) = &mut self.wgpu {
+            (*wgpu).scissor = scissor;
+        }
     }
 }
 
@@ -456,7 +463,10 @@ impl<'a, 'b, 'c> Push<'a, 'b, 'c> {
             pos,
         };
 
+        // renderer._get_scissor();
+
         mem::swap(&mut push.pos, &mut push.ptr.pos);
+        push.ptr.update_scissor();
 
         push
     }
@@ -468,6 +478,7 @@ impl<'a, 'b, 'c> Push<'a, 'b, 'c> {
         };
 
         mem::swap(&mut push.pos, &mut push.ptr.pos);
+        push.ptr.update_scissor();
 
         push
     }
@@ -476,6 +487,7 @@ impl<'a, 'b, 'c> Push<'a, 'b, 'c> {
 impl Drop for Push<'_, '_, '_> {
     fn drop(&mut self) {
         mem::swap(&mut self.pos, &mut self.ptr.pos);
+        self.ptr.update_scissor();
     }
 }
 /*

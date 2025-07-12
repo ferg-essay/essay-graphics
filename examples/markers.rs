@@ -44,7 +44,11 @@ fn main() {
             })
             .collect();
 
-        let style = PathStyle::new();
+        let mut style = PathStyle::new();
+        style.face_color(Color::none());
+        style.edge_color(Color::black());
+        style.line_width(1.5);
+
         ui.draw_markers(&path, &style, styles.as_slice())
     })
 }
