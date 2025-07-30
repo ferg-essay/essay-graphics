@@ -1,11 +1,13 @@
 use std::{collections::HashSet, slice::Iter};
 
-use crate::{renderer::Canvas, Bounds, Point};
+use crate::{renderer::Canvas, Bounds, Point, Size};
 
 use super::Key;
 
 #[derive(Clone)]
 pub struct Input {
+    pub size: Size,
+
     pub cursor: Option<Point>,
 
     pub is_focus: bool,
@@ -62,6 +64,7 @@ impl Input {
             Event::KeyRelease(key) => {
                 self.key_down.insert(key);
             },
+            _ => {}
         }
 
         self.events.push(event);
@@ -75,6 +78,8 @@ impl Input {
 impl Default for Input {
     fn default() -> Self {
         Self { 
+            size: Default::default(),
+
             cursor: Default::default(),
             is_focus: Default::default(),
             left_press: Default::default(),
@@ -91,5 +96,7 @@ impl Default for Input {
 pub enum Event {
     KeyPress(Key),
     KeyRelease(Key),
+    RedrawRequested,
+    ScaleFactorChanged(f32),
 }
 

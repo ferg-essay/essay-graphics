@@ -20,6 +20,7 @@ fn main() {
         ui.draw_path(&path, &path_style)?;
         
         path_style.cap_style(CapStyle::Butt);
+        // path_style.join_style(JoinStyle::Bevel);
 
         let path = bezier_one_side([100., 300.]);
         ui.draw_path(&path, &path_style)?;

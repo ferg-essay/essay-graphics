@@ -13,6 +13,12 @@ impl Size {
     }
 }
 
+impl PartialEq for Size {
+    fn eq(&self, other: &Self) -> bool {
+        self.0 == other.0 && self.1 == other.1
+    }
+}
+
 impl From<[f32; 2]> for Size {
     #[inline]
     fn from(value: [f32; 2]) -> Self {

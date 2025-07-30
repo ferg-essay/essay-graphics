@@ -1,9 +1,10 @@
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use essay_graphics_api::{input::Input, renderer::{self, Drawable}};
+use essay_graphics_winit::{run_event_loop, MainLoopHandle};
 use winit::{event_loop::EventLoop, window::{CursorIcon, Window}};
 
-use super::{render::render_draw, run_event_loop, MainLoopHandle, PlotCanvas};
+use super::{render::render_draw, PlotCanvas};
 
 pub struct WgpuMainLoop {
     title: Option<String>,
@@ -41,7 +42,7 @@ impl WgpuMainLoop {
 
         let mut handle = MainLoopData::new(wgpu_device, draw);
 
-        handle.set_scale_factor(window.scale_factor() as f32);
+        handle.canvas.set_scale_factor(window.scale_factor() as f32);
 
         run_event_loop(event_loop, handle)
     }
@@ -63,6 +64,7 @@ struct MainLoopDevice<'window> {
     queue: wgpu::Queue,
     config: wgpu::SurfaceConfiguration,
     surface: wgpu::Surface<'window>,
+    window: &'window Window,
 }
 
 struct MainLoopData<'window> {
@@ -72,13 +74,17 @@ struct MainLoopData<'window> {
     queue: wgpu::Queue,
     config: wgpu::SurfaceConfiguration,
     surface: wgpu::Surface<'window>,
+    window: &'window Window,
 
     canvas: PlotCanvas,
     drawable: Box<dyn Drawable>,
 }
 
 impl<'window> MainLoopData<'window> {
-    fn new(device: MainLoopDevice<'window>, draw: Box<dyn Drawable>) -> Self {
+    fn new(
+        device: MainLoopDevice<'window>, 
+        draw: Box<dyn Drawable>
+    ) -> Self {
         let canvas = PlotCanvas::new(
             &device.device,
             &device.queue,
@@ -94,6 +100,7 @@ impl<'window> MainLoopData<'window> {
             queue: device.queue,
             config: device.config,
             surface: device.surface,
+            window: device.window,
 
             canvas,
             drawable: draw,
@@ -145,7 +152,7 @@ impl<'window> MainLoopData<'window> {
         frame.present();
     }
 }
-
+/*
 impl MainLoopHandle for MainLoopData<'_> {
     fn set_scale_factor(&mut self, scale_factor: f32) {
         self.canvas.set_scale_factor(scale_factor);
@@ -178,6 +185,23 @@ impl MainLoopHandle for MainLoopData<'_> {
         }
 
         Ok(())
+    }
+}
+*/
+impl MainLoopHandle for MainLoopData<'_> {
+    fn request_redraw(&mut self) {
+        self.window.request_redraw();
+    }
+
+    fn input(&mut self, input: &Input) -> Option<Instant> {
+        self.canvas.set_input(input);
+        None
+    }
+
+    fn redraw(&mut self) -> renderer::Result<Option<Instant>> {
+        self.main_render();
+
+        Ok(None)
     }
 }
 
@@ -233,6 +257,7 @@ async fn init_wgpu_device<'window>(window: &'window Window) -> MainLoopDevice<'w
         // instance,
         // adapter,
         surface,
+        window,
         config,
     }
 }

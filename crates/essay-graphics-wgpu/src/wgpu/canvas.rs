@@ -41,6 +41,7 @@ pub struct PlotCanvas {
 
     to_gpu: Affine2d,
 
+    cache_size: Size,
     is_request_redraw: bool,
 }
 
@@ -71,9 +72,10 @@ impl PlotCanvas {
 
         let mut canvas = Self {
             bounds: Bounds::from([width as f32, height as f32]),
-            scale_factor: 1.,
 
+            cache_size: Size::default(),
             input: Input::default(),
+            scale_factor: 4. / 3.,
 
             mesh2d_render,
             bezier_mesh_render,
@@ -91,7 +93,8 @@ impl PlotCanvas {
             is_request_redraw: false,
         };
 
-        canvas.resize(&device, width, height);
+        canvas.input.size = Size(width as f32, height as f32);
+        canvas.resize(&device);
 
         canvas
     }
@@ -114,6 +117,10 @@ impl PlotCanvas {
     ) -> Result<R> {
         self.clear();
 
+        if self.cache_size != self.input.size {
+            self.resize(device);
+        }        
+
         let staging = self.take_staging();
 
         let (result, staging) = render_draw_inner(self, device, queue, view, staging, is_flush, draw);
@@ -126,9 +133,10 @@ impl PlotCanvas {
     pub fn clear(&mut self) {
     }
 
-    pub fn resize(&mut self, device: &wgpu::Device, width: u32, height: u32) {
+    pub fn resize(&mut self, device: &wgpu::Device) {
         self.request_redraw(true);
-        self.bounds = Bounds::from([width as f32, height as f32]);
+        self.bounds = Bounds::from(self.input.size);
+        self.cache_size = self.input.size;
 
         let pos_gpu = Bounds::<Canvas>::new(
             Point(-1., -1.),
@@ -137,7 +145,7 @@ impl PlotCanvas {
 
         self.to_gpu = self.bounds.affine_to(&pos_gpu);
 
-        self.form3d_render.resize(device, width, height);
+        self.form3d_render.resize(device, self.cache_size.width() as u32, self.cache_size.height() as u32);
     }
 
     pub fn to_scissor(&self, clip: &Clip) -> Option<(u32, u32, u32, u32)> {
@@ -184,6 +192,10 @@ impl PlotCanvas {
 
     pub fn input_mut(&mut self) -> &mut Input {
         &mut self.input
+    }
+
+    pub fn set_input(&mut self, input: &Input) {
+        self.input = input.clone();
     }
 
     pub(super) fn draw_bezier_mesh(
