@@ -91,6 +91,7 @@ impl<'window> MainLoopData<'window> {
             device.config.format,
             device.config.width,
             device.config.height,
+            device.window.scale_factor() as f32,
         );
 
         Self {

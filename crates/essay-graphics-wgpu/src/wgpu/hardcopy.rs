@@ -61,7 +61,8 @@ impl WgpuHardcopy {
             &queue,
             texture_format,
             width,
-            height
+            height,
+            1.,
         );
     
         Self {

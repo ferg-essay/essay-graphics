@@ -6,6 +6,10 @@ pub mod wgpu {
     pub use essay_graphics_wgpu::*;
 }
 
+pub mod winit {
+    pub use essay_graphics_winit::*;
+}
+
 pub mod ui {
     pub use essay_graphics_ui::ui::*;
 }

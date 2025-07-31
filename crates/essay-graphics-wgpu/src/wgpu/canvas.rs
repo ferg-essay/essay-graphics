@@ -52,6 +52,7 @@ impl PlotCanvas {
         format: wgpu::TextureFormat,
         width: u32,
         height: u32,
+        scale_factor: f32,
     ) -> Self {
         let mesh2d_render = Mesh2dRender::new(device, format);
         let bezier_mesh_render = BezierMeshRender::new(device, format);
@@ -75,7 +76,7 @@ impl PlotCanvas {
 
             cache_size: Size::default(),
             input: Input::default(),
-            scale_factor: 4. / 3.,
+            scale_factor: 4. / 3. * scale_factor,
 
             mesh2d_render,
             bezier_mesh_render,
