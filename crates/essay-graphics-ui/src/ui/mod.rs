@@ -1,3 +1,4 @@
+mod null_render;
 mod cursor;
 mod row;
 mod button;

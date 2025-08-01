@@ -135,18 +135,24 @@ impl PlotCanvas {
     }
 
     pub fn resize(&mut self, device: &wgpu::Device) {
+        if self.cache_size == self.input.size {
+            return;
+        }
+
+        self.cache_size = self.input.size;
         self.request_redraw(true);
         self.bounds = Bounds::from(self.input.size);
-        self.cache_size = self.input.size;
 
         let pos_gpu = Bounds::<Canvas>::new(
             Point(-1., -1.),
             Point(1., 1.)
         );
-
+        
         self.to_gpu = self.bounds.affine_to(&pos_gpu);
 
-        self.form3d_render.resize(device, self.cache_size.width() as u32, self.cache_size.height() as u32);
+        if self.input.size.width() > 0. {
+            self.form3d_render.resize(device, self.cache_size.width() as u32, self.cache_size.height() as u32);
+        }
     }
 
     pub fn to_scissor(&self, clip: &Clip) -> Option<(u32, u32, u32, u32)> {

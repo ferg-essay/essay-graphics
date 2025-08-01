@@ -97,6 +97,7 @@ pub enum Event {
     KeyPress(Key),
     KeyRelease(Key),
     RedrawRequested,
+    Resized,
     ScaleFactorChanged(f32),
 }
 

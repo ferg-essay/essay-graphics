@@ -1,6 +1,6 @@
 use essay_graphics_api::{renderer::{self, Drawable, Renderer}, Path, PathStyle};
 
-use crate::ui::Ui;
+use crate::ui::{null_render::NullRenderer, Ui};
 
 use super::{cursor::ViewSizeCache, style::{State, UiStyle}, ui::draw_top};
 
@@ -28,17 +28,37 @@ impl Drawable for UiView {
         &mut self, 
         renderer: &mut dyn Renderer
     ) -> renderer::Result<()> {
+        let is_new = self.state.is_none();
         let prev_cache = self.state.take().unwrap_or_else(|| {
             ViewSizeCache::new()
         });
 
-    
+        /*
         let (_, mut next_cache) = draw_top(
             &prev_cache, 
             renderer, 
             &self.style,
             &mut self.add_content
         );
+        */
+
+        let (_, mut next_cache) = if is_new {
+            let mut null_renderer = NullRenderer(renderer);
+
+            draw_top(
+                &prev_cache, 
+                &mut null_renderer, 
+                &self.style,
+                &mut self.add_content,
+            )
+        } else {
+            draw_top(
+                &prev_cache, 
+                renderer, 
+                &self.style,
+                &mut self.add_content,
+            )
+        };
 
         if ! next_cache.merge(&prev_cache) {
             let path = Path::from(renderer.pos());
@@ -73,17 +93,29 @@ impl UiTop {
         renderer: &mut dyn Renderer, 
         mut add_content: impl FnMut(&mut Ui) -> R
     ) -> R {
+        let is_new = self.state.is_none();
         let prev_cache = self.state.take().unwrap_or_else(|| {
             ViewSizeCache::new()
         });
 
-    
-        let (result, mut next_cache) = draw_top(
-            &prev_cache, 
-            renderer, 
-            &self.style,
-            &mut add_content,
-        );
+
+        let (result, mut next_cache) = if is_new {
+            let mut null_renderer = NullRenderer(renderer);
+
+            draw_top(
+                &prev_cache, 
+                &mut null_renderer, 
+                &self.style,
+                &mut add_content,
+            )
+        } else {
+            draw_top(
+                &prev_cache, 
+                renderer, 
+                &self.style,
+                &mut add_content,
+            )
+        };
 
         if ! next_cache.merge(&prev_cache) {
             let path = Path::from(renderer.pos());

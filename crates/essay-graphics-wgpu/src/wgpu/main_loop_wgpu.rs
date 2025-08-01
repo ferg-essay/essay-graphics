@@ -1,6 +1,6 @@
 use std::time::{Duration, Instant};
 
-use essay_graphics_api::{input::Input, renderer::{self, Drawable}};
+use essay_graphics_api::{input::{Event, Input}, renderer::{self, Drawable}};
 use essay_graphics_winit::{run_event_loop, MainLoopHandle};
 use winit::{event_loop::EventLoop, window::{CursorIcon, Window}};
 
@@ -142,6 +142,8 @@ impl<'window> MainLoopData<'window> {
         }
     
         self.queue.submit(Some(encoder.finish()));
+
+        self.canvas.resize(&self.device);
     
         let is_flush = true;
         render_draw(&mut self.canvas, &self.device, &self.queue, Some(&view), is_flush,
@@ -196,6 +198,17 @@ impl MainLoopHandle for MainLoopData<'_> {
 
     fn input(&mut self, input: &Input) -> Option<Instant> {
         self.canvas.set_input(input);
+
+        /*
+        for event in input.events() {
+            match event {
+                Event::Resized => {
+                    self.canvas.resize(&self.device);
+                }
+                _ => {}
+            }
+        }
+        */
         None
     }
 

@@ -36,12 +36,6 @@ impl TestRenderer {
         self.scale_factor = scale_factor;
     }
 
-    fn _push(&mut self, str: &str) -> &mut Self {
-        self.vec.push(String::from(str));
-
-        self
-    }
-
     pub fn drain(&mut self) -> Vec<String> {
         self.vec.drain(..).collect()
     }

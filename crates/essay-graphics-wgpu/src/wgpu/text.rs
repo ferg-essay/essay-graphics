@@ -143,8 +143,8 @@ impl TextRender {
         //let w_space = size * 0.4;
         let w_space = s.advance_width;
         
-        let mut x = x0;
-        let y = y0.round();
+        let mut x = x0; // x0.floor();
+        let y = y0.round(); // y.floor
         for ch in text.chars() {
             let r = self.text_cache.glyph(font_id, text_size, ch);
             
