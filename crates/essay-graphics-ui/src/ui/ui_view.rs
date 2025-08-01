@@ -33,15 +33,6 @@ impl Drawable for UiView {
             ViewSizeCache::new()
         });
 
-        /*
-        let (_, mut next_cache) = draw_top(
-            &prev_cache, 
-            renderer, 
-            &self.style,
-            &mut self.add_content
-        );
-        */
-
         let (_, mut next_cache) = if is_new {
             let mut null_renderer = NullRenderer(renderer);
 

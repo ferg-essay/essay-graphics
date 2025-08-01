@@ -100,10 +100,6 @@ impl PlotCanvas {
         canvas
     }
 
-    pub(crate) fn is_request_redraw(&self) -> bool {
-        self.is_request_redraw
-    }
-
     pub fn request_redraw(&mut self, is_redraw: bool) {
         self.is_request_redraw = is_redraw;
     }

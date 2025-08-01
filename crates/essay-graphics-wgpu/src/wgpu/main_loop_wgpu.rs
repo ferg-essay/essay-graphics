@@ -1,6 +1,6 @@
 use std::time::{Duration, Instant};
 
-use essay_graphics_api::{input::{Event, Input}, renderer::{self, Drawable}};
+use essay_graphics_api::{input::{Input}, renderer::{self, Drawable}};
 use essay_graphics_winit::{run_event_loop, MainLoopHandle};
 use winit::{event_loop::EventLoop, window::{CursorIcon, Window}};
 
@@ -72,7 +72,6 @@ struct MainLoopData<'window> {
     // adapter: wgpu::Adapter,
     device: wgpu::Device,
     queue: wgpu::Queue,
-    config: wgpu::SurfaceConfiguration,
     surface: wgpu::Surface<'window>,
     window: &'window Window,
 
@@ -99,7 +98,6 @@ impl<'window> MainLoopData<'window> {
             // adapter: device.adapter,
             device: device.device,
             queue: device.queue,
-            config: device.config,
             surface: device.surface,
             window: device.window,
 

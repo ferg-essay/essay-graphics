@@ -102,8 +102,8 @@ impl Renderer for NullRenderer<'_> {
 
     fn draw_form(
         &mut self,
-        form: FormId,
-        camera: &Matrix4,
+        _form: FormId,
+        _camera: &Matrix4,
     ) -> Result<()> {
         Ok(())
     }

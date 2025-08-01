@@ -196,15 +196,15 @@ impl WgpuHardcopy {
         });
 
         encoder.copy_texture_to_buffer(
-            wgpu::ImageCopyTexture {
+            wgpu::TexelCopyTextureInfo {
                 aspect: wgpu::TextureAspect::All,
                 texture: &self.texture, // surfaces[id.0].texture,
                 mip_level: 0,
                 origin: wgpu::Origin3d::ZERO,
             },
-            wgpu::ImageCopyBuffer {
+            wgpu::TexelCopyBufferInfo {
                 buffer: &o_buffer,
-                layout: wgpu::ImageDataLayout {
+                layout: wgpu::TexelCopyBufferLayout {
                     offset: 0,
                     bytes_per_row: Some(self.bytes_per_row),
                     rows_per_image: Some(self.texture_size.height),
@@ -289,7 +289,7 @@ impl WgpuHardcopy {
                 tx.send(result).unwrap();
             });
 
-            self.device.poll(wgpu::MaintainBase::Wait);
+            self.device.poll(wgpu::MaintainBase::Wait).unwrap();
             
             rx.receive().await.unwrap().unwrap();
 
