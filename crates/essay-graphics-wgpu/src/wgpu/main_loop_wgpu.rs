@@ -72,6 +72,7 @@ struct MainLoopData<'window> {
     // adapter: wgpu::Adapter,
     device: wgpu::Device,
     queue: wgpu::Queue,
+    config: wgpu::SurfaceConfiguration,
     surface: wgpu::Surface<'window>,
     window: &'window Window,
 
@@ -99,6 +100,7 @@ impl<'window> MainLoopData<'window> {
             device: device.device,
             queue: device.queue,
             surface: device.surface,
+            config: device.config,
             window: device.window,
 
             canvas,
@@ -107,6 +109,13 @@ impl<'window> MainLoopData<'window> {
     }
 
     fn main_render(&mut self) {
+        if self.canvas.resize(&self.device) {
+            self.config.width = self.canvas.input().size.width() as u32;
+            self.config.height = self.canvas.input().size.height() as u32;
+
+            self.surface.configure(&self.device, &self.config);
+        };
+
         let frame = self.surface.get_current_texture()
             .expect("Failed to get next swap chain texture");
     
@@ -140,8 +149,6 @@ impl<'window> MainLoopData<'window> {
         }
     
         self.queue.submit(Some(encoder.finish()));
-
-        self.canvas.resize(&self.device);
     
         let is_flush = true;
         render_draw(&mut self.canvas, &self.device, &self.queue, Some(&view), is_flush,
@@ -197,16 +204,6 @@ impl MainLoopHandle for MainLoopData<'_> {
     fn input(&mut self, input: &Input) -> Option<Instant> {
         self.canvas.set_input(input);
 
-        /*
-        for event in input.events() {
-            match event {
-                Event::Resized => {
-                    self.canvas.resize(&self.device);
-                }
-                _ => {}
-            }
-        }
-        */
         None
     }
 

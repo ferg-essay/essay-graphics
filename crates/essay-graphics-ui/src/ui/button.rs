@@ -32,9 +32,7 @@ impl Widget for Button {
         let mut style = ui.style().button.clone();
 
         let background = Path::<Canvas>::from(bounds);
-        //let border = Path::<Canvas>::from(bounds.with_margin(m2));
 
-        //let press = ui.input().left_press && ui.input().cursor_in(&bounds);
         let press_one = ui.input().left_click && ui.input().cursor_in(&bounds);
 
         let state = if ui.input().cursor

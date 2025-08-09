@@ -130,9 +130,9 @@ impl PlotCanvas {
     pub fn clear(&mut self) {
     }
 
-    pub fn resize(&mut self, device: &wgpu::Device) {
-        if self.cache_size == self.input.size {
-            return;
+    pub fn resize(&mut self, device: &wgpu::Device) -> bool {
+        if self.cache_size == self.input.size || self.input.size.width() == 0. {
+            return false;
         }
 
         self.cache_size = self.input.size;
@@ -149,6 +149,8 @@ impl PlotCanvas {
         if self.input.size.width() > 0. {
             self.form3d_render.resize(device, self.cache_size.width() as u32, self.cache_size.height() as u32);
         }
+
+        true
     }
 
     pub fn to_scissor(&self, clip: &Clip) -> Option<(u32, u32, u32, u32)> {
