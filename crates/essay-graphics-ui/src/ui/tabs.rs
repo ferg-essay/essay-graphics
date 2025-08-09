@@ -54,7 +54,7 @@ impl<T: PartialEq + Clone + Into<String>> Tabs<'_, T> {
                         [tab_width, pos.height()]
                     ));
 
-                    if ui.input().left_click && ui.input().cursor_in(&pos) {
+                    if ui.input().left.click && ui.input().cursor_in(&pos) {
                         selected = Some(item.key.clone());
                     }
 

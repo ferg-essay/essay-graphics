@@ -1,4 +1,4 @@
-use essay_graphics_api::{input::{Event, Input, Key}, Point, Size};
+use essay_graphics_api::{input::{Button, Event, Input, Key}, Point, Size};
 use winit::{
     event::{self, ElementState, MouseButton, WindowEvent},
     keyboard::{self, NamedKey},
@@ -81,17 +81,23 @@ pub fn input_event(input: &mut Input, event: &event::Event<()>) -> bool {
 
 fn mouse_input(input: &mut Input, state: &ElementState, button: &MouseButton) {
     match button {
-        MouseButton::Left => match state {
-            ElementState::Pressed => {
-                input.left_press = true;
-                input.left_click = true;
-            }
-            ElementState::Released => {
-                input.left_release = true;
-                input.left_press = false;
-            }
-        },
+        MouseButton::Left => {
+            button_input(&mut input.left, state);
+        }
         _ => {}
+    }
+}
+
+fn button_input(button: &mut Button, state: &ElementState) {
+    match state {
+        ElementState::Pressed => {
+            button.press = true;
+            button.click = true;
+        }
+        ElementState::Released => {
+            button.release = true;
+            button.press = false;
+        }
     }
 }
 

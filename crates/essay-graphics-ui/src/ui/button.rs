@@ -33,7 +33,7 @@ impl Widget for Button {
 
         let background = Path::<Canvas>::from(bounds);
 
-        let press_one = ui.input().left_click && ui.input().cursor_in(&bounds);
+        let press_one = ui.input().left.click && ui.input().cursor_in(&bounds);
 
         let state = if ui.input().cursor
             .map_or(false, |p| bounds.contains(p)) {

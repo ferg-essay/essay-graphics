@@ -12,10 +12,7 @@ pub struct Input {
 
     pub is_focus: bool,
 
-
-    pub left_press: bool,
-    pub left_release: bool,
-    pub left_click: bool,
+    pub left: Button,
 
     key_down: HashSet<Key>,
     events: Vec<Event>,
@@ -51,8 +48,7 @@ impl Input {
     }
 
     pub fn update_after_draw(&mut self) {
-        self.left_release = false;
-        self.left_click = false;
+        self.left.update_after_draw();
         self.events.drain(..);
     }
 
@@ -82,13 +78,25 @@ impl Default for Input {
 
             cursor: Default::default(),
             is_focus: Default::default(),
-            left_press: Default::default(),
-            left_release: Default::default(),
-            left_click: Default::default(),
+            left: Default::default(),
 
             key_down: Default::default(),
             events: Default::default(),
         }
+    }
+}
+
+#[derive(Clone, Default)]
+pub struct Button {
+    pub press: bool,
+    pub release: bool,
+    pub click: bool,
+}
+
+impl Button {
+    pub fn update_after_draw(&mut self) {
+        self.release = false;
+        self.click = false;
     }
 }
 
