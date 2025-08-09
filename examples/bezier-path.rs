@@ -6,6 +6,8 @@ fn main() {
     MainLoop::new().show(Box::new(|ui: &mut dyn Renderer| {
         let mut path_style = PathStyle::new();
         path_style.color("azure");
+        path_style.edge_color("black");
+        //path_style.face_color(Color::none());
 
         let path = arch([100., 100.]);
         ui.draw_path(&path, &path_style)?;

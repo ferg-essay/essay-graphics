@@ -179,6 +179,7 @@ impl PlotCanvas {
         let pt_to_px = 4. / 3.;
 
         self.scale_factor = scale_factor * pt_to_px;
+        //self.scale_factor = 1.; // TK
     }
 
     #[inline]

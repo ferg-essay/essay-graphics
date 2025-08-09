@@ -189,11 +189,6 @@ fn draw_bezier_line(
         return;
     }
 
-    /*
-    let ccw = 
-        (b1.x() - b0.x()) * (b2.y() - b0.y())
-        - (b2.x() - b0.x()) * (b1.y() - b0.y());
-        */
     let ccw = ccw(b0, b1, b2);
 
     let min_bezier_area = 1.;
@@ -230,7 +225,7 @@ fn draw_bezier_line(
     // p1 slightly incorrect
     let p1 = Point(b1.x() + nx1, b1.y() - ny1);
     let p2 = Point(b2.x() + nx2, b2.y() - ny2);
-
+    
     // inner bezier's points
     let q0 = Point(b0.x() - nx0, b0.y() + ny0);
     // let q1 = Point(b1.x() - nx1, b1.y() + ny1);
@@ -238,17 +233,20 @@ fn draw_bezier_line(
 
     // height of p1 from p0 to p2 line 
     let p1_height = 0.5 * vertex_height(p0, p1, p2);
+
     // linewidth in uv coordinates
     let outer_width = lw.min(p1_height);
     let v_factor = outer_width / p1_height; // * 0.5;
 
     // outer bezier
-    // self.vertex_bezier(p0.x(), p0.y(), -1.0, 1., 1.0 - v_factor);
     bezier.triangle(p0, p1, p2, 0., v_factor);
 
     if lw <= outer_width {
         // outer bezier handles the full line thickness
-        let p = 0.5 * (1. - v_factor).sqrt();
+
+        let p = 0.5 * (1. - (1. - v_factor).sqrt());
+        //let len = p0.hypot(p2);
+        //let p = lw / len;
         let pa = interpolate(p, p0, p2);
         let pb = interpolate(p, p2, p0);
 
