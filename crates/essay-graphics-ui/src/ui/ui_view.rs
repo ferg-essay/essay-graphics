@@ -88,7 +88,7 @@ impl UiTop {
         let prev_cache = self.state.take().unwrap_or_else(|| {
             ViewSizeCache::new()
         });
-        let is_new = false;
+        // let is_new = false;
 
         let (result, mut next_cache) = if is_new {
             let mut null_renderer = NullRenderer(renderer);

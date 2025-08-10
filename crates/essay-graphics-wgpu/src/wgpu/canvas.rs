@@ -275,8 +275,8 @@ impl PlotCanvas {
             .unwrap_or(face_color);
 
         if let Some(alpha) = style.get_alpha() {
-            face_color = face_color.with_alpha(alpha);
-            edge_color = edge_color.with_alpha(alpha);
+            face_color = face_color.with_alpha(alpha * face_color.alpha());
+            edge_color = edge_color.with_alpha(alpha * edge_color.alpha());
         }
 
         let texture = TextureId::default();
@@ -297,8 +297,8 @@ impl PlotCanvas {
             },
         };
 
-        if path.is_closed_path() && ! face_color.is_none() {
-            let mut is_texture = true;
+        if path.is_closed_path() && face_color.alpha() > 0. {
+            let mut is_texture = false;
 
             if let Some(hatch) = style.get_hatch() {
                 let (mesh, bezier) = fill_shape(&path);
