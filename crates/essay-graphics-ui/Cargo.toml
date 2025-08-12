@@ -4,6 +4,9 @@ version = "0.1.34-dev"
 edition = "2021"
 
 [dependencies]
+ahash = { version = "0.8", default-features = false, features = [
+    "no-rng", "std"
+] }
 env_logger = { version = "0.11" }
 log = { version = "0.4.17" }
 essay-graphics-api = { path = "../essay-graphics-api" }
@@ -11,6 +14,7 @@ essay-graphics-test = { path = "../essay-graphics-test" }
 essay-graphics-wgpu = { path = "../essay-graphics-wgpu" }
 essay-tensor = { path = "../../../essay-tensor" }
 # essay-graphics-ui-macros = { path = "macros" }
+nohash-hasher = "0.2"
 
 [lib]
 doctest = false

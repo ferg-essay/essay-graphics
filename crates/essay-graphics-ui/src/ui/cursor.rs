@@ -245,3 +245,14 @@ impl ViewSizeCache {
         true
     }
 }
+
+
+impl Default for ViewSizeCache {
+    fn default() -> Self {
+        Self {
+            page: Bounds::unit(),
+            canvas: Bounds::from(Point(0., 0.)),
+            children: Vec::default(),
+        }
+    }
+}

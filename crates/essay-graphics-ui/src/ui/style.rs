@@ -53,6 +53,43 @@ impl UiStyle {
     }
 }
 
+impl Default for UiStyle {
+    fn default() -> Self {
+        let mut text = TextStyle::new();
+        text.halign(HorizAlign::Left);
+
+        Self {
+            label: PathStyle::new(),
+            label_text: text.clone(),
+
+            button: PathStyle::new(),
+            button_press: PathStyle::new(),
+            button_text: text.clone(),
+
+            inactive: Colorset::new(
+                Grey(0.95),
+                Grey(0.3),
+                Grey(0.2),
+                Grey(0.7)
+            ),
+
+            active: Colorset::new(
+                Grey(1.),
+                Grey(0.),
+                "azure",
+                Grey(0.7)
+            ),
+
+            hover: Colorset::new(
+                Grey(0.98),
+                Grey(0.1),
+                "red",
+                Grey(0.7)
+            ),
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum State {
     Active,

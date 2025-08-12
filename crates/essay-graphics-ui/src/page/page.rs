@@ -424,7 +424,7 @@ impl ViewItem {
     }
 }
 
-trait PageDraw : Send + 'static {
+trait PageDraw : Send + Sync + 'static {
     fn draw(&mut self, ui: &mut Ui);
 }
 
@@ -441,7 +441,7 @@ impl PageDraw for PageDrawable {
 
 struct _PageUi {
     size: UiSize,
-    add_content: Box<dyn FnMut(&mut Ui) + Send>,
+    add_content: Box<dyn FnMut(&mut Ui) + Send + Sync>,
 }
 
 impl PageDraw for _PageUi {

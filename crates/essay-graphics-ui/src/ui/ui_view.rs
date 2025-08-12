@@ -5,13 +5,13 @@ use crate::ui::{null_render::NullRenderer, Ui};
 use super::{cursor::ViewSizeCache, style::{State, UiStyle}, ui::draw_top};
 
 pub struct UiView {
-    add_content: Box<dyn FnMut(&mut Ui)->() + Send>,
+    add_content: Box<dyn FnMut(&mut Ui)->() + Send + Sync>,
     state: Option<ViewSizeCache>,
     style: UiStyle,
 }
 
 impl UiView {
-    pub fn new(add_content: impl FnMut(&mut Ui)->() + Send + 'static) -> Self {
+    pub fn new(add_content: impl FnMut(&mut Ui)->() + Send + Sync + 'static) -> Self {
         let mut style = UiStyle::new();
         style.button_press.color("red");
 

@@ -53,7 +53,7 @@ impl Drawable for Pages {
     }
 }
 
-pub trait PageLabel : Send + DynLabel + fmt::Debug {
+pub trait PageLabel : Send + Sync + DynLabel + fmt::Debug {
     fn _box_clone(&self) -> Box<dyn PageLabel>;
 }
 

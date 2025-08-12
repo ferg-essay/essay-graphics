@@ -60,6 +60,15 @@ impl<M: Coord> Bounds<M> {
     }
 
     #[inline]
+    pub fn infinity() -> Bounds<M> {
+        Bounds {
+            p0: Point(f32::MAX, f32::MAX),
+            p1: Point(f32::MIN, f32::MIN),
+            marker: PhantomData,
+        }
+    }
+
+    #[inline]
     pub fn zero() -> Bounds<M> {
         Bounds {
             p0: Point(0., 0.),
@@ -311,6 +320,12 @@ impl<M: Coord> Bounds<M> {
     }
 }
 
+impl<M: Coord> Default for Bounds<M> {
+    fn default() -> Self {
+        Self::none()
+    }
+}
+
 impl<M: Coord> Clone for Bounds<M> {
     fn clone(&self) -> Self {
         Self { 
@@ -326,9 +341,11 @@ impl<M: Coord> Copy for Bounds<M> {
 
 impl<M: Coord> PartialEq for Bounds<M> {
     fn eq(&self, other: &Self) -> bool {
-        self.p0 == other.p0 && self.p1 == other.p1 && self.marker == other.marker
+        self.p0 == other.p0 && self.p1 == other.p1
     }
 }
+
+impl<M: Coord> Eq for Bounds<M> {}
 
 impl<M: Coord> fmt::Debug for Bounds<M> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

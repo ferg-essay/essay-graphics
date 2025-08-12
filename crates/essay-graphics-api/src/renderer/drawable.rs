@@ -1,6 +1,6 @@
 use super::{Renderer, Result};
 
-pub trait Drawable {
+pub trait Drawable: Send + Sync {
     ///
     /// Called to inform the drawable when the view bounds or scale factor
     /// has changed.
@@ -32,7 +32,7 @@ impl Drawable for Box<dyn Drawable + Send> {
 
 impl<F> Drawable for F
 where
-    F: FnMut(&mut dyn Renderer) -> Result<()> 
+    F: FnMut(&mut dyn Renderer) -> Result<()> + Send + Sync + 'static
 {
     fn draw(&mut self, renderer: &mut dyn Renderer) -> Result<()> {
         (self)(renderer)
