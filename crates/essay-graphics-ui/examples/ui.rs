@@ -7,7 +7,7 @@ fn main() {
     let cxt = Context::new();
     
     MainLoop::new().show(ViewBox(Box::new(move |ui| {
-        cxt.run_ui(ui, |ui| {
+        let response = cxt.run_ui(ui, |ui| {
             ui.label("hello, world");
             ui.label("second label");
             /*
@@ -18,6 +18,9 @@ fn main() {
             })
             */
         });
+
+        response.tooltip("Testing tooltip");
+
         /*
         ctx.run_ui(ui, |ui| {
             let style = Arc::new(PathStyle::new());

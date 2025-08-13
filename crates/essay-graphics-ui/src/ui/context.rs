@@ -1,6 +1,7 @@
 use std::ops::{Deref, DerefMut};
 use std::sync::{Arc, Mutex, RwLock};
 
+use essay_graphics_api::input::Input;
 use essay_graphics_api::renderer::{Canvas, Renderer};
 use essay_graphics_api::Bounds;
 
@@ -8,9 +9,9 @@ use crate::ui::cursor::ViewSizeCache;
 use crate::ui::layers::GraphicsLayers;
 use crate::ui::null_render::NullRenderer;
 use crate::ui::style::UiStyle;
-use crate::ui::ui2::Ui2;
+use crate::ui::ui2::{ResponseValue, Ui2};
 use crate::ui::widget::{WidgetRect, WidgetRects};
-use crate::ui::{Id, Ui};
+use crate::ui::{Id, IdSet, Ui};
 
 #[derive(Clone)]
 pub struct Context(Arc<RwLock<ContextInner>>);
@@ -67,11 +68,11 @@ impl Context {
 }
 
 impl Context {
-    pub fn run_ui(
+    pub fn run_ui<R>(
         &self, 
         renderer: &mut dyn Renderer, 
-        mut draw: impl FnMut(&mut Ui2) + Send
-    ) {
+        mut draw: impl FnMut(&mut Ui2) -> R + Send
+    ) -> ResponseValue<R> {
         self.run(renderer, move |cxt, renderer| {
             let id = Id::new("top");
 
@@ -81,11 +82,11 @@ impl Context {
         })
     }
 
-    pub fn run(
+    pub fn run<R>(
         &self, 
         renderer: &mut dyn Renderer, 
-        mut draw: impl FnMut(&Self, &mut dyn Renderer) + Send
-    ) {
+        mut draw: impl FnMut(&Self, &mut dyn Renderer) -> R + Send
+    ) -> R {
         loop {
             let is_resize = self.write(|cxt| {
                 if cxt.cache_pos != renderer.pos() {
@@ -96,32 +97,43 @@ impl Context {
                 }
             });
 
-            self.start_pass(is_resize);
+            self.start_pass(is_resize, renderer.input());
 
-            if is_resize {
+            let result = if is_resize {
                 let mut null_render = NullRenderer(renderer);
 
-                (draw)(self, &mut null_render);
+                (draw)(self, &mut null_render)
             } else {
-                (draw)(self, renderer);
-            }
+                (draw)(self, renderer)
+            };
 
             if ! is_resize {
-                break;
+                self.graphics_mut(|layers| {
+                    layers.render(renderer).unwrap();
+                });
+
+                return result;
             }
         }
-
-        self.graphics_mut(|layers| {
-            layers.render(renderer).unwrap();
-        })
     }
 
-    fn start_pass(&self, _is_resize: bool) {
+    fn start_pass(&self, _is_resize: bool, input: &Input) {
         self.write(|cxt| {
             let mut pass = RenderPass::default();
             std::mem::swap(&mut cxt.viewport.pass, &mut pass);
             std::mem::swap(&mut cxt.viewport.last_pass, &mut pass);
-        })
+
+            cxt.viewport.hover.clear();
+
+            if let Some(point) = input.cursor {
+
+                for widget in cxt.viewport.last_pass.widgets.iter() {
+                    if widget.rect.contains(point) {
+                        cxt.viewport.hover.insert(widget.id);
+                    }
+                }
+            }
+        });
     }
 
 
@@ -134,7 +146,18 @@ impl Context {
     }
 
     pub(crate) fn get_response(&self, widget: WidgetRect) -> Response {
-        Response::default()
+        let mut response = Response {
+            id: widget.id,
+            is_hover: false,
+        };
+
+        self.read(|cxt| {
+            if cxt.viewport.hover.contains(widget.id) {
+                response.is_hover = true;
+            }
+        });
+
+        response
     }
 }
 
@@ -153,6 +176,7 @@ pub struct Viewport {
     pass: RenderPass,
     
     layers: GraphicsLayers,
+    hover: WidgetHover,
 }
 
 #[derive(Default)]
@@ -162,7 +186,53 @@ pub struct RenderPass {
     view_size: ViewSizeCache,
 }
 
-#[derive(Default)]
 pub struct Response {
+    id: Id,
+    is_hover: bool,
+}
 
+impl Response {
+    #[inline]
+    pub fn id(&self) -> Id {
+        self.id
+    }
+
+    #[inline]
+    pub fn is_hover(&self) -> bool {
+        self.is_hover
+    }
+
+    pub fn tooltip(&self, text: &str) {
+        if self.is_hover {
+            println!("Tooltip {:?}", text);
+        }
+    }
+}
+
+impl Default for Response {
+    fn default() -> Self {
+        Self { 
+            id: Id::NULL,
+            is_hover: Default::default() 
+        }
+    }
+}
+
+#[derive(Default)]
+struct WidgetHover {
+    hover: IdSet,
+}
+
+impl WidgetHover {
+    fn clear(&mut self) {
+        self.hover.clear();
+    }
+
+    fn contains(&self, id: Id) -> bool {
+        self.hover.contains(&id)
+    }
+
+    fn insert(&mut self, id: Id) {
+        self.hover.insert(id);
+    }
 }

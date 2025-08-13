@@ -42,11 +42,20 @@ impl WidgetRects {
                 widgets.push(widget_rect);
             },
             hash_map::Entry::Occupied(mut entry) => {
-                let (_index, widget) = entry.get_mut();
+                let (index, widget) = entry.get_mut();
 
                 widget.rect = widget_rect.rect;
+                self.widgets[*index].rect = widget_rect.rect;
             },
         }
+    }
+
+    pub fn iter(&self) -> impl ExactSizeIterator<Item=&WidgetRect> {
+        self.widgets.iter()
+    }
+
+    pub fn iter_mut(&mut self) -> impl ExactSizeIterator<Item=&mut WidgetRect> {
+        self.widgets.iter_mut()
     }
 
     pub fn clear(&mut self) {

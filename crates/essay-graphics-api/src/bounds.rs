@@ -318,6 +318,17 @@ impl<M: Coord> Bounds<M> {
             Point(x1 - right, y1 - top),
         )
     }
+
+    #[must_use]
+    pub fn round_ui(self) -> Self {
+        let Point(x0, y0) = self.p0;
+        let Point(x1, y1) = self.p1;
+
+        Self::new(
+            Point(x0.floor(), y0.ceil()),
+            Point(x1.ceil(), y1.floor()),
+        )
+    }
 }
 
 impl<M: Coord> Default for Bounds<M> {

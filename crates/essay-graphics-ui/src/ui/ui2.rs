@@ -1,5 +1,5 @@
 use core::hash;
-use std::sync::Arc;
+use std::{ops::Deref, sync::Arc};
 
 use essay_graphics_api::{
     input::Input, 
@@ -40,7 +40,7 @@ impl<'a> Ui2<'a> {
         id: Id,
         renderer: &mut dyn Renderer,
         add_content: impl FnOnce(&mut Ui2) -> R
-    ) -> R {
+    ) -> ResponseValue<R> {
         /*
         let page = prev_cache
             .map(|cache| cache.page)
@@ -76,9 +76,9 @@ impl<'a> Ui2<'a> {
     
         // next_cache.page = ui.cursor.page_allocated;
 
-        ui.end();
+        let response = ui.end();
 
-        result
+        ResponseValue::new(result, response)
     }
     
     fn child<R>(
@@ -145,7 +145,6 @@ impl<'a> Ui2<'a> {
             id: self.unique_id,
             rect: bounds,
         });
-        println!("Bounds {:?}", bounds);
 
         response
     }
@@ -470,4 +469,34 @@ pub trait Widget2 {
         &mut self, 
         ui: &mut Ui2,
     ) -> Response;
+}
+
+pub struct ResponseValue<T> {
+    value: T,
+    response: Response,
+}
+
+impl<T> ResponseValue<T> {
+    pub(crate) fn new(value: T, response: Response) -> Self {
+        Self {
+            value,
+            response
+        }
+    }
+
+    pub fn response(&self) -> &Response {
+        &self.response
+    }
+
+    pub fn response_mut(&mut self) -> &mut Response {
+        &mut self.response
+    }
+}
+
+impl<T> Deref for ResponseValue<T> {
+    type Target = Response;
+
+    fn deref(&self) -> &Self::Target {
+        &self.response
+    }
 }
