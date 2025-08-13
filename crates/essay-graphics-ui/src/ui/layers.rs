@@ -5,19 +5,23 @@ use essay_graphics_api::renderer::{self, Drawable, Renderer, Result};
 use crate::ui::Context;
 
 pub struct Painter {
-    cxt: Context,
+    ctx: Context,
 }
 
 impl Painter {
-    pub fn new(cxt: &Context) -> Self {
+    pub fn new(ctx: &Context) -> Self {
         Self {
-            cxt: cxt.clone(),
+            ctx: ctx.clone(),
         }
+    }
+    
+    pub(crate) fn context(&self) -> &Context {
+        &self.ctx
     }
 
     #[inline]
     fn paint<R>(&self, paint: impl FnOnce(&mut PaintList) -> R) -> R {
-        self.cxt.graphics_mut(|layers| {
+        self.ctx.graphics_mut(|layers| {
             (paint)(&mut layers.paint_list)
         })
     }

@@ -10,22 +10,22 @@ use crate::ui::null_render::NullRenderer;
 use crate::ui::style::UiStyle;
 use crate::ui::ui2::Ui2;
 use crate::ui::widget::{WidgetRect, WidgetRects};
-use crate::ui::Ui;
+use crate::ui::{Id, Ui};
 
 #[derive(Clone)]
-pub struct Context(Arc<RwLock<ContextImpl>>);
+pub struct Context(Arc<RwLock<ContextInner>>);
 
 impl Context {
     pub fn new() -> Self {
-        Self(Arc::new(RwLock::new(ContextImpl::default())))
+        Self(Arc::new(RwLock::new(ContextInner::default())))
     }
 
-    fn read<R>(&self, reader: impl FnOnce(&ContextImpl) -> R) -> R {
+    fn read<R>(&self, reader: impl FnOnce(&ContextInner) -> R) -> R {
         let inner = self.0.read().unwrap();
         (reader)(inner.deref())
     }
 
-    fn write<R>(&self, writer: impl FnOnce(&mut ContextImpl) -> R) -> R {
+    fn write<R>(&self, writer: impl FnOnce(&mut ContextInner) -> R) -> R {
         let mut inner = self.0.write().unwrap();
         (writer)(inner.deref_mut())
     }
@@ -59,6 +59,11 @@ impl Context {
     pub fn last_pass_mut<R>(&self, writer: impl FnOnce(&mut RenderPass) -> R) -> R {
         self.write(|cxt| (writer)(&mut cxt.viewport.last_pass))
     }
+
+    #[inline]
+    pub fn style(&self) -> Arc<UiStyle> {
+        self.read(|cxt| cxt.style.clone())
+    }
 }
 
 impl Context {
@@ -68,7 +73,11 @@ impl Context {
         mut draw: impl FnMut(&mut Ui2) + Send
     ) {
         self.run(renderer, move |cxt, renderer| {
-            Ui2::top(cxt, renderer, |ui2| (draw)(ui2));
+            let id = Id::new("top");
+
+            Ui2::top(cxt, id, renderer, |ui2| {
+                (draw)(ui2)
+            })
         })
     }
 
@@ -116,8 +125,7 @@ impl Context {
     }
 
 
-    
-    pub(crate) fn create_widget(&self, widget: WidgetRect) {
+    pub(crate) fn create_widget(&self, widget: WidgetRect) -> Response {
         self.write(|ctx| {
             ctx.viewport.pass.widgets.insert(widget);
         });
@@ -125,13 +133,13 @@ impl Context {
         self.get_response(widget)
     }
 
-    pub(crate) fn get_response(&self, widget: WidgetRect) {
-
+    pub(crate) fn get_response(&self, widget: WidgetRect) -> Response {
+        Response::default()
     }
 }
 
 #[derive(Default)]
-pub(crate) struct ContextImpl {
+pub(crate) struct ContextInner {
     viewport: Viewport,
 
     style: Arc<UiStyle>,
@@ -152,4 +160,9 @@ pub struct RenderPass {
     widgets: WidgetRects,
 
     view_size: ViewSizeCache,
+}
+
+#[derive(Default)]
+pub struct Response {
+
 }

@@ -2,7 +2,7 @@ use essay_graphics_api::{renderer::Canvas, Bounds, Point, Size};
 
 use crate::page::Page;
 
-pub(super) struct Cursor {
+pub struct Cursor {
     pub canvas_extent: Bounds<Canvas>, // extent of the canvas managed by the cursor
     pub page_extent: Bounds<Page>,
     pub fixed_extent: Bounds<Canvas>, // total size of fixed elements managed by the cursor
@@ -87,7 +87,8 @@ impl Cursor {
     }
 }
 
-pub(super) enum CursorUpdate {
+#[derive(Clone, Copy)]
+pub enum CursorUpdate {
     Vertical,
     Horizontal,
 }

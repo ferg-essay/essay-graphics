@@ -1,17 +1,30 @@
 use std::sync::Arc;
 
 use essay_graphics_api::{renderer::{self, Canvas, Drawable, Renderer}, Bounds, Path, PathStyle};
-use essay_graphics_ui::{page::MainLoop, ui::{Context, UiView}};
+use essay_graphics_ui::{page::MainLoop, ui::{CentralPanel, Context, UiView}};
 
 fn main() { 
-    let ctx = Context::new();
+    let cxt = Context::new();
     
     MainLoop::new().show(ViewBox(Box::new(move |ui| {
+        cxt.run_ui(ui, |ui| {
+            ui.label("hello, world");
+            ui.label("second label");
+            /*
+            CentralPanel::default().show(ui, |ui| {
+                let style = Arc::new(PathStyle::new());
+
+                ui.painter_mut().add(DrawPath::rect(([100., 100.], [200., 200.]), &style));
+            })
+            */
+        });
+        /*
         ctx.run_ui(ui, |ui| {
             let style = Arc::new(PathStyle::new());
 
             ui.painter_mut().add(DrawPath::rect(([100., 100.], [200., 200.]), &style));
         });
+        */
 
         Ok(())
     })));

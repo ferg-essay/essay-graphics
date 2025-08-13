@@ -1,3 +1,4 @@
+mod panel;
 mod widget;
 mod id;
 mod layers;
@@ -16,6 +17,7 @@ mod ui_view;
 pub use context::{Context};
 pub use id::{Id, IdSet, IdMap};
 pub use layers::{Painter, PaintList};
+pub use panel::{CentralPanel};
 pub use tabs::Tabs;
 pub use ui::{Ui, UiSize, OnceView};
 pub use ui_view::{UiView, UiTop};
