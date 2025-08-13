@@ -1,3 +1,5 @@
+mod popup;
+mod tooltip;
 mod panel;
 mod widget;
 mod id;

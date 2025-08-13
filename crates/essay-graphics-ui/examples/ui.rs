@@ -1,13 +1,13 @@
 use std::sync::Arc;
 
 use essay_graphics_api::{renderer::{self, Canvas, Drawable, Renderer}, Bounds, Path, PathStyle};
-use essay_graphics_ui::{page::MainLoop, ui::{CentralPanel, Context, UiView}};
+use essay_graphics_ui::{page::MainLoop, ui::{ui2::ResponseValue, Context, UiView}};
 
 fn main() { 
     let cxt = Context::new();
     
     MainLoop::new().show(ViewBox(Box::new(move |ui| {
-        let response = cxt.run_ui(ui, |ui| {
+        let ResponseValue { response, .. } = cxt.run_ui(ui, |ui| {
             ui.label("hello, world");
             ui.label("second label");
             /*
@@ -19,7 +19,9 @@ fn main() {
             */
         });
 
-        response.tooltip("Testing tooltip");
+        response.on_hover_ui(|ui| {
+            ui.label("Testing tooltip");
+        });
 
         /*
         ctx.run_ui(ui, |ui| {

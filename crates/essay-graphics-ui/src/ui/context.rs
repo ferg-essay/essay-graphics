@@ -1,5 +1,5 @@
 use std::ops::{Deref, DerefMut};
-use std::sync::{Arc, Mutex, RwLock};
+use std::sync::{Arc, RwLock};
 
 use essay_graphics_api::input::Input;
 use essay_graphics_api::renderer::{Canvas, Renderer};
@@ -9,9 +9,10 @@ use crate::ui::cursor::ViewSizeCache;
 use crate::ui::layers::GraphicsLayers;
 use crate::ui::null_render::NullRenderer;
 use crate::ui::style::UiStyle;
-use crate::ui::ui2::{ResponseValue, Ui2};
+use crate::ui::tooltip::Tooltip;
+use crate::ui::ui2::{ResponseValue, Ui2, UiBuilder};
 use crate::ui::widget::{WidgetRect, WidgetRects};
-use crate::ui::{Id, IdSet, Ui};
+use crate::ui::{Id, IdSet};
 
 #[derive(Clone)]
 pub struct Context(Arc<RwLock<ContextInner>>);
@@ -29,6 +30,16 @@ impl Context {
     fn write<R>(&self, writer: impl FnOnce(&mut ContextInner) -> R) -> R {
         let mut inner = self.0.write().unwrap();
         (writer)(inner.deref_mut())
+    }
+
+    #[inline]
+    pub fn viewport<R>(&self, reader: impl FnOnce(&Viewport) -> R) -> R {
+        self.read(|cxt| (reader)(&cxt.viewport))
+    }
+
+    #[inline]
+    pub fn viewport_mut<R>(&self, writer: impl FnOnce(&mut Viewport) -> R) -> R {
+        self.write(|cxt| (writer)(&mut cxt.viewport))
     }
 
     #[inline]
@@ -65,6 +76,11 @@ impl Context {
     pub fn style(&self) -> Arc<UiStyle> {
         self.read(|cxt| cxt.style.clone())
     }
+
+    #[inline]
+    pub fn screen_pos(&self) -> Bounds<Canvas> {
+        self.viewport(|viewport| viewport.screen_pos)
+    }
 }
 
 impl Context {
@@ -73,10 +89,12 @@ impl Context {
         renderer: &mut dyn Renderer, 
         mut draw: impl FnMut(&mut Ui2) -> R + Send
     ) -> ResponseValue<R> {
-        self.run(renderer, move |cxt, renderer| {
+        self.run(renderer, move |cxt, _renderer| {
             let id = Id::new("top");
 
-            Ui2::top(cxt, id, renderer, |ui2| {
+            let builder = UiBuilder::default();
+            
+            Ui2::top(cxt, id, builder, |ui2| {
                 (draw)(ui2)
             })
         })
@@ -89,8 +107,8 @@ impl Context {
     ) -> R {
         loop {
             let is_resize = self.write(|cxt| {
-                if cxt.cache_pos != renderer.pos() {
-                    cxt.cache_pos = renderer.pos();
+                if cxt.viewport.screen_pos != renderer.pos() {
+                    cxt.viewport.screen_pos = renderer.pos();
                     true
                 } else {
                     false
@@ -148,6 +166,7 @@ impl Context {
     pub(crate) fn get_response(&self, widget: WidgetRect) -> Response {
         let mut response = Response {
             id: widget.id,
+            ctx: self.clone(),
             is_hover: false,
         };
 
@@ -166,14 +185,14 @@ pub(crate) struct ContextInner {
     viewport: Viewport,
 
     style: Arc<UiStyle>,
-
-    cache_pos: Bounds<Canvas>,
 }
 
 #[derive(Default)]
 pub struct Viewport {
     last_pass: RenderPass,
     pass: RenderPass,
+
+    screen_pos: Bounds<Canvas>,
     
     layers: GraphicsLayers,
     hover: WidgetHover,
@@ -186,8 +205,15 @@ pub struct RenderPass {
     view_size: ViewSizeCache,
 }
 
+impl RenderPass {
+    pub fn widgets(&self) -> &WidgetRects {
+        &self.widgets
+    }
+}
+
 pub struct Response {
-    id: Id,
+    pub id: Id,
+    pub ctx: Context,
     is_hover: bool,
 }
 
@@ -198,23 +224,21 @@ impl Response {
     }
 
     #[inline]
+    pub fn context(&self) -> &Context {
+        &self.ctx
+    }
+
+    #[inline]
     pub fn is_hover(&self) -> bool {
         self.is_hover
     }
 
-    pub fn tooltip(&self, text: &str) {
-        if self.is_hover {
-            println!("Tooltip {:?}", text);
+    pub fn on_hover_ui(&self, add_contents: impl FnOnce(&mut Ui2)) -> &Self {
+        if self.is_hover() {
+            Tooltip::for_enabled(&self).show(add_contents);
         }
-    }
-}
 
-impl Default for Response {
-    fn default() -> Self {
-        Self { 
-            id: Id::NULL,
-            is_hover: Default::default() 
-        }
+        &self
     }
 }
 

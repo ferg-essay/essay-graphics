@@ -13,12 +13,11 @@ use crate::ui::{
 
 use super::cursor::{Cursor, CursorUpdate, ViewSizeCache};
 
-pub struct Ui2<'a> {
+pub struct Ui2 {
     id: Id,
     unique_id: Id,
     next_auto_id_salt: u64,
     
-    renderer: &'a mut dyn Renderer,
     cursor: Cursor,
     update: CursorUpdate,
 
@@ -29,34 +28,36 @@ pub struct Ui2<'a> {
     cache_index: usize,
 }
 
-impl<'a> Ui2<'a> {
+impl Ui2 {
     #[inline]
     pub fn style(&self) -> &UiStyle {
         &self.style
     }
 
     pub(crate) fn top<R>(
-        cxt: &'a Context,
+        cxt: &Context,
         id: Id,
-        renderer: &mut dyn Renderer,
+        builder: UiBuilder,
         add_content: impl FnOnce(&mut Ui2) -> R
     ) -> ResponseValue<R> {
-        /*
-        let page = prev_cache
-            .map(|cache| cache.page)
-            .unwrap_or(Bounds::unit());
-        */
+        let UiBuilder {
+            max_bounds,
+            ..
+        } = builder;
+
+        let pos = max_bounds.unwrap_or_else(|| {
+            cxt.screen_pos()
+        });
 
         let page = Bounds::unit();
 
-        let cursor = Cursor::new(renderer.pos(), page);
+        let cursor = Cursor::new(pos, page);
         
         let mut ui = Ui2 {
             id,
             unique_id: id,
             next_auto_id_salt: id.with("auto").value(),
             cursor,
-            renderer,
             update: CursorUpdate::Vertical,
             painter: Painter::new(&cxt),
             style: cxt.style(),
@@ -121,7 +122,6 @@ impl<'a> Ui2<'a> {
             unique_id,
             next_auto_id_salt,
             cursor: self.cursor.child(Point(max_bounds.xmin(), max_bounds.ymax())),
-            renderer: self.renderer,
             update,
             painter: Painter::new(self.painter.context()),
             style: self.style.clone(),
@@ -198,23 +198,36 @@ impl<'a> Ui2<'a> {
     }
 
     #[inline]
-    pub fn renderer(&mut self) -> &mut dyn Renderer {
-        self.renderer
-    }
-
-    #[inline]
     pub fn painter_mut(&mut self) -> &mut Painter {
         &mut self.painter
     }
 
     #[inline]
-    pub fn allocate_rect(&mut self, size: Size) -> Bounds<Canvas> {
-        self.update.alloc_canvas(size, &mut self.cursor)
+    pub fn allocate_rect(&mut self, size: Size) -> ResponseValue<Bounds<Canvas>> {
+        let pos = self.update.alloc_canvas(size, &mut self.cursor);
+
+        self.alloc_response(pos)
     }
     
     #[inline]
-    pub fn allocate_page(&mut self, size: Size) -> Bounds<Canvas> {
-        self.update.alloc_page(size, &mut self.cursor)
+    pub fn allocate_page(&mut self, size: Size) -> ResponseValue<Bounds<Canvas>> {
+        let pos = self.update.alloc_page(size, &mut self.cursor);
+
+        self.alloc_response(pos)
+    }
+
+    pub fn alloc_response(&mut self, pos: Bounds<Canvas>) -> ResponseValue<Bounds<Canvas>> {
+        let id = self.id.with(self.next_auto_id_salt);
+        self.next_auto_id_salt = self.next_auto_id_salt.wrapping_add(1);
+
+        let widget = WidgetRect {
+            id,
+            rect: pos,
+        };
+
+        let response = self.context().create_widget(widget);
+
+        ResponseValue::new(pos, response)
     }
 
     #[inline]
@@ -248,11 +261,12 @@ impl<'a> Ui2<'a> {
     }
 
     pub fn draw_size(&mut self, size: Size, draw: &mut dyn Drawable) -> Response {
-        let rect = self.allocate_page(size);
+        let ResponseValue { value, response } = self.allocate_page(size);
         
-        self.renderer().draw_with(rect, Box::new(|ui| draw.draw(ui))).unwrap();
+        // self.renderer().draw_with(value, Box::new(|ui| draw.draw(ui))).unwrap();
+        todo!();
 
-        Response::default()
+        response
     }
 
     pub fn horizontal<R>(&mut self, add_content: impl FnOnce(&mut Ui2) -> R) -> R {
@@ -343,13 +357,19 @@ impl<'a> Ui2<'a> {
     
     #[inline]
     pub fn text_size(&mut self, label: &str, style_text: &TextStyle) -> Size {
-        self.renderer.text_size(label, style_text)
+        let len = label.len();
+        let pt = 3. * style_text.get_size().unwrap_or(10.);
+
+        // TODO:
+        Size(len as f32 * pt, pt)
     }
-    
+
+    /*
     #[inline]
     pub fn input(&self) -> &Input {
         self.renderer.input()
     }
+    */
 }
 
 #[derive(Default)]
@@ -472,8 +492,8 @@ pub trait Widget2 {
 }
 
 pub struct ResponseValue<T> {
-    value: T,
-    response: Response,
+    pub value: T,
+    pub response: Response,
 }
 
 impl<T> ResponseValue<T> {
@@ -490,13 +510,5 @@ impl<T> ResponseValue<T> {
 
     pub fn response_mut(&mut self) -> &mut Response {
         &mut self.response
-    }
-}
-
-impl<T> Deref for ResponseValue<T> {
-    type Target = Response;
-
-    fn deref(&self) -> &Self::Target {
-        &self.response
     }
 }

@@ -1,6 +1,4 @@
-use essay_graphics_api::renderer::Renderer;
-
-use crate::ui::{ui2::Ui2, Context, Id, Ui};
+use crate::ui::{ui2::Ui2};
 
 #[must_use="CentralPanel requires .show() call"]
 #[derive(Default)]

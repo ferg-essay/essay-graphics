@@ -1,4 +1,6 @@
-use crate::ui::{context, ui::Response, ui2::{Ui2, Widget2}, Ui};
+use essay_graphics_api::renderer::Renderer;
+
+use crate::ui::{context, ui::Response, ui2::{ResponseValue, Ui2, Widget2}, Ui};
 
 use super::ui::Widget;
 
@@ -56,16 +58,23 @@ impl Widget2 for Label2 {
         let style = ui.style().label.clone();
         let style_text = ui.style().label_text.clone();
         let size = ui.text_size(&self.label, &style_text);
-        let pos = ui.allocate_rect(size);
+        let ResponseValue { 
+            value, 
+            response
+        } = ui.allocate_rect(size);
 
-        ui.renderer().draw_text(
-            pos.p0(), 
-            &self.label, 
-            0., 
-            &style,
-            &style_text
-        ).unwrap();
+        let label = String::from(&self.label);
 
-        context::Response::default()
+        ui.painter_mut().add(move |ui: &mut dyn Renderer| {
+            ui.draw_text(
+                value.p0(), 
+                &label, 
+                0., 
+                &style,
+                &style_text
+            )
+        });
+
+        response
     }
 }

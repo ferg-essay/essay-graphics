@@ -1,6 +1,4 @@
-use std::sync::Arc;
-
-use essay_graphics_api::renderer::{self, Drawable, Renderer, Result};
+use essay_graphics_api::renderer::{self, Drawable, Renderer};
 
 use crate::ui::Context;
 
