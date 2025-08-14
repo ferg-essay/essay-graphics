@@ -18,7 +18,7 @@ mod text;
 
 pub use affine2d::Affine2d;
 
-pub use bounds::{Bounds, Coord};
+pub use bounds::{Bounds, Coord, Margin};
 
 pub use clip::Clip;
 

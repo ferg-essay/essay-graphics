@@ -160,42 +160,7 @@ impl<'window> MainLoopData<'window> {
         frame.present();
     }
 }
-/*
-impl MainLoopHandle for MainLoopData<'_> {
-    fn set_scale_factor(&mut self, scale_factor: f32) {
-        self.canvas.set_scale_factor(scale_factor);
-    }
 
-    fn input_mut(&mut self) -> &mut Input {
-        self.canvas.input_mut()
-    }
-
-    fn resized(&mut self, width: u32, height: u32) {
-        self.config.width = width;
-        self.config.height = height;
-        self.surface.configure(&self.device, &self.config);
-        // self.canvas.set_scale_factor(self.window.scale_factor() as f32);
-        self.canvas.resize(&self.device, width, height);
-        // canvas.set_scale_factor()
-        self.canvas.request_redraw(true);
-    }
-
-    fn request_redraw(&mut self) {
-        self.canvas.request_redraw(true);
-    }
-
-    fn about_to_wait(&mut self) -> renderer::Result<()> {
-        if self.canvas.is_request_redraw() {
-            self.canvas.request_redraw(false);
-
-            self.main_render();
-            self.input_mut().update_after_draw();
-        }
-
-        Ok(())
-    }
-}
-*/
 impl MainLoopHandle for MainLoopData<'_> {
     fn request_redraw(&mut self) {
         self.window.request_redraw();

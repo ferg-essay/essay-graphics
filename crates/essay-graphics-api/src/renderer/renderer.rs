@@ -1,3 +1,5 @@
+use std::ops;
+
 use essay_tensor::tensor::Tensor;
 
 use crate::{
@@ -9,6 +11,24 @@ use crate::{
 };
 
 use super::{Canvas, RenderErr, Result};
+
+pub struct Painter<'a>(pub &'a mut dyn Renderer);
+
+impl<'a> ops::Deref for Painter<'a> {
+    type Target = &'a mut dyn Renderer;
+
+    #[inline]
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl<'a> ops::DerefMut for Painter<'a> {
+    #[inline]
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
 
 pub trait Renderer {
     ///

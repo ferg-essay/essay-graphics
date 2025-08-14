@@ -1,6 +1,6 @@
 use essay_graphics_api::{Point, Size};
 
-use crate::ui::{context::Response, ui2::{ResponseValue, Ui2, UiBuilder}, Context, Id};
+use crate::ui::{context::Response, frame::Frame, ui2::{ResponseValue, Ui2, UiBuilder}, Context, Id};
 
 pub struct Popup {
     id: Id,
@@ -33,6 +33,15 @@ impl Popup {
         let builder = UiBuilder::default()
             .max_bounds(([self.pos.x(), self.pos.y() - 100.], [400., 100.]));
 
-        Ui2::top(&self.ctx, self.id, builder, add_content)
+        let frame = Frame::group();
+
+        Ui2::top(&self.ctx, self.id, builder, |ui| {
+            let ResponseValue {
+                value,
+                response
+            } = frame.show(ui, add_content);
+
+            value
+        })
     }
 }

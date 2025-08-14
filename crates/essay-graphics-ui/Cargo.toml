@@ -15,6 +15,7 @@ essay-graphics-wgpu = { path = "../essay-graphics-wgpu" }
 essay-tensor = { path = "../../../essay-tensor" }
 # essay-graphics-ui-macros = { path = "macros" }
 nohash-hasher = "0.2"
+swash = "0.1"
 
 [lib]
 doctest = false

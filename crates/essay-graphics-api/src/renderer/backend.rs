@@ -1,0 +1,22 @@
+use crate::{renderer, renderer::Drawable};
+
+pub trait Backend {
+    fn context(&self) -> Box<dyn GraphicsContext>;
+
+    fn main_loop(&mut self, drawable: Box<dyn Drawable>) -> renderer::Result<()>;
+}
+
+pub trait GraphicsContext: Send + Sync {
+    fn default_font_set(&self) -> Box<dyn FontSetMetrics>;
+}
+
+pub trait FontSetMetrics: Send + Sync {
+    fn glyph_size(&mut self, size: f32, glyph: char) -> GlyphSize;
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct GlyphSize {
+    pub width: f32,
+    pub height: f32,
+    // TODO: descend
+}

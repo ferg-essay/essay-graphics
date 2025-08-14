@@ -1,5 +1,5 @@
 use core::hash;
-use std::{ops::Deref, sync::Arc};
+use std::{ops::{self, Deref}, sync::Arc};
 
 use essay_graphics_api::{
     input::Input, 
@@ -82,11 +82,11 @@ impl Ui2 {
         ResponseValue::new(result, response)
     }
     
-    fn child<R>(
+    pub fn child<R>(
         &mut self,
         builder: UiBuilder,
         add_content: impl FnOnce(&mut Ui2) -> R
-    ) -> R {
+    ) -> ResponseValue<R> {
         let UiBuilder {
             id_salt,
             max_bounds,
@@ -134,9 +134,9 @@ impl Ui2 {
 
         self.cursor.merge_child(&child.cursor);
 
-        child.end();
+        let response = child.end();
 
-        result
+        ResponseValue::new(result, response)
     }
 
     fn end(&mut self) -> Response {
@@ -200,6 +200,10 @@ impl Ui2 {
     #[inline]
     pub fn painter_mut(&mut self) -> &mut Painter {
         &mut self.painter
+    }
+
+    pub fn available_bounds(&self) -> Bounds<Canvas> {
+        self.cursor.available_bounds()
     }
 
     #[inline]
@@ -269,7 +273,7 @@ impl Ui2 {
         response
     }
 
-    pub fn horizontal<R>(&mut self, add_content: impl FnOnce(&mut Ui2) -> R) -> R {
+    pub fn horizontal<R>(&mut self, add_content: impl FnOnce(&mut Ui2) -> R) -> ResponseValue<R> {
         let pos = self.cursor.canvas_pos;
         let extent = self.cursor.canvas_extent;
 
@@ -289,7 +293,7 @@ impl Ui2 {
         result
     }
 
-    pub fn vertical<R>(&mut self, add_content: impl FnOnce(&mut Ui2) -> R) -> R {
+    pub fn vertical<R>(&mut self, add_content: impl FnOnce(&mut Ui2) -> R) -> ResponseValue<R> {
         let pos = self.cursor.canvas_pos;
         let extent = self.cursor.canvas_extent;
         let bounds = Bounds::<Canvas>::from((
@@ -357,11 +361,28 @@ impl Ui2 {
     
     #[inline]
     pub fn text_size(&mut self, label: &str, style_text: &TextStyle) -> Size {
-        let len = label.len();
-        let pt = 3. * style_text.get_size().unwrap_or(10.);
+        self.context().fonts_mut(|fonts| {
+            let fonts = &mut fonts.default_font_set;
+
+            let mut width = 0.;
+            let mut height = 0.;
+
+            let size = style_text.get_size().unwrap_or(10.);
+            let size = 4. / 3. * 2. * size; // ppt
+
+            for ch in label.chars() {
+                let rect = fonts.glyph_size(size, ch);
+
+                width += rect.width;
+                height = rect.height.max(height);
+            }
+
+            Size(width, height)
+        })
+        // let len = label.len();
+        // let pt = style_text.get_size().unwrap_or(10.);
 
         // TODO:
-        Size(len as f32 * pt, pt)
     }
 
     /*
@@ -509,6 +530,20 @@ impl<T> ResponseValue<T> {
     }
 
     pub fn response_mut(&mut self) -> &mut Response {
+        &mut self.response
+    }
+}
+
+impl<T> ops::Deref for ResponseValue<T> {
+    type Target = Response;
+
+    fn deref(&self) -> &Self::Target {
+        &self.response
+    }
+}
+
+impl<T> ops::DerefMut for ResponseValue<T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.response
     }
 }

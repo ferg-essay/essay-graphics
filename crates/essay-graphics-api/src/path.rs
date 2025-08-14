@@ -189,6 +189,17 @@ impl<M: Coord> Path<M> {
     pub fn move_to(x: f32, y: f32) -> PathBuilder<M> {
         PathBuilder::new().move_to(x, y)
     }
+
+    pub fn rect(bounds: impl Into<Bounds<M>>) -> Self {
+        let bounds = bounds.into();
+
+        Self::move_to(bounds.x0(), bounds.y0())
+            .line_to(bounds.x0(), bounds.y1())
+            .line_to(bounds.x1(), bounds.y1())
+            .line_to(bounds.x1(), bounds.y0())
+            .close_poly(bounds.x0(), bounds.y0())
+            .to_path()
+    }
 }
 
 impl<M: Coord> Clone for Path<M> {

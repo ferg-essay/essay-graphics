@@ -85,6 +85,13 @@ impl Cursor {
             self.canvas_pos.y() - self.canvas_extent.ymin()
         )
     }
+
+    pub(crate) fn available_bounds(&self) -> Bounds<Canvas> {
+        Bounds::new(
+            Point(self.canvas_pos.x(), self.canvas_extent.ymin()),
+            Point(self.canvas_extent.xmax(), self.canvas_pos.y()),
+        )
+    }
 }
 
 #[derive(Clone, Copy)]
@@ -94,6 +101,25 @@ pub enum CursorUpdate {
 }
 
 impl CursorUpdate {
+    pub fn alloc_pos(&self, pos: Bounds<Canvas>, cursor: &mut Cursor) -> Bounds<Canvas> {
+        match self {
+            CursorUpdate::Vertical => {
+                cursor.canvas_pos = Point(cursor.canvas_pos.x(), pos.ymin());
+                cursor.canvas_allocated = cursor.canvas_allocated.union(&pos);
+                cursor.fixed_allocated = cursor.fixed_allocated.union(&pos);
+
+                pos
+            },
+            CursorUpdate::Horizontal => {
+                cursor.canvas_pos = Point(pos.xmax(), cursor.canvas_pos.y());
+                cursor.canvas_allocated = cursor.canvas_allocated.union(&pos);
+                cursor.fixed_allocated = cursor.fixed_allocated.union(&pos);
+
+                pos
+            }
+        }
+    }
+
     pub fn alloc_canvas(&self, size: Size, cursor: &mut Cursor) -> Bounds<Canvas> {
         match self {
             CursorUpdate::Vertical => {

@@ -2,7 +2,7 @@ use std::ops::{Deref, DerefMut};
 use std::sync::{Arc, RwLock};
 
 use essay_graphics_api::input::Input;
-use essay_graphics_api::renderer::{Canvas, Renderer};
+use essay_graphics_api::renderer::{Canvas, FontSetMetrics, GraphicsContext, Renderer};
 use essay_graphics_api::Bounds;
 
 use crate::ui::cursor::ViewSizeCache;
@@ -18,8 +18,8 @@ use crate::ui::{Id, IdSet};
 pub struct Context(Arc<RwLock<ContextInner>>);
 
 impl Context {
-    pub fn new() -> Self {
-        Self(Arc::new(RwLock::new(ContextInner::default())))
+    pub fn new(graphics_context: Box<dyn GraphicsContext>) -> Self {
+        Self(Arc::new(RwLock::new(ContextInner::new(graphics_context))))
     }
 
     fn read<R>(&self, reader: impl FnOnce(&ContextInner) -> R) -> R {
@@ -40,6 +40,16 @@ impl Context {
     #[inline]
     pub fn viewport_mut<R>(&self, writer: impl FnOnce(&mut Viewport) -> R) -> R {
         self.write(|cxt| (writer)(&mut cxt.viewport))
+    }
+
+    #[inline]
+    pub fn fonts<R>(&self, reader: impl FnOnce(&Fonts) -> R) -> R {
+        self.read(|cxt| (reader)(&cxt.fonts))
+    }
+
+    #[inline]
+    pub fn fonts_mut<R>(&self, writer: impl FnOnce(&mut Fonts) -> R) -> R {
+        self.write(|cxt| (writer)(&mut cxt.fonts))
     }
 
     #[inline]
@@ -89,7 +99,7 @@ impl Context {
         renderer: &mut dyn Renderer, 
         mut draw: impl FnMut(&mut Ui2) -> R + Send
     ) -> ResponseValue<R> {
-        self.run(renderer, move |cxt, _renderer| {
+        self.run(renderer, move |cxt| {
             let id = Id::new("top");
 
             let builder = UiBuilder::default();
@@ -103,7 +113,7 @@ impl Context {
     pub fn run<R>(
         &self, 
         renderer: &mut dyn Renderer, 
-        mut draw: impl FnMut(&Self, &mut dyn Renderer) -> R + Send
+        mut draw: impl FnMut(&Self) -> R + Send
     ) -> R {
         loop {
             let is_resize = self.write(|cxt| {
@@ -117,13 +127,7 @@ impl Context {
 
             self.start_pass(is_resize, renderer.input());
 
-            let result = if is_resize {
-                let mut null_render = NullRenderer(renderer);
-
-                (draw)(self, &mut null_render)
-            } else {
-                (draw)(self, renderer)
-            };
+            let result = (draw)(self);
 
             if ! is_resize {
                 self.graphics_mut(|layers| {
@@ -180,11 +184,30 @@ impl Context {
     }
 }
 
-#[derive(Default)]
 pub(crate) struct ContextInner {
+    graphics_context: Box<dyn GraphicsContext>,
+
+    fonts: Fonts,
+
     viewport: Viewport,
 
     style: Arc<UiStyle>,
+}
+
+impl ContextInner {
+    pub fn new(graphics_context: Box<dyn GraphicsContext>) -> Self {
+        let default_font_set = graphics_context.default_font_set();
+
+        Self {
+            graphics_context,
+            fonts: Fonts {
+                default_font_set,
+            },
+
+            viewport: Viewport::default(),
+            style: Default::default(),
+        }
+    }
 }
 
 #[derive(Default)]
@@ -209,6 +232,10 @@ impl RenderPass {
     pub fn widgets(&self) -> &WidgetRects {
         &self.widgets
     }
+}
+
+pub struct Fonts {
+    pub default_font_set: Box<dyn FontSetMetrics>,
 }
 
 pub struct Response {

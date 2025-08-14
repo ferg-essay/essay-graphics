@@ -1,6 +1,6 @@
-use essay_graphics_api::renderer::{self, Backend, Drawable};
+use essay_graphics_api::renderer::{self, Backend, Drawable, GraphicsContext};
 
-use crate::WgpuMainLoop;
+use crate::{wgpu::context::WgpuGraphicsContext, WgpuMainLoop};
 
 // use super::main_loop::main_loop;
 
@@ -19,6 +19,10 @@ impl WgpuBackend {
 impl Backend for WgpuBackend {
     fn main_loop(&mut self, figure: Box<dyn Drawable>) -> renderer::Result<()> {
         self.main_loop.main_loop(figure)
+    }
+    
+    fn context(&self) -> Box<dyn GraphicsContext> {
+        Box::new(WgpuGraphicsContext::new())
     }
     /*
     fn renderer(&mut self) -> &dyn Renderer {

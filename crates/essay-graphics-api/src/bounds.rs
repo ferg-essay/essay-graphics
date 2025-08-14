@@ -1,5 +1,5 @@
 use core::fmt;
-use std::{marker::PhantomData, any::type_name};
+use std::{any::type_name, marker::PhantomData, ops};
 
 use essay_tensor::{ten, tensor::Tensor};
 
@@ -571,6 +571,89 @@ impl<M: Coord> From<Bounds<M>> for Tensor {
         value.corners()
     }
 }
+
+#[derive(Clone, Copy, Debug)]
+pub struct Margin {
+    pub left: f32,
+    pub bottom: f32,
+    pub right: f32,
+    pub top: f32
+}
+
+impl Margin {
+    pub fn new(left: f32, bottom: f32, right: f32, top: f32) -> Self {
+        Self {
+            left,
+            bottom,
+            right,
+            top
+        }
+    }
+
+    pub fn from_all(size: f32) -> Self {
+        Self::new(size, size, size, size)
+    }
+
+    pub fn from_pair(width: f32, height: f32) -> Self {
+        Self::new(width, height, width, height)
+    }
+
+    #[inline]
+    pub fn left(&self) -> f32 {
+        self.left
+    }
+
+    #[inline]
+    pub fn bottom(&self) -> f32 {
+        self.bottom
+    }
+
+    #[inline]
+    pub fn right(&self) -> f32 {
+        self.right
+    }
+
+    #[inline]
+    pub fn top(&self) -> f32 {
+        self.top
+    }
+}
+
+impl ops::Add<Margin> for Margin {
+    type Output = Margin;
+
+    fn add(self, rhs: Margin) -> Self::Output {
+        Margin {
+            left: self.left + rhs.left,
+            bottom: self.bottom + rhs.bottom,
+            right: self.right + rhs.right,
+            top: self.top + rhs.top,
+        }
+    }
+}
+
+impl<T: Coord> ops::Add<Margin> for Bounds<T> {
+    type Output = Bounds<T>;
+
+    fn add(self, rhs: Margin) -> Self::Output {
+        Bounds::new(
+            Point(self.x0() - rhs.left, self.y0() - rhs.bottom),
+            Point(self.x1() + rhs.right, self.y1() + rhs.top),
+        )
+    }
+}
+
+impl<T: Coord> ops::Sub<Margin> for Bounds<T> {
+    type Output = Bounds<T>;
+
+    fn sub(self, rhs: Margin) -> Self::Output {
+        Bounds::new(
+            Point(self.x0() + rhs.left, self.y0() + rhs.bottom),
+            Point(self.x1() - rhs.right, self.y1() - rhs.top),
+        )
+    }
+}
+
 
 ///
 /// The coordinate for bounds

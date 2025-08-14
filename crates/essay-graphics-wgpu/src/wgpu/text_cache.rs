@@ -112,7 +112,6 @@ impl TextCache {
         let descent = (metrics.descent) as i32;
 
         let glyph_metrics = font.as_ref().glyph_metrics(&[]).scale(size);
-
         self.is_modified = true;
 
         GlyphRect {

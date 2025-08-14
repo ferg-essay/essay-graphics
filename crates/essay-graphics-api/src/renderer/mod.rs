@@ -1,12 +1,13 @@
+mod viewport;
 mod error;
-mod main_loop;
+mod backend;
 mod canvas;
 mod drawable;
 mod renderer;
 
-pub use main_loop::Backend;
+pub use backend::{Backend, GraphicsContext, FontSetMetrics, GlyphSize};
 
-pub use canvas::Canvas;
+pub use canvas::{Canvas, Pos};
 
 pub use drawable::Drawable;
 

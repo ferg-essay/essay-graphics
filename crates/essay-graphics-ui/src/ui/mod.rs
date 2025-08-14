@@ -1,4 +1,7 @@
+mod font;
+mod frame;
 mod popup;
+mod main_loop;
 mod tooltip;
 mod panel;
 mod widget;
@@ -18,8 +21,10 @@ mod ui_view;
 
 pub use context::{Context};
 pub use id::{Id, IdSet, IdMap};
+pub use font::{Font, FontCache};
 pub use layers::{Painter, PaintList};
 pub use panel::{CentralPanel};
 pub use tabs::Tabs;
 pub use ui::{Ui, UiSize, OnceView};
 pub use ui_view::{UiView, UiTop};
+pub use main_loop::{MainLoop};
