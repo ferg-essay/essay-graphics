@@ -267,6 +267,9 @@ impl Response {
 
         &self
     }
+    
+    pub fn onclick(&self, _there: impl FnMut()) {
+    }
 }
 
 #[derive(Default)]

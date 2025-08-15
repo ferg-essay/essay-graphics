@@ -8,7 +8,7 @@ use essay_graphics_api::{
 };
 
 use crate::ui::{
-    button::Button, context::Response, label::{Label, Label2}, style::UiStyle, widget::WidgetRect, Context, Id, Painter
+    button::{Button, Button2}, context::Response, label::{Label, Label2}, style::UiStyle, widget::WidgetRect, Context, Id, Painter
 };
 
 use super::cursor::{Cursor, CursorUpdate, ViewSizeCache};
@@ -251,24 +251,23 @@ impl Ui2 {
         self.add(label)
     }
 
-    /*
     #[inline]
     pub fn button(&mut self, label: &str, press: bool) -> Response {
-        let button = Button::new(label, press);
+        let button = Button2::new(label, press);
 
         self.add(button)
     }
-    */
 
-    pub fn view<'b, T: Drawable>(&mut self, draw: &'b mut T) -> Response {
+    pub fn view(&mut self, draw: impl Drawable + 'static) -> Response {
         self.draw_size(Size(1., 1.), draw)
     }
 
-    pub fn draw_size(&mut self, size: Size, draw: &mut dyn Drawable) -> Response {
-        let ResponseValue { value, response } = self.allocate_page(size);
+    pub fn draw_size(&mut self, size: Size, draw: impl Drawable + 'static) -> Response {
+        let ResponseValue { response, .. } = self.allocate_page(size);
         
+        self.painter_mut().add(draw);
         // self.renderer().draw_with(value, Box::new(|ui| draw.draw(ui))).unwrap();
-        todo!();
+        //todo!();
 
         response
     }
