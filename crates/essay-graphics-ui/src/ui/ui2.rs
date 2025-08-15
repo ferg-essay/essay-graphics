@@ -8,7 +8,7 @@ use essay_graphics_api::{
 };
 
 use crate::ui::{
-    button::{Button}, context::Response, label::{Label}, style::UiStyle, widget::WidgetRect, Context, Id, Painter
+    button::{Button}, Response, label::{Label}, style::UiStyle, widget::WidgetRect, Context, Id, Painter
 };
 
 use super::cursor::{Cursor, CursorUpdate, ViewSizeCache};
@@ -402,12 +402,10 @@ impl Ui {
         // TODO:
     }
 
-    /*
     #[inline]
-    pub fn input(&self) -> &Input {
-        self.renderer.input()
+    pub fn input<R>(&self, reader: impl FnOnce(&Input) -> R) -> R {
+        self.context().input(reader)
     }
-    */
 }
 
 #[derive(Default)]

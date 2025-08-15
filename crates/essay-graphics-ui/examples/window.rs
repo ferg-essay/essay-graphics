@@ -5,8 +5,8 @@ fn main() {
     let mut there = false;
 
     let view = UiView::new(move |ui| {
-        ui.button("hello", hello).onclick(|| { hello=!hello; });
-        ui.button("there", there).onclick(|| { there=!there; });
+        if ui.button("hello", hello).clicked() { hello=!hello; }
+        if ui.button("there", there).clicked(){ there=!there; }
         ui.horizontal(|ui| {
             ui.label("gab");
 

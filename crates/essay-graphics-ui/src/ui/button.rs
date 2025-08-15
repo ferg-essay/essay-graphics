@@ -1,6 +1,6 @@
 use essay_graphics_api::{renderer::{Canvas, Renderer}, Path, Point, Size};
 
-use crate::ui::{context, Ui, Widget, ResponseValue};
+use crate::ui::{context, Response, ResponseValue, Ui, Widget};
 
 use super::{style::State};
 
@@ -80,7 +80,7 @@ impl Button {
 }
 
 impl Widget for Button {
-    fn ui(&mut self, ui: &mut Ui) -> context::Response {
+    fn ui(&mut self, ui: &mut Ui) -> Response {
         let button_text = ui.style().button_text.clone();
         let size = ui.text_size(&self.label, &button_text);
 
@@ -100,26 +100,27 @@ impl Widget for Button {
 
         let background = Path::<Canvas>::from(bounds);
 
-        /*
-        let press_one = ui.input().left.click && ui.input().cursor_in(&bounds);
+        //let press_one = ui.input().left.click && ui.input().cursor_in(&bounds);
 
-        let state = if ui.input().cursor
-            .map_or(false, |p| bounds.contains(p)) {
-            State::Hover
-        } else if self.press ^ press_one { 
-            State::Active
-        } else {
-            State::Inactive
-        };
-        */
-        let state = State::Inactive;
+        let press_one = response.clicked();
+
+        let state = ui.input(|input| {
+            if input.cursor
+                .map_or(false, |p| bounds.contains(p)) {
+                State::Hover
+            } else if self.press ^ press_one { 
+                State::Active
+            } else {
+                State::Inactive
+            }
+        });
 
         style.edge_color(ui.style()[state].edge);
         style.color(ui.style()[state].background);
 
         let label = self.label.clone();
 
-        let text_color = if false { // if self.press ^ press_one { 
+        let text_color = if self.press ^ press_one { 
             ui.style()[State::Active].foreground
         } else {
             ui.style()[State::Inactive].foreground

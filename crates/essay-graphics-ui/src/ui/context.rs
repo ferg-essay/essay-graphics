@@ -1,18 +1,20 @@
 use std::ops::{Deref, DerefMut};
 use std::sync::{Arc, RwLock};
+use std::time::Instant;
 
 use essay_graphics_api::input::Input;
 use essay_graphics_api::renderer::{Canvas, FontSetMetrics, GraphicsContext, Renderer};
-use essay_graphics_api::Bounds;
+use essay_graphics_api::{Bounds, Point};
 
 use crate::ui::cursor::ViewSizeCache;
 use crate::ui::layers::GraphicsLayers;
 use crate::ui::null_render::NullRenderer;
+use crate::ui::response::Flags;
 use crate::ui::style::UiStyle;
 use crate::ui::tooltip::Tooltip;
 use crate::ui::ui2::{ResponseValue, Ui, UiBuilder};
 use crate::ui::widget::{WidgetRect, WidgetRects};
-use crate::ui::{Id, IdSet};
+use crate::ui::{Id, IdSet, Response};
 
 #[derive(Clone)]
 pub struct Context(Arc<RwLock<ContextInner>>);
@@ -40,6 +42,11 @@ impl Context {
     #[inline]
     pub fn viewport_mut<R>(&self, writer: impl FnOnce(&mut Viewport) -> R) -> R {
         self.write(|cxt| (writer)(&mut cxt.viewport))
+    }
+
+    #[inline]
+    pub fn input<R>(&self, reader: impl FnOnce(&Input) -> R) -> R {
+        self.read(|cxt| (reader)(&cxt.viewport.input))
     }
 
     #[inline]
@@ -91,6 +98,10 @@ impl Context {
     pub fn screen_pos(&self) -> Bounds<Canvas> {
         self.viewport(|viewport| viewport.screen_pos)
     }
+    
+    pub fn request_redraw_when(&self, duration: f32) {
+        
+    }
 }
 
 impl Context {
@@ -140,21 +151,32 @@ impl Context {
     }
 
     fn start_pass(&self, _is_resize: bool, input: &Input) {
-        self.write(|cxt| {
+        self.write(|ctx| {
             let mut pass = RenderPass::default();
-            std::mem::swap(&mut cxt.viewport.pass, &mut pass);
-            std::mem::swap(&mut cxt.viewport.last_pass, &mut pass);
+            std::mem::swap(&mut ctx.viewport.pass, &mut pass);
+            std::mem::swap(&mut ctx.viewport.last_pass, &mut pass);
 
-            cxt.viewport.hover.clear();
+            ctx.viewport.input = input.clone(); // TODO: transfer input
+            ctx.viewport.interact.clicked = None;
+            ctx.viewport.hover.clear();
 
             if let Some(point) = input.cursor {
+                if ctx.viewport.interact.cursor != input.cursor {
+                    ctx.viewport.interact.last_cursor_move = Instant::now();
+                }
 
-                for widget in cxt.viewport.last_pass.widgets.iter() {
+                for widget in ctx.viewport.last_pass.widgets.iter() {
                     if widget.rect.contains(point) {
-                        cxt.viewport.hover.insert(widget.id);
+                        ctx.viewport.hover.insert(widget.id);
+
+                        if input.left.click {
+                            ctx.viewport.interact.clicked = Some(widget.id);
+                        }
                     }
                 }
             }
+
+            ctx.viewport.interact.cursor = input.cursor;
         });
     }
 
@@ -172,11 +194,19 @@ impl Context {
             id: widget.id,
             ctx: self.clone(),
             is_hover: false,
+            flags: Flags::empty(),
         };
 
         self.read(|cxt| {
-            if cxt.viewport.hover.contains(widget.id) {
+            let id = widget.id;
+
+            if cxt.viewport.hover.contains(id) {
                 response.is_hover = true;
+                response.flags.set(Flags::HOVERED, true);
+            }
+
+            if cxt.viewport.interact.clicked == Some(id) {
+                response.flags.set(Flags::CLICKED, true);
             }
         });
 
@@ -218,7 +248,36 @@ pub struct Viewport {
     screen_pos: Bounds<Canvas>,
     
     layers: GraphicsLayers,
+
+    input: Input,
+    pub interact: Interact,
     hover: WidgetHover,
+}
+
+pub struct Interact {
+    cursor: Option<Point>,
+    
+    clicked: Option<Id>,
+
+    last_cursor_move: Instant,
+}
+
+impl Interact {
+    pub fn since_cursor_move(&self) -> f32 {
+        Instant::now()
+            .duration_since(self.last_cursor_move)
+            .as_secs_f32()
+    }
+}
+
+impl Default for Interact {
+    fn default() -> Self {
+        Self { 
+            cursor: Default::default(), 
+            clicked: Default::default(), 
+            last_cursor_move: Instant::now(),
+        }
+    }
 }
 
 #[derive(Default)]
@@ -238,39 +297,6 @@ pub struct Fonts {
     pub default_font_set: Box<dyn FontSetMetrics>,
 }
 
-pub struct Response {
-    pub id: Id,
-    pub ctx: Context,
-    is_hover: bool,
-}
-
-impl Response {
-    #[inline]
-    pub fn id(&self) -> Id {
-        self.id
-    }
-
-    #[inline]
-    pub fn context(&self) -> &Context {
-        &self.ctx
-    }
-
-    #[inline]
-    pub fn is_hover(&self) -> bool {
-        self.is_hover
-    }
-
-    pub fn on_hover_ui(&self, add_contents: impl FnOnce(&mut Ui)) -> &Self {
-        if self.is_hover() {
-            Tooltip::for_enabled(&self).show(add_contents);
-        }
-
-        &self
-    }
-    
-    pub fn onclick(&self, _there: impl FnMut()) {
-    }
-}
 
 #[derive(Default)]
 struct WidgetHover {

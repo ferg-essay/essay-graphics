@@ -1,3 +1,5 @@
+use std::sync::{Arc, Mutex};
+
 use essay_graphics_api::{
     renderer::{Canvas, Drawable, Renderer, Result}, 
     Bounds, Coord, Size
@@ -170,7 +172,8 @@ impl PageBuilder {
 }
 
 pub struct Page2 {
-    ui_view: UiView,
+    // ui_view: UiView,
+    children: Vec<Box<dyn PageDraw>>,
 }
 
 impl Page2 {
@@ -186,7 +189,7 @@ impl Page2 {
         (f)(&mut builder);
 
         let mut items = builder.children;
-
+        /*
         Self {
             ui_view: UiView::new(move |ui| {
                 for item in &mut items {
@@ -194,12 +197,24 @@ impl Page2 {
                 }
             }),
         }
+        */
+
+        Self {
+            children: items
+        }
+    }
+
+    pub fn draw_ui(&mut self, ui: &mut Ui) {
+        for item in &mut self.children {
+            item.draw(ui);
+        }
     }
 }
 
 impl Drawable for Page2 {
     fn draw(&mut self, ui: &mut dyn Renderer) -> Result<()> {
-        self.ui_view.draw(ui)
+        //self.ui_view.draw(ui)
+        todo!();
     }
 }
 
@@ -227,7 +242,7 @@ impl PageBuilder2 {
     ) {
         self.children.push(Box::new(PageDrawable {
             size: size.into(),
-            draw: Box::new(view),
+            draw: Arc::new(Mutex::new(Box::new(view))),
         }));
     }
 
@@ -430,13 +445,16 @@ trait PageDraw : Send + Sync + 'static {
 
 struct PageDrawable {
     size: Size,
-    draw: Box<dyn Drawable + Send>,
+    draw: Arc<Mutex<Box<dyn Drawable + Send>>>,
 }
 
 impl PageDraw for PageDrawable {
     fn draw(&mut self, ui: &mut Ui) {
-        // ui.draw_size(self.size, &mut self.draw);
-        todo!();
+        let draw = self.draw.clone();
+        
+        ui.draw_size(self.size, move |ui: &mut dyn Renderer| {
+            (draw.lock().unwrap()).draw(ui)
+        });
     }
 }
 

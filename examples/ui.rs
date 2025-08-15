@@ -9,9 +9,9 @@ fn main() {
     let mut there = false;
 
     MainLoop::new().show(move |ctx| {
-        CentralPanel::new().show(ctx, move |ui: &mut Ui| {
-            ui.button("hello", hello).onclick(|| { hello=!hello; });
-            ui.button("there", there).onclick(|| { there=!there; });
+        CentralPanel::new().show(ctx, |ui: &mut Ui| {
+            if ui.button("hello", hello).clicked() { hello=!hello; }
+            if ui.button("there", there).clicked() { there=!there; }
             ui.horizontal(|ui| {
                 ui.label("gab");
 

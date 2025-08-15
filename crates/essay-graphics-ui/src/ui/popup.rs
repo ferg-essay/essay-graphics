@@ -1,11 +1,13 @@
 use essay_graphics_api::{Point, Size};
 
-use crate::ui::{context::Response, frame::Frame, ui2::{ResponseValue, Ui, UiBuilder}, Context, Id};
+use crate::ui::{Response, frame::Frame, ui2::{ResponseValue, Ui, UiBuilder}, Context, Id};
 
 pub struct Popup {
     id: Id,
     ctx: Context,
     pos: Point,
+
+    is_enabled: bool,
 }
 
 impl Popup {
@@ -14,6 +16,7 @@ impl Popup {
             id,
             ctx: ctx.clone(),
             pos: pos.into(),
+            is_enabled: true,
         }
     }
 
@@ -29,19 +32,28 @@ impl Popup {
         )
     }
 
-    pub fn show<R>(&self, add_content: impl FnOnce(&mut Ui) -> R) -> ResponseValue<R> {
+    pub fn open(mut self, is_enabled: bool) -> Self {
+        self.is_enabled = is_enabled;
+        self
+    }
+
+    pub fn show<R>(self, add_content: impl FnOnce(&mut Ui) -> R) -> Option<ResponseValue<R>> {
+        if ! self.is_enabled {
+            return None;
+        }
+
         let builder = UiBuilder::default()
             .max_bounds(([self.pos.x(), self.pos.y() - 100.], [400., 100.]));
 
         let frame = Frame::group();
 
-        Ui::top(&self.ctx, self.id, builder, |ui| {
+        Some(Ui::top(&self.ctx, self.id, builder, |ui| {
             let ResponseValue {
                 value,
                 response
             } = frame.show(ui, add_content);
 
             value
-        })
+        }))
     }
 }

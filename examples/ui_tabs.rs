@@ -15,14 +15,14 @@ fn main() {
                         ui.label("Option A");
                     });
                     ui.horizontal_view(UiSize::Page(1., 1.), |ui| {
-                        ui.button("hello", hello).onclick(|| { hello=!hello; });
+                        if ui.button("hello", hello).clicked() { hello=!hello; }
                     });
                     ui.horizontal_view(UiSize::Page(1., 1.), |ui| {
                         ui.label("more");
                     });
                 });
                 ui.horizontal_view(UiSize::Page(1., 1.), |ui| {
-                    ui.button("there", there).onclick(|| { there=!there; });
+                    if ui.button("there", there).clicked() { there=!there; }
                 });
             });
 
@@ -32,7 +32,7 @@ fn main() {
                         ui.label("Option B");
                     });
                     ui.vertical_view(UiSize::Page(1., 1.), |ui| {
-                        ui.button("Button B", button_b).onclick(|| { button_b=!button_b; });
+                        if ui.button("Button B", button_b).clicked() { button_b=!button_b; }
                     });
                     ui.vertical_view(UiSize::Page(1., 1.), |ui| {
                         ui.label("more");
