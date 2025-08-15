@@ -8,12 +8,12 @@ use essay_graphics_api::{
 };
 
 use crate::ui::{
-    button::{Button, Button2}, context::Response, label::{Label, Label2}, style::UiStyle, widget::WidgetRect, Context, Id, Painter
+    button::{Button}, context::Response, label::{Label}, style::UiStyle, widget::WidgetRect, Context, Id, Painter
 };
 
 use super::cursor::{Cursor, CursorUpdate, ViewSizeCache};
 
-pub struct Ui2 {
+pub struct Ui {
     id: Id,
     unique_id: Id,
     next_auto_id_salt: u64,
@@ -28,7 +28,7 @@ pub struct Ui2 {
     cache_index: usize,
 }
 
-impl Ui2 {
+impl Ui {
     #[inline]
     pub fn style(&self) -> &UiStyle {
         &self.style
@@ -38,7 +38,7 @@ impl Ui2 {
         cxt: &Context,
         id: Id,
         builder: UiBuilder,
-        add_content: impl FnOnce(&mut Ui2) -> R
+        add_content: impl FnOnce(&mut Ui) -> R
     ) -> ResponseValue<R> {
         let UiBuilder {
             max_bounds,
@@ -53,7 +53,7 @@ impl Ui2 {
 
         let cursor = Cursor::new(pos, page);
         
-        let mut ui = Ui2 {
+        let mut ui = Ui {
             id,
             unique_id: id,
             next_auto_id_salt: id.with("auto").value(),
@@ -85,7 +85,7 @@ impl Ui2 {
     pub fn child<R>(
         &mut self,
         builder: UiBuilder,
-        add_content: impl FnOnce(&mut Ui2) -> R
+        add_content: impl FnOnce(&mut Ui) -> R
     ) -> ResponseValue<R> {
         let UiBuilder {
             id_salt,
@@ -117,7 +117,7 @@ impl Ui2 {
             rect: bounds,
         });
 
-        let mut child = Ui2 {
+        let mut child = Ui {
             id: stable_id,
             unique_id,
             next_auto_id_salt,
@@ -153,7 +153,7 @@ impl Ui2 {
         &mut self,
         bounds: Bounds<Canvas>, 
         update: CursorUpdate,
-        add_content: impl FnOnce(&mut Ui2) -> R
+        add_content: impl FnOnce(&mut Ui) -> R
     ) -> R {
         todo!();
         /*
@@ -240,20 +240,20 @@ impl Ui2 {
     }
 
     #[inline]
-    pub fn add(&mut self, mut widget: impl Widget2) -> Response {
+    pub fn add(&mut self, mut widget: impl Widget) -> Response {
         widget.ui(self)
     }
 
     #[inline]
     pub fn label(&mut self, label: &str) -> Response {
-        let label = Label2::new(label);
+        let label = Label::new(label);
 
         self.add(label)
     }
 
     #[inline]
     pub fn button(&mut self, label: &str, press: bool) -> Response {
-        let button = Button2::new(label, press);
+        let button = Button::new(label, press);
 
         self.add(button)
     }
@@ -272,7 +272,7 @@ impl Ui2 {
         response
     }
 
-    pub fn horizontal<R>(&mut self, add_content: impl FnOnce(&mut Ui2) -> R) -> ResponseValue<R> {
+    pub fn horizontal<R>(&mut self, add_content: impl FnOnce(&mut Ui) -> R) -> ResponseValue<R> {
         let pos = self.cursor.canvas_pos;
         let extent = self.cursor.canvas_extent;
 
@@ -292,7 +292,7 @@ impl Ui2 {
         result
     }
 
-    pub fn vertical<R>(&mut self, add_content: impl FnOnce(&mut Ui2) -> R) -> ResponseValue<R> {
+    pub fn vertical<R>(&mut self, add_content: impl FnOnce(&mut Ui) -> R) -> ResponseValue<R> {
         let pos = self.cursor.canvas_pos;
         let extent = self.cursor.canvas_extent;
         let bounds = Bounds::<Canvas>::from((
@@ -315,8 +315,8 @@ impl Ui2 {
     pub fn horizontal_view<R>(
         &mut self, 
         size: UiSize, 
-        add_content: impl FnOnce(&mut Ui2) -> R
-    ) -> R {
+        add_content: impl FnOnce(&mut Ui) -> R
+    ) -> ResponseValue<R> {
         let bounds = match size {
             UiSize::Canvas(width, height) => {
                 self.update.alloc_canvas(
@@ -332,14 +332,23 @@ impl Ui2 {
             }
         };
 
-        self.child_view(bounds, CursorUpdate::Horizontal, add_content)
+        let result = self.child(UiBuilder::default()
+            .max_bounds(bounds)
+            .update(CursorUpdate::Horizontal),
+            add_content
+        );
+
+        self.cursor.canvas_pos = Point(self.cursor.canvas_allocated.xmax(), self.cursor.canvas_pos.y());
+        self.cursor.page_pos = Point(self.cursor.page_allocated.xmax(), self.cursor.page_pos.y());
+
+        result
     }
 
     pub fn vertical_view<R>(
         &mut self, 
         size: UiSize, 
-        add_content: impl FnOnce(&mut Ui2) -> R
-    ) -> R {
+        add_content: impl FnOnce(&mut Ui) -> R
+    ) -> ResponseValue<R> {
         let bounds = match size {
             UiSize::Canvas(width, height) => {
                 self.update.alloc_canvas(
@@ -355,7 +364,16 @@ impl Ui2 {
             }
         };
 
-        self.child_view(bounds, CursorUpdate::Vertical, add_content)
+        let result = self.child(UiBuilder::default()
+            .max_bounds(bounds)
+            .update(CursorUpdate::Vertical),
+            add_content
+        );
+
+        self.cursor.canvas_pos = Point(self.cursor.canvas_allocated.xmax(), self.cursor.canvas_pos.y());
+        self.cursor.page_pos = Point(self.cursor.page_allocated.xmax(), self.cursor.page_pos.y());
+
+        result
     }
     
     #[inline]
@@ -504,10 +522,10 @@ impl<T: Drawable> Drawable for OnceView<T> {
 }
 
 
-pub trait Widget2 {
+pub trait Widget {
     fn ui(
         &mut self, 
-        ui: &mut Ui2,
+        ui: &mut Ui,
     ) -> Response;
 }
 

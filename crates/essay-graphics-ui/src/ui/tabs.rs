@@ -1,6 +1,6 @@
-use essay_graphics_api::{renderer::Canvas, Bounds, HorizAlign, Path, PathStyle, Point, Size};
+use essay_graphics_api::{renderer::{Canvas, Renderer}, Bounds, HorizAlign, Path, PathStyle, Point, Size};
 
-use crate::ui::Ui;
+use crate::ui::{ResponseValue, Ui};
 
 use super::style::State;
 
@@ -42,7 +42,10 @@ impl<T: PartialEq + Clone + Into<String>> Tabs<'_, T> {
                 let text_size = Size(text_size.0 + 2. * margin, text_size.1 + 2. * margin);
 
                 let size = Size(remaining_size.width(), text_size.height());
-                let pos = ui.allocate_rect(size);
+                let ResponseValue {
+                    value: pos,
+                    response
+                 } = ui.allocate_rect(size);
 
                 let tab_width = pos.width() / self.items.len().max(1) as f32;
 
@@ -54,9 +57,9 @@ impl<T: PartialEq + Clone + Into<String>> Tabs<'_, T> {
                         [tab_width, pos.height()]
                     ));
 
-                    if ui.input().left.click && ui.input().cursor_in(&pos) {
-                        selected = Some(item.key.clone());
-                    }
+                    //if ui.input().left.click && ui.input().cursor_in(&pos) {
+                    //    selected = Some(item.key.clone());
+                    //}
 
                     tabs.push(pos);
                 }
@@ -67,57 +70,70 @@ impl<T: PartialEq + Clone + Into<String>> Tabs<'_, T> {
                     let label: String = item.label();
 
                     if is_selected {
+                        let accent = ui.style()[State::Active].accent;
+                        let mut tab_style = tab_style.clone();
                         tab_style.edge_color(ui.style()[State::Active].edge);
                         tab_style.face_color(ui.style()[State::Active].background);
 
-                        let path = Path::move_to(pos.xmin(), pos.ymin())
-                            .line_to(pos.xmin(), pos.ymax())
-                            .to_path();
+                        ui.painter_mut().add(move |ui: &mut dyn Renderer| {
+                            let path = Path::move_to(pos.xmin(), pos.ymin())
+                                .line_to(pos.xmin(), pos.ymax())
+                                .to_path();
 
-                        ui.renderer().draw_path(&path, &tab_style).unwrap();
+                            ui.draw_path(&path, &tab_style).unwrap();
 
-                        let path = Path::move_to(pos.xmax(), pos.ymin())
-                            .line_to(pos.xmax(), pos.ymax())
-                            .to_path();
+                            let path = Path::move_to(pos.xmax(), pos.ymin())
+                                .line_to(pos.xmax(), pos.ymax())
+                                .to_path();
                         
-                        ui.renderer().draw_path(&path, &tab_style).unwrap();
+                            ui.draw_path(&path, &tab_style).unwrap();
 
-                        let path = Path::move_to(pos.xmin(), pos.ymax())
-                            .line_to(pos.xmax(), pos.ymax())
-                            .to_path();
+                            let path = Path::move_to(pos.xmin(), pos.ymax())
+                                .line_to(pos.xmax(), pos.ymax())
+                                .to_path();
                         
-                        tab_style.edge_color(ui.style()[State::Active].accent);
-                        let mut style = tab_style.clone();
-                        style.line_width(3.);
-                        ui.renderer().draw_path(&path, &style).unwrap();
+                            tab_style.edge_color(accent);
+                            tab_style.line_width(3.);
+                            ui.draw_path(&path, &tab_style)
+                        });
 
                         add_content = item.add_content.take();
                         selected = Some(item.key);
-                    } else if ui.input().cursor_in(&pos) {
+                    } else if response.is_hover() {
+                        let mut tab_style = tab_style.clone();
                         tab_style.edge_color(ui.style()[State::Hover].edge);
                         tab_style.face_color(ui.style()[State::Hover].background);
 
-                        let path = Path::from(pos);
-                        ui.renderer().draw_path(&path, &tab_style).unwrap();
+                        ui.painter_mut().add(move |ui: &mut dyn Renderer| {
+                            let path = Path::from(pos);
+                            ui.draw_path(&path, &tab_style)
+                        });
                     } else {
+                        let mut tab_style = tab_style.clone();
                         tab_style.edge_color(ui.style()[State::Inactive].edge);
                         tab_style.face_color(ui.style()[State::Inactive].background);
 
-                        let path = Path::from(pos);
-                        ui.renderer().draw_path(&path, &tab_style).unwrap();
+                        ui.painter_mut().add(move |ui: &mut dyn Renderer| {
+                            let path = Path::from(pos);
+                            ui.draw_path(&path, &tab_style)
+                        });
                     }
             
                     let pos = pos.with_margin(margin);
                     let mut style_text = style_text.clone();
                     style_text.halign(HorizAlign::Center);
+
+                    let style = tab_style.clone();
                     
-                    ui.renderer().draw_text(
-                        Point(pos.xmid(), pos.ymin()),
-                        &label, 
-                        0., 
-                        &style,
-                        &style_text
-                    ).unwrap();
+                    ui.painter_mut().add(move |ui: &mut dyn Renderer| {
+                        ui.draw_text(
+                            Point(pos.xmid(), pos.ymin()),
+                            &label, 
+                            0., 
+                            &style,
+                            &style_text
+                        )
+                    });
                 }
             });
 

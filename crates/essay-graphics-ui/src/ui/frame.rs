@@ -1,6 +1,6 @@
 use essay_graphics_api::{renderer::Renderer, Color, Margin, Path, PathStyle};
 
-use crate::ui::ui2::{ResponseValue, Ui2, UiBuilder};
+use crate::ui::ui2::{ResponseValue, Ui, UiBuilder};
 
 pub struct Frame {
     pub inner_margin: Margin,
@@ -20,7 +20,7 @@ impl Frame {
         self.inner_margin + self.outer_margin
     }
 
-    pub fn show<R>(self, ui: &mut Ui2, add_contents: impl FnOnce(&mut Ui2) -> R) -> ResponseValue<R> {
+    pub fn show<R>(self, ui: &mut Ui, add_contents: impl FnOnce(&mut Ui) -> R) -> ResponseValue<R> {
         let max_bounds = ui.available_bounds() - self.total_margin();
 
         // todo: negative bounds

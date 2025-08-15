@@ -1,9 +1,10 @@
 use essay_graphics_api::{renderer::{Canvas, Renderer}, Path, Point, Size};
 
-use crate::ui::{context, ui::Response, ui2::{ResponseValue, Ui2, Widget2}, Ui};
+use crate::ui::{context, Ui, Widget, ResponseValue};
 
-use super::{style::State, ui::Widget};
+use super::{style::State};
 
+/*
 pub(crate) struct Button {
     label: String,
     press: bool,
@@ -62,13 +63,14 @@ impl Widget for Button {
         Response::default().with_onclick(press_one)
     }
 }
+    */
 
-pub(crate) struct Button2 {
+pub(crate) struct Button {
     label: String,
     press: bool,
 }
 
-impl Button2 {
+impl Button {
     pub(crate) fn new(label: &str, press: bool) -> Self {
         Self {
             label: String::from(label),
@@ -77,8 +79,8 @@ impl Button2 {
     }
 }
 
-impl Widget2 for Button2 {
-    fn ui(&mut self, ui: &mut Ui2) -> context::Response {
+impl Widget for Button {
+    fn ui(&mut self, ui: &mut Ui) -> context::Response {
         let button_text = ui.style().button_text.clone();
         let size = ui.text_size(&self.label, &button_text);
 

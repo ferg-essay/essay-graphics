@@ -1,4 +1,4 @@
-use crate::ui::{ui2::{ResponseValue, Ui2, UiBuilder}, Context, Id};
+use crate::ui::{ui2::{ResponseValue, Ui, UiBuilder}, Context, Id};
 
 #[must_use="CentralPanel requires .show() call"]
 #[derive(Default)]
@@ -11,17 +11,17 @@ impl CentralPanel {
         Self {
         }
     }
-    
+
     pub fn show<'a, R>(
         self,
         ctx: &Context,
-        add_contents: impl FnOnce(&mut Ui2) -> R
+        add_contents: impl FnOnce(&mut Ui) -> R
     ) -> ResponseValue<R> {
         let id = Id::new("center");
 
         let builder = UiBuilder::default();
             
-        Ui2::top(ctx, id, builder, |ui2| {
+        Ui::top(ctx, id, builder, |ui2| {
             (add_contents)(ui2)
         })
     }

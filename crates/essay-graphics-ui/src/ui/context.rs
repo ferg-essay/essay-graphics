@@ -10,7 +10,7 @@ use crate::ui::layers::GraphicsLayers;
 use crate::ui::null_render::NullRenderer;
 use crate::ui::style::UiStyle;
 use crate::ui::tooltip::Tooltip;
-use crate::ui::ui2::{ResponseValue, Ui2, UiBuilder};
+use crate::ui::ui2::{ResponseValue, Ui, UiBuilder};
 use crate::ui::widget::{WidgetRect, WidgetRects};
 use crate::ui::{Id, IdSet};
 
@@ -97,14 +97,14 @@ impl Context {
     pub fn run_ui<R>(
         &self, 
         renderer: &mut dyn Renderer, 
-        mut draw: impl FnMut(&mut Ui2) -> R + Send
+        mut draw: impl FnMut(&mut Ui) -> R + Send
     ) -> ResponseValue<R> {
         self.run(renderer, move |cxt| {
             let id = Id::new("top");
 
             let builder = UiBuilder::default();
             
-            Ui2::top(cxt, id, builder, |ui2| {
+            Ui::top(cxt, id, builder, |ui2| {
                 (draw)(ui2)
             })
         })
@@ -260,7 +260,7 @@ impl Response {
         self.is_hover
     }
 
-    pub fn on_hover_ui(&self, add_contents: impl FnOnce(&mut Ui2)) -> &Self {
+    pub fn on_hover_ui(&self, add_contents: impl FnOnce(&mut Ui)) -> &Self {
         if self.is_hover() {
             Tooltip::for_enabled(&self).show(add_contents);
         }

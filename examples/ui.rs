@@ -1,4 +1,4 @@
-use essay_graphics::ui::ui2::Ui2;
+use essay_graphics::ui::ui2::Ui;
 //use essay_graphics::ui::UiView;
 //use essay_graphics::layout::MainLoop;
 use essay_graphics_ui::ui::{CentralPanel, MainLoop};
@@ -9,7 +9,7 @@ fn main() {
     let mut there = false;
 
     MainLoop::new().show(move |ctx| {
-        CentralPanel::new().show(ctx, move |ui: &mut Ui2| {
+        CentralPanel::new().show(ctx, move |ui: &mut Ui| {
             ui.button("hello", hello).onclick(|| { hello=!hello; });
             ui.button("there", there).onclick(|| { there=!there; });
             ui.horizontal(|ui| {

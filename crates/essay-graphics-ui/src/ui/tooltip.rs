@@ -1,4 +1,4 @@
-use crate::ui::{context::Response, popup::Popup, ui2::Ui2};
+use crate::ui::{context::Response, popup::Popup, ui2::Ui};
 
 pub struct Tooltip {
     popup: Popup,
@@ -11,7 +11,7 @@ impl Tooltip {
         }
     }
     
-    pub fn show(&self, add_content: impl FnOnce(&mut Ui2)) {
+    pub fn show(&self, add_content: impl FnOnce(&mut Ui)) {
         self.popup.show(add_content);
     }
 }

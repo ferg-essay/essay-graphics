@@ -2,7 +2,7 @@ use essay_graphics_api::{renderer::{self, Drawable, Renderer}, Path, PathStyle};
 
 use crate::ui::{null_render::NullRenderer, Ui};
 
-use super::{cursor::ViewSizeCache, style::{State, UiStyle}, ui::draw_top};
+use super::{cursor::ViewSizeCache, style::{State, UiStyle}};
 
 pub struct UiView {
     add_content: Box<dyn FnMut(&mut Ui)->() + Send + Sync>,
@@ -28,6 +28,8 @@ impl Drawable for UiView {
         &mut self, 
         renderer: &mut dyn Renderer
     ) -> renderer::Result<()> {
+        todo!();
+        /*
         let is_new = self.state.is_none();
         let prev_cache = self.state.take().unwrap_or_else(|| {
             ViewSizeCache::new()
@@ -70,6 +72,7 @@ impl Drawable for UiView {
         self.state = Some(next_cache);
 
         Ok(())
+        */
     }
 }
 
@@ -84,6 +87,7 @@ impl UiTop {
         renderer: &mut dyn Renderer, 
         mut add_content: impl FnMut(&mut Ui) -> R
     ) -> R {
+        /*
         let is_new = self.state.is_none();
         let prev_cache = self.state.take().unwrap_or_else(|| {
             ViewSizeCache::new()
@@ -128,6 +132,8 @@ impl UiTop {
         self.state = Some(next_cache);
 
         result
+        */
+        todo!();
     }
 }
 

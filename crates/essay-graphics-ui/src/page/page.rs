@@ -435,7 +435,8 @@ struct PageDrawable {
 
 impl PageDraw for PageDrawable {
     fn draw(&mut self, ui: &mut Ui) {
-        ui.draw_size(self.size, &mut self.draw);
+        // ui.draw_size(self.size, &mut self.draw);
+        todo!();
     }
 }
 

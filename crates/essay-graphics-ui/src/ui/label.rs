@@ -1,9 +1,8 @@
 use essay_graphics_api::renderer::Renderer;
 
-use crate::ui::{context, ui::Response, ui2::{ResponseValue, Ui2, Widget2}, Ui};
+use crate::ui::{context, ResponseValue, Ui, Widget};
 
-use super::ui::Widget;
-
+/*
 pub(crate) struct Label {
     label: String,
 }
@@ -37,12 +36,13 @@ impl Widget for Label {
         Response::default()
     }
 }
+    */
 
-pub(crate) struct Label2 {
+pub(crate) struct Label {
     label: String,
 }
 
-impl Label2 {
+impl Label {
     pub(crate) fn new(label: &str) -> Self {
         Self {
             label: String::from(label),
@@ -50,10 +50,10 @@ impl Label2 {
     }
 }
 
-impl Widget2 for Label2 {
+impl Widget for Label {
     fn ui(
         &mut self, 
-        ui: &mut Ui2, 
+        ui: &mut Ui, 
     ) -> context::Response {
         let style = ui.style().label.clone();
         let style_text = ui.style().label_text.clone();
