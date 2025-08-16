@@ -1,4 +1,5 @@
-use essay_graphics::ui::{CentralPanel, MainLoop, Tabs, UiSize};
+use essay_graphics::ui::{CentralPanel, Tabs, UiSize};
+use essay_graphics_ui::main_loop::MainLoop;
 
 fn main() { 
     let mut hello = false;

@@ -2,8 +2,6 @@ mod bezier_mesh;
 pub mod canvas;
 mod form3d;
 mod hatch;
-mod lines;
-mod triangulate3;
 mod main_loop_wgpu;
 //mod main_loop_winit;
 mod mesh2d;
@@ -23,3 +21,5 @@ pub use main_loop_wgpu::WgpuMainLoop;
 //};
 
 pub use hardcopy::WgpuHardcopy;
+
+//pub(crate) use triangulate3::fill_shape;

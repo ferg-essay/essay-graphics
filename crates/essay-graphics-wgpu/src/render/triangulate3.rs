@@ -2,7 +2,7 @@ use std::ops::{Index, IndexMut};
 
 use essay_graphics_api::{renderer::Canvas, BezierMesh2d, Mesh2d, Path, PathCode, Point};
 
-use crate::wgpu::lines::intersection;
+use crate::render::lines::intersection;
 
 use super::lines::ccw;
 
@@ -503,7 +503,7 @@ impl Index<usize> for Triangle {
 mod test {
     use essay_graphics_api::{renderer::Canvas, Mesh2d, Path, PathCode, Point};
 
-    use crate::wgpu::triangulate3::triangulate3;
+    use crate::render::triangulate3::triangulate3;
 
     #[test]
     fn test_tri() {
