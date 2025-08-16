@@ -2,7 +2,7 @@ use bytemuck_derive::{Pod, Zeroable};
 use essay_graphics_api::{path_style::MeshStyle, Affine2d, BezierMesh2d, Color};
 use wgpu::util::DeviceExt;
 
-use super::render::RenderWgpu;
+use crate::render::render::RenderWgpu;
 
 pub struct BezierMeshRender {
     vertex_stride: usize,

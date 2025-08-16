@@ -1,6 +1,6 @@
 mod context;
 mod bezier_mesh;
-mod canvas;
+pub mod canvas;
 mod form3d;
 mod hatch;
 mod lines;
@@ -9,7 +9,6 @@ mod main_loop_wgpu;
 //mod main_loop_winit;
 mod mesh2d;
 mod mesh2d_color;
-mod render;
 mod text;
 mod text_texture;
 mod text_cache;
@@ -20,8 +19,6 @@ pub mod hardcopy;
 pub use self::wgpu::WgpuBackend;
 
 pub use canvas::PlotCanvas;
-
-pub use render::PlotRenderer;
 
 pub use main_loop_wgpu::WgpuMainLoop;
 

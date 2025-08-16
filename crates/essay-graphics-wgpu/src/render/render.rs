@@ -9,9 +9,9 @@ use essay_graphics_api::{
 use essay_tensor::tensor::Tensor;
 use wgpu::util::StagingBelt;
 
-use super::canvas::PlotCanvas;
+use crate::wgpu::canvas::PlotCanvas;
 
-pub(super) struct RenderWgpu<'a> {
+pub(crate) struct RenderWgpu<'a> {
     pub device: &'a wgpu::Device,
     pub queue: &'a wgpu::Queue,
     pub view: &'a wgpu::TextureView,
@@ -183,7 +183,7 @@ pub(crate) fn render_draw<'a, R>(
     result
 }
 
- pub(super) fn render_draw_inner<'a, R>(
+ pub(crate) fn render_draw_inner<'a, R>(
         canvas: &'a mut PlotCanvas,
         device: &'a wgpu::Device,
         queue: &'a wgpu::Queue,

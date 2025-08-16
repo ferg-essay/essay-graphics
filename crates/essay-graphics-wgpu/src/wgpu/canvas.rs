@@ -11,10 +11,11 @@ use essay_graphics_api::{
 use essay_tensor::tensor::Tensor;
 use wgpu::util::StagingBelt;
 
+use crate::render::render::{render_draw_inner, RenderWgpu};
 use super::{
     bezier_mesh::BezierMeshRender, form3d::Form3dRender, hatch::init_hatch, lines::lines, 
     mesh2d::Mesh2dRender, mesh2d_color::Mesh2dColorRender, 
-    render::{render_draw_inner, RenderWgpu}, text::TextRender, text_cache::FontId, 
+    text::TextRender, text_cache::FontId, 
     texture_store::TextureCache, triangulate3::fill_shape
 };
 
@@ -204,7 +205,7 @@ impl PlotCanvas {
         self.input = input.clone();
     }
 
-    pub(super) fn draw_bezier_mesh(
+    pub(crate) fn draw_bezier_mesh(
         &mut self, 
         wgpu: &mut RenderWgpu,
         mesh: &BezierMesh2d, 
@@ -223,7 +224,7 @@ impl PlotCanvas {
         Ok(())
     }
 
-    pub(super) fn draw_mesh2d(
+    pub(crate) fn draw_mesh2d(
         &mut self, 
         wgpu: &mut RenderWgpu,
         mesh: &Mesh2d,
@@ -248,7 +249,7 @@ impl PlotCanvas {
         Ok(())
     }
 
-    pub(super) fn draw_mesh2d_color(
+    pub(crate) fn draw_mesh2d_color(
         &mut self, 
         wgpu: &mut RenderWgpu,
         mesh: &Mesh2dColor,
@@ -262,7 +263,7 @@ impl PlotCanvas {
         Ok(())
     }
 
-    pub(super) fn draw_path(
+    pub(crate) fn draw_path(
         &mut self, 
         wgpu: &mut RenderWgpu,
         path: &Path<Canvas>, 
@@ -339,7 +340,7 @@ impl PlotCanvas {
         return Ok(());
     }
 
-    pub(super) fn draw_markers(
+    pub(crate) fn draw_markers(
         &mut self, 
         wgpu: &mut RenderWgpu,
         path: &Path<Canvas>, 
@@ -540,7 +541,7 @@ impl PlotCanvas {
         )
     }
 
-    pub(super) fn flush(&mut self, wgpu: &mut RenderWgpu) {
+    pub(crate) fn flush(&mut self, wgpu: &mut RenderWgpu) {
         self.bezier_mesh_render.flush(wgpu);
         self.mesh2d_render.flush(wgpu, &self.texture_store);
         self.mesh2d_color_render.flush(wgpu);
@@ -548,11 +549,11 @@ impl PlotCanvas {
         self.form3d_render.flush(wgpu, &self.texture_store);
      }
     
-    pub(super) fn take_staging(&mut self) -> wgpu::util::StagingBelt {
+    pub(crate) fn take_staging(&mut self) -> wgpu::util::StagingBelt {
         self.staging.take().unwrap()
     }
     
-    pub(super) fn replace_staging(&mut self, staging: wgpu::util::StagingBelt) {
+    pub(crate) fn replace_staging(&mut self, staging: wgpu::util::StagingBelt) {
         assert!(self.staging.is_none());
 
         self.staging.replace(staging);

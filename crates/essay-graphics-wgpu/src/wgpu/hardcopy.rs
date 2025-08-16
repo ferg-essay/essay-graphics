@@ -6,7 +6,7 @@ use image::{ImageBuffer, Rgba};
 
 use crate::PlotCanvas;
 
-use super::render::render_draw;
+use crate::render::render::render_draw;
 
 pub struct WgpuHardcopy {
     device: wgpu::Device,

@@ -4,7 +4,8 @@ use essay_graphics_api::{input::{Input}, renderer::{self, Drawable}};
 use essay_graphics_winit::{run_event_loop, MainLoopHandle};
 use winit::{event_loop::EventLoop, window::{CursorIcon, Window}};
 
-use super::{render::render_draw, PlotCanvas};
+use crate::render::{render::render_draw};
+use super::{PlotCanvas};
 
 pub struct WgpuMainLoop {
     title: Option<String>,

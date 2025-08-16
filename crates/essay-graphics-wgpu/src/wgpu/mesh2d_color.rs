@@ -2,7 +2,7 @@ use bytemuck_derive::{Zeroable, Pod};
 use essay_graphics_api::{Affine2d, Mesh2dColor};
 use wgpu::util::DeviceExt;
 
-use super::render::RenderWgpu;
+use crate::render::render::RenderWgpu;
 
 pub(super) struct Mesh2dColorRender {
     vertex_stride: usize,

@@ -2,7 +2,8 @@ use bytemuck_derive::{Pod, Zeroable};
 use essay_graphics_api::{form::{Form, FormId, Matrix4}, TextureId};
 use wgpu::util::DeviceExt;
 
-use super::{render::RenderWgpu, texture_store::TextureCache};
+use crate::render::render::RenderWgpu;
+use super::{texture_store::TextureCache};
 
 pub struct Form3dRender {
     vertex_stride: usize,
