@@ -140,7 +140,9 @@ impl TextRender {
         let w_space = s.advance_width;
         
         let mut x = x0; // x0.floor();
-        let y = y0.round(); // y.floor
+        let y = (y0 + s.ascent).floor(); // y.floor
+        let mut is_first = true;
+
         for ch in text.chars() {
             let r = self.text_cache.glyph(font_id, text_size, ch);
             
@@ -151,12 +153,19 @@ impl TextRender {
                 continue;
             }
 
-            let y_ch = y + r.dy;// - r.h as f32;
-            let x_ch = (x + r.lsb).round(); //  + r.dx;
+            let y_ch = y - r.dy;// - r.h as f32;
+            let x_ch = if is_first {
+                x.floor()
+            } else {
+                (x + r.lsb).floor()
+            };
 
-            let w = r.w;
-            let h = r.h;
+            is_first = false;
 
+            let w = r.w; // .ceil();
+            let h = r.h; // .ceil();
+
+            /*
             self.vertex(x_ch, y_ch, r.tx_min, r.ty_min);
             self.vertex(x_ch + w, y_ch, r.tx_max, r.ty_min);
             self.vertex(x_ch + w, y_ch + h, r.tx_max, r.ty_max);
@@ -164,6 +173,14 @@ impl TextRender {
             self.vertex(x_ch + w, y_ch + h, r.tx_max, r.ty_max);
             self.vertex(x_ch, y_ch + h, r.tx_min, r.ty_max);
             self.vertex(x_ch, y_ch, r.tx_min, r.ty_min);
+            */
+            self.vertex(x_ch, y_ch, r.tx_min, r.ty_min);
+            self.vertex(x_ch + w, y_ch, r.tx_max, r.ty_min);
+            self.vertex(x_ch + w, y_ch - h, r.tx_max, r.ty_max);
+
+            self.vertex(x_ch, y_ch, r.tx_min, r.ty_min);
+            self.vertex(x_ch, y_ch - h, r.tx_min, r.ty_max);
+            self.vertex(x_ch + w, y_ch - h, r.tx_max, r.ty_max);
 
             //x += w + w_inside;
             x += r.advance_width;
@@ -189,9 +206,14 @@ impl TextRender {
         if angle != 0. {
             affine = affine.rotate_around(0.5 * (x0 + x), y0, angle)
         }
+        /*
         affine = affine.translate(dx, dy)
             .scale(2. / bounds.x(), 2. / bounds.y())
             .translate(-1., -1.);
+        */
+        affine = affine.translate(dx, dy)
+            .scale(2. / bounds.x(), -2. / bounds.y())
+            .translate(-1., 1.);
 
         
         self.text_items.push(TextItem {

@@ -30,6 +30,18 @@ impl<M: Coord> Bounds<M> {
         }
     }
 
+    #[must_use]
+    pub fn new_flat(p0: impl Into<Point>, p1: impl Into<Point>) -> Self {
+        let Point(x0, y0) = p0.into();
+        let Point(x1, y1) = p1.into();
+
+        Self {
+            p0: Point(x0, y0),
+            p1: Point(x1, y1),
+            marker: PhantomData::<fn(M)>,
+        }
+    }
+
     #[inline]
     #[must_use]
     pub fn extent(width: f32, height: f32) -> Self {
@@ -189,11 +201,21 @@ impl<M: Coord> Bounds<M> {
 
     #[inline]
     pub fn width(self) -> f32 {
-        self.xmax() - self.xmin()
+        self.x1() - self.x0()
     }
 
     #[inline]
     pub fn height(self) -> f32 {
+        self.y1() - self.y0()
+    }
+
+    #[inline]
+    pub fn width_abs(self) -> f32 {
+        self.xmax() - self.xmin()
+    }
+
+    #[inline]
+    pub fn height_abs(self) -> f32 {
         self.ymax() - self.ymin()
     }
 
@@ -222,6 +244,15 @@ impl<M: Coord> Bounds<M> {
         ]
     }
 
+    #[must_use]
+    pub fn abs(&mut self) -> Self {
+        Self {
+            p0: Point(self.xmin(), self.ymin()),
+            p1: Point(self.xmax(), self.ymax()),
+            marker: Default::default(),
+        }        
+    }
+
     pub fn affine_to<N>(self, box_to: impl Into<Bounds<N>>) -> Affine2d
     where
         N: Coord
@@ -230,6 +261,31 @@ impl<M: Coord> Bounds<M> {
 
         let a_x0 = self.xmin();
         let a_y0 = self.ymin();
+
+        let epsilon = f32::EPSILON;
+        let a_width = self.width().max(epsilon);
+        let a_height = self.height().max(epsilon);
+
+        let b_x0 = box_to.xmin();
+        let b_y0 = box_to.ymin();
+
+        let b_width = box_to.width();
+        let b_height = box_to.height();
+
+        Affine2d::eye()
+            .translate(- a_x0, - a_y0)
+            .scale(b_width / a_width, b_height / a_height)
+            .translate(b_x0, b_y0)
+    }
+
+    pub fn affine_to_exact<N>(self, box_to: impl Into<Bounds<N>>) -> Affine2d
+    where
+        N: Coord
+    {
+        let box_to = box_to.into();
+
+        let a_x0 = self.x0();
+        let a_y0 = self.y0();
 
         let epsilon = f32::EPSILON;
         let a_width = self.width().max(epsilon);

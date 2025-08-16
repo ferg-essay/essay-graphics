@@ -19,6 +19,7 @@ pub(crate) struct RenderWgpu<'a> {
     pub encoder: Option<wgpu::CommandEncoder>,
     pub staging: StagingBelt,
 
+    pub bounds: Bounds<Canvas>,
     pub scissor: Option<(u32, u32, u32, u32)>,
     pub state: State,
 }
@@ -91,6 +92,14 @@ impl<'a> RenderWgpu<'a> {
                     occlusion_query_set: None,
             });
 
+            rpass.set_viewport(
+                self.bounds.xmin(),
+                self.bounds.ymin(),
+                self.bounds.width(),
+                self.bounds.height(),
+                0., 1.,
+            );
+
             if let Some(scissor) = self.scissor {
                 rpass.set_scissor_rect(scissor.0, scissor.1, scissor.2, scissor.3);
             }
@@ -145,6 +154,7 @@ pub(super) fn wgpu_rpass<'a: 'b, 'b, R>(
     queue: &'a wgpu::Queue,
     view: &'a wgpu::TextureView,
     staging: StagingBelt,
+    bounds: Bounds<Canvas>,
     draw: impl FnOnce(&mut RenderWgpu<'a>) -> renderer::Result<R> + 'b
 ) -> (renderer::Result<R>, StagingBelt) {
     let mut wgpu = RenderWgpu {
@@ -154,6 +164,7 @@ pub(super) fn wgpu_rpass<'a: 'b, 'b, R>(
         scissor: None,
         encoder: None,
         state: State::PreInit,
+        bounds,
         staging,
     };
 
@@ -194,6 +205,7 @@ pub(crate) fn render_draw<'a, R>(
     ) -> (Result<R>, StagingBelt) {
     if let Some(view) = view {
         wgpu_rpass(device, queue, view, staging,
+            canvas.bounds(),
             |wgpu: &mut RenderWgpu<'a>| {
             let pos = canvas.bounds().clone();
 

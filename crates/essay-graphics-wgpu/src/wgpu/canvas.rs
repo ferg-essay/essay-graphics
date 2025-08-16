@@ -140,11 +140,11 @@ impl PlotCanvas {
         self.request_redraw(true);
         self.bounds = Bounds::from(self.input.size);
 
-        let pos_gpu = Bounds::<Canvas>::new(
-            Point(-1., -1.),
-            Point(1., 1.)
+        let pos_gpu = Bounds::<Canvas>::new_flat(
+            Point(-1., 1.),
+            Point(1., -1.)
         );
-        
+
         self.to_gpu = self.bounds.affine_to(&pos_gpu);
 
         if self.input.size.width() > 0. {
@@ -152,6 +152,16 @@ impl PlotCanvas {
         }
 
         true
+    }
+
+    pub fn set_viewport(&self, pass: &mut wgpu::RenderPass) {
+        pass.set_viewport(
+            self.bounds.xmin(), 
+            self.bounds.ymin(), 
+            self.bounds.xmax(), 
+            self.bounds.ymax(),
+            -1., 1.
+        );
     }
 
     pub fn to_scissor(&self, clip: &Clip) -> Option<(u32, u32, u32, u32)> {

@@ -8,9 +8,10 @@ fn main() {
         let mut text_style = TextStyle::new();
         text_style.halign(HorizAlign::Left);
 
-        ui.draw_text(Point(100., 400.), "sample text", 0., &path_style, &text_style)?;
-        ui.draw_text(Point(100., 350.), "Coffee \u{2615}", 0., &path_style, &text_style)?;
-        ui.draw_text(Point(100., 300.), "Cowboy \u{1f920}", 0., &path_style, &text_style)?;
+        ui.draw_text(Point(0., 0.), "Marking top text", 0., &path_style, &text_style)?;
+        ui.draw_text(Point(100., 100.), "sample text", 0., &path_style, &text_style)?;
+        ui.draw_text(Point(100., 150.), "Coffee \u{2615}", 0., &path_style, &text_style)?;
+        ui.draw_text(Point(100., 200.), "Cowboy \u{1f920}", 0., &path_style, &text_style)?;
 
         Ok(())
     }));
