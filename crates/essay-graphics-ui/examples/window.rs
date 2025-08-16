@@ -1,6 +1,7 @@
-use essay_graphics_ui::{page::MainLoop, ui::UiView};
+use essay_graphics_ui::{page::MainLoop};
 
 fn main() { 
+    /*
     let mut hello = false;
     let mut there = false;
 
@@ -21,4 +22,5 @@ fn main() {
     });
 
     MainLoop::new().show(view);
+    */
 }

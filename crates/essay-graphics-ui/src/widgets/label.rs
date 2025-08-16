@@ -1,49 +1,13 @@
 use essay_graphics_api::renderer::Renderer;
 
-use crate::ui::{context, Response, ResponseValue, Ui, Widget};
+use crate::ui::{ui::Widget, Response, ResponseValue, Ui};
 
-/*
-pub(crate) struct Label {
+pub struct Label {
     label: String,
 }
 
 impl Label {
-    pub(crate) fn new(label: &str) -> Self {
-        Self {
-            label: String::from(label),
-        }
-    }
-}
-
-impl Widget for Label {
-    fn ui(
-        &mut self, 
-        ui: &mut Ui, 
-    ) -> Response {
-        let style = ui.style().label.clone();
-        let style_text = ui.style().label_text.clone();
-        let size = ui.text_size(&self.label, &style_text);
-        let pos = ui.allocate_rect(size);
-
-        ui.renderer().draw_text(
-            pos.p0(), 
-            &self.label, 
-            0., 
-            &style,
-            &style_text
-        ).unwrap();
-
-        Response::default()
-    }
-}
-    */
-
-pub(crate) struct Label {
-    label: String,
-}
-
-impl Label {
-    pub(crate) fn new(label: &str) -> Self {
+    pub fn new(label: &str) -> Self {
         Self {
             label: String::from(label),
         }

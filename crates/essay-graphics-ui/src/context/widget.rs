@@ -2,7 +2,7 @@ use std::collections::hash_map;
 
 use essay_graphics_api::{renderer::Canvas, Bounds};
 
-use crate::ui::{Id, IdMap};
+use crate::util::{Id, IdMap};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct WidgetRect {

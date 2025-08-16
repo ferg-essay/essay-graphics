@@ -1,4 +1,4 @@
-use crate::ui::{Response, popup::Popup, ui::Ui};
+use crate::{ui::{ui::Ui, Response}, windows::Popup};
 
 pub struct Tooltip {
     popup: Popup,

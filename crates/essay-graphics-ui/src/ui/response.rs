@@ -1,6 +1,6 @@
 use essay_graphics_api::input::Input;
 
-use crate::ui::{tooltip::Tooltip, Context, Id, Ui};
+use crate::{context::{Context, WidgetRect}, ui::Ui, util::Id, windows::Tooltip};
 
 pub struct Response {
     pub id: Id,
@@ -12,6 +12,30 @@ pub struct Response {
 }
 
 impl Response {
+    pub(crate) fn new(ctx: &Context, widget: WidgetRect) -> Self {
+        let mut response = Self {
+            id: widget.id,
+            ctx: ctx.clone(),
+            is_hover: false,
+            flags: Flags::empty(),
+        };
+
+        ctx.viewport(|viewport| {
+            let id = widget.id;
+
+            if viewport.hover.contains(id) {
+                response.is_hover = true;
+                response.flags.set(Flags::HOVERED, true);
+            }
+
+            if viewport.interact.clicked == Some(id) {
+                response.flags.set(Flags::CLICKED, true);
+            }
+        });
+
+        response
+    }
+
     #[inline]
     pub fn id(&self) -> Id {
         self.id

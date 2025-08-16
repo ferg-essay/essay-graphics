@@ -1,4 +1,4 @@
-use essay_graphics_ui::ui::{CentralPanel, MainLoop};
+use essay_graphics_ui::{main_loop::MainLoop, ui::CentralPanel};
 
 fn main() { 
     let mut button = false;

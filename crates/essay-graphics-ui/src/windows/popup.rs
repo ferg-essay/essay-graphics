@@ -1,6 +1,6 @@
-use essay_graphics_api::{Point, Size};
+use essay_graphics_api::{Point};
 
-use crate::ui::{Response, frame::Frame, ui::{ResponseValue, Ui, UiBuilder}, Context, Id};
+use crate::{context::Context, ui::{ui::{ResponseValue, Ui, UiBuilder}, Frame, Response}, util::Id};
 
 pub struct Popup {
     id: Id,
@@ -50,7 +50,7 @@ impl Popup {
         Some(Ui::top(&self.ctx, self.id, builder, |ui| {
             let ResponseValue {
                 value,
-                response
+                ..
             } = frame.show(ui, add_content);
 
             value

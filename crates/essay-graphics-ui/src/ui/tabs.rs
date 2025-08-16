@@ -30,8 +30,7 @@ impl<T: PartialEq + Clone + Into<String>> Tabs<'_, T> {
         let style_text = ui.style().label_text.clone();
         let margin = 10.;
 
-        let style = PathStyle::new();
-        let mut tab_style = PathStyle::new();
+        let tab_style = PathStyle::new();
         let mut add_content: Option<Box<dyn FnOnce(&mut Ui)>> = None;
         let mut selected: Option<T> = Some(self.select.clone());
 

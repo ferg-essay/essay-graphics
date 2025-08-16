@@ -1,5 +1,5 @@
 use core::hash;
-use std::{ops::{self, Deref}, sync::Arc};
+use std::{ops, sync::Arc};
 
 use essay_graphics_api::{
     input::Input, 
@@ -7,11 +7,11 @@ use essay_graphics_api::{
     Bounds, Point, Size, TextStyle
 };
 
-use crate::ui::{
-    button::{Button}, Response, label::{Label}, style::UiStyle, widget::WidgetRect, Context, Id, Painter
-};
+use crate::{context::{Context, WidgetRect}, painter::Painter, ui::{
+    style::UiStyle, Response
+}, util::Id, widgets::{Button, Label}};
 
-use super::cursor::{Cursor, CursorUpdate, ViewSizeCache};
+use super::cursor::{Cursor, CursorUpdate};
 
 pub struct Ui {
     id: Id,
@@ -112,7 +112,7 @@ impl Ui {
         let update = update.unwrap_or_else(|| self.update);
 
         let bounds = Bounds::none();
-        let response = self.context().create_widget(WidgetRect {
+        self.context().create_widget(WidgetRect {
             id: unique_id,
             rect: bounds,
         });
@@ -147,49 +147,6 @@ impl Ui {
         });
 
         response
-    }
-    
-    fn child_view<R>(
-        &mut self,
-        bounds: Bounds<Canvas>, 
-        update: CursorUpdate,
-        add_content: impl FnOnce(&mut Ui) -> R
-    ) -> R {
-        todo!();
-        /*
-        let child_cache = self.prev_cache
-            .map(|cache| cache.get(self.cache_index))
-            .unwrap_or(None);
-
-        let child_cache = None;
-
-        let mut child = Ui2 {
-            unique_id: self.unique_id,
-            cursor: self.cursor.child_view(
-                bounds,
-                child_cache
-                    .map(|cache: &ViewSizeCache| cache.page)
-                    .unwrap_or(Bounds::unit()),
-                child_cache
-                    .map(|cache| cache.canvas)
-                    .unwrap_or(Bounds::zero()),
-            ),
-            renderer: self.renderer,
-            update,
-            painter: Painter::new(self.painter.context()),
-            // prev_cache: child_cache,
-            // next_cache: self.next_cache.push(self.cache_index),
-            cache_index: self.cache_index + 1,
-        };
-
-        let result = (add_content)(&mut child);
-
-        self.cache_index = child.cache_index;
-        // child.next_cache.canvas = child.cursor.fixed_allocated;
-        // child.next_cache.page = child.cursor.page_allocated;
-
-        result
-        */
     }
 
     #[inline]

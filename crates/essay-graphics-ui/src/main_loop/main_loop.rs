@@ -1,8 +1,8 @@
-use essay_graphics_wgpu::{WgpuBackend, WgpuHardcopy};
+use essay_graphics_wgpu::{WgpuBackend};
 
-use essay_graphics_api::renderer::{Backend, Drawable, Renderer};
+use essay_graphics_api::renderer::{Backend, Renderer};
 
-use crate::ui::Context;
+use crate::context::Context;
 
 pub struct MainLoop {
     device: Box<dyn Backend>,

@@ -6,15 +6,12 @@ use essay_graphics_api::input::Input;
 use essay_graphics_api::renderer::{Canvas, FontSetMetrics, GraphicsContext, Renderer};
 use essay_graphics_api::{Bounds, Point};
 
-use crate::ui::cursor::ViewSizeCache;
-use crate::ui::layers::GraphicsLayers;
-use crate::ui::null_render::NullRenderer;
-use crate::ui::response::Flags;
+use crate::context::widget::{WidgetRect, WidgetRects};
+use crate::painter::GraphicsLayers;
 use crate::ui::style::UiStyle;
-use crate::ui::tooltip::Tooltip;
 use crate::ui::ui::{ResponseValue, Ui, UiBuilder};
-use crate::ui::widget::{WidgetRect, WidgetRects};
-use crate::ui::{Id, IdSet, Response};
+use crate::ui::{Response};
+use crate::util::{Id, IdSet};
 
 #[derive(Clone)]
 pub struct Context(Arc<RwLock<ContextInner>>);
@@ -99,7 +96,7 @@ impl Context {
         self.viewport(|viewport| viewport.screen_pos)
     }
     
-    pub fn request_redraw_when(&self, duration: f32) {
+    pub fn request_redraw_when(&self, _duration: f32) {
         
     }
 }
@@ -186,36 +183,12 @@ impl Context {
             ctx.viewport.pass.widgets.insert(widget);
         });
 
-        self.get_response(widget)
-    }
-
-    pub(crate) fn get_response(&self, widget: WidgetRect) -> Response {
-        let mut response = Response {
-            id: widget.id,
-            ctx: self.clone(),
-            is_hover: false,
-            flags: Flags::empty(),
-        };
-
-        self.read(|cxt| {
-            let id = widget.id;
-
-            if cxt.viewport.hover.contains(id) {
-                response.is_hover = true;
-                response.flags.set(Flags::HOVERED, true);
-            }
-
-            if cxt.viewport.interact.clicked == Some(id) {
-                response.flags.set(Flags::CLICKED, true);
-            }
-        });
-
-        response
+        Response::new(&self, widget)
     }
 }
 
 pub(crate) struct ContextInner {
-    graphics_context: Box<dyn GraphicsContext>,
+    _graphics_context: Box<dyn GraphicsContext>,
 
     fonts: Fonts,
 
@@ -229,7 +202,7 @@ impl ContextInner {
         let default_font_set = graphics_context.default_font_set();
 
         Self {
-            graphics_context,
+            _graphics_context: graphics_context,
             fonts: Fonts {
                 default_font_set,
             },
@@ -251,13 +224,13 @@ pub struct Viewport {
 
     input: Input,
     pub interact: Interact,
-    hover: WidgetHover,
+    pub(crate) hover: WidgetHover,
 }
 
 pub struct Interact {
-    cursor: Option<Point>,
+    pub cursor: Option<Point>,
     
-    clicked: Option<Id>,
+    pub clicked: Option<Id>,
 
     last_cursor_move: Instant,
 }
@@ -284,7 +257,7 @@ impl Default for Interact {
 pub struct RenderPass {
     widgets: WidgetRects,
 
-    view_size: ViewSizeCache,
+    // view_size: ViewSizeCache,
 }
 
 impl RenderPass {
@@ -299,7 +272,7 @@ pub struct Fonts {
 
 
 #[derive(Default)]
-struct WidgetHover {
+pub(crate) struct WidgetHover {
     hover: IdSet,
 }
 
@@ -308,7 +281,7 @@ impl WidgetHover {
         self.hover.clear();
     }
 
-    fn contains(&self, id: Id) -> bool {
+    pub fn contains(&self, id: Id) -> bool {
         self.hover.contains(&id)
     }
 

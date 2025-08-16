@@ -27,7 +27,7 @@ impl Frame {
         assert!(max_bounds.x0() < max_bounds.x1());
         assert!(max_bounds.y0() < max_bounds.y1());
 
-        let mut builder = UiBuilder::default()
+        let builder = UiBuilder::default()
             .max_bounds(max_bounds);
 
         let ResponseValue {

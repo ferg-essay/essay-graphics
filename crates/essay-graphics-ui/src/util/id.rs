@@ -66,7 +66,7 @@ pub type IdMap<V> = nohash_hasher::IntMap<Id, V>;
 
 #[cfg(test)]
 mod test {
-    use crate::ui::Id;
+    use crate::util::Id;
 
     #[test]
     fn id_size() {

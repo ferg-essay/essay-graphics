@@ -5,7 +5,7 @@ use essay_graphics_api::{
     Bounds, Coord, Size
 };
 
-use crate::ui::{Tabs, Ui, UiSize, UiView};
+use crate::ui::{Tabs, Ui, UiSize};
 
 pub struct Page {
     views: Vec<ViewItem>,

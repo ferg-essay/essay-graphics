@@ -1,4 +1,4 @@
-use crate::ui::{ui::{ResponseValue, Ui, UiBuilder}, Context, Id};
+use crate::{context::Context, ui::ui::{ResponseValue, Ui, UiBuilder}, util::Id};
 
 #[must_use="CentralPanel requires .show() call"]
 #[derive(Default)]
