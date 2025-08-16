@@ -58,6 +58,7 @@ impl Widget for Label {
         let style = ui.style().label.clone();
         let style_text = ui.style().label_text.clone();
         let size = ui.text_size(&self.label, &style_text);
+        
         let ResponseValue { 
             value, 
             response
@@ -65,8 +66,8 @@ impl Widget for Label {
 
         let label = String::from(&self.label);
 
-        ui.painter_mut().add(move |ui: &mut dyn Renderer| {
-            ui.draw_text(
+        ui.painter_mut().add(move |renderer: &mut dyn Renderer| {
+            renderer.draw_text(
                 value.p0(), 
                 &label, 
                 0., 

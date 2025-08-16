@@ -12,7 +12,7 @@ use crate::ui::null_render::NullRenderer;
 use crate::ui::response::Flags;
 use crate::ui::style::UiStyle;
 use crate::ui::tooltip::Tooltip;
-use crate::ui::ui2::{ResponseValue, Ui, UiBuilder};
+use crate::ui::ui::{ResponseValue, Ui, UiBuilder};
 use crate::ui::widget::{WidgetRect, WidgetRects};
 use crate::ui::{Id, IdSet, Response};
 

@@ -18,5 +18,6 @@ pub trait FontSetMetrics: Send + Sync {
 pub struct GlyphSize {
     pub width: f32,
     pub height: f32,
+    pub lsb: f32,
     // TODO: descend
 }

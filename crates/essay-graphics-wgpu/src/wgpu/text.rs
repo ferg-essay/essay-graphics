@@ -259,8 +259,6 @@ impl TextRender {
             }
         }
 
-        let descent = 0.; // 0.3 * size; // TODO
-
         Size(x, s.ascent + s.descent)
     }
 

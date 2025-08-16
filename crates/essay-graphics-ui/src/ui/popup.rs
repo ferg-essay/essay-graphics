@@ -1,6 +1,6 @@
 use essay_graphics_api::{Point, Size};
 
-use crate::ui::{Response, frame::Frame, ui2::{ResponseValue, Ui, UiBuilder}, Context, Id};
+use crate::ui::{Response, frame::Frame, ui::{ResponseValue, Ui, UiBuilder}, Context, Id};
 
 pub struct Popup {
     id: Id,

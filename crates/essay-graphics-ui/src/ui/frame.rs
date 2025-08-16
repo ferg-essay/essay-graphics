@@ -1,6 +1,6 @@
 use essay_graphics_api::{renderer::Renderer, Color, Margin, Path, PathStyle};
 
-use crate::ui::ui2::{ResponseValue, Ui, UiBuilder};
+use crate::ui::ui::{ResponseValue, Ui, UiBuilder};
 
 pub struct Frame {
     pub inner_margin: Margin,

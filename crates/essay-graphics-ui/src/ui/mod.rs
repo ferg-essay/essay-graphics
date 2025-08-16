@@ -17,7 +17,7 @@ mod label;
 mod style;
 mod tabs;
 //mod ui_old;
-pub mod ui2;
+pub mod ui;
 mod ui_view;
 
 pub use context::{Context};
@@ -27,6 +27,6 @@ pub use font::{Font, FontCache};
 pub use layers::{Painter, PaintList};
 pub use panel::{CentralPanel};
 pub use tabs::Tabs;
-pub use ui2::{Ui, UiSize, Widget, ResponseValue, OnceView};
+pub use ui::{Ui, UiSize, Widget, ResponseValue, OnceView};
 pub use ui_view::{UiView, UiTop};
 pub use main_loop::{MainLoop};
