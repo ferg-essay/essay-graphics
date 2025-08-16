@@ -1,10 +1,14 @@
+pub mod main_loop;
 mod render;
-pub mod wgpu;
+pub mod pipelines;
 
-pub use crate::wgpu::{
-    WgpuMainLoop, PlotCanvas, 
+pub use crate::pipelines::{
+    PipelineCanvas, 
+};
+
+pub use crate::main_loop::{
+    WgpuMainLoop,
     WgpuHardcopy,
-    // draw_hardcopy,
 };
 
 pub use crate::render::{

@@ -11,15 +11,15 @@ use essay_graphics_api::{
 use essay_tensor::tensor::Tensor;
 use wgpu::util::StagingBelt;
 
-use crate::render::render::{render_draw_inner, RenderWgpu};
+use crate::render::{hatch::init_hatch, render::{render_draw_inner, RenderWgpu}};
 use super::{
-    bezier_mesh::BezierMeshRender, form3d::Form3dRender, hatch::init_hatch,
+    bezier_mesh::BezierMeshRender, form3d::Form3dRender,
     mesh2d::Mesh2dRender, mesh2d_color::Mesh2dColorRender, 
     text::TextRender, text_cache::FontId, 
     texture_store::TextureCache,
 };
 
-pub struct PlotCanvas {
+pub struct PipelineCanvas {
     bounds: Bounds<Canvas>,
     scale_factor: f32,
     input: Input,
@@ -46,7 +46,7 @@ pub struct PlotCanvas {
     is_request_redraw: bool,
 }
 
-impl PlotCanvas {
+impl PipelineCanvas {
     pub fn new(
         device: &wgpu::Device,
         queue: &wgpu::Queue,

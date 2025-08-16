@@ -6,7 +6,7 @@ use essay_graphics_api::{
 use essay_tensor::tensor::Tensor;
 use wgpu::util::StagingBelt;
 
-use crate::{render::{lines::lines, triangulate3::fill_shape}, wgpu::canvas::PlotCanvas};
+use crate::{render::{lines::lines, triangulate3::fill_shape}, pipelines::pipeline_canvas::PipelineCanvas};
 
 pub(crate) struct RenderWgpu<'a> {
     pub device: &'a wgpu::Device,
@@ -173,7 +173,7 @@ pub(super) fn wgpu_rpass<'a: 'b, 'b, R>(
 }
 
 pub(crate) fn render_draw<'a, R>(
-    canvas: &'a mut PlotCanvas,
+    canvas: &'a mut PipelineCanvas,
     device: &'a wgpu::Device,
     queue: &'a wgpu::Queue,
     view: Option<&'a wgpu::TextureView>,
@@ -192,7 +192,7 @@ pub(crate) fn render_draw<'a, R>(
 }
 
  pub(crate) fn render_draw_inner<'a, R>(
-        canvas: &'a mut PlotCanvas,
+        canvas: &'a mut PipelineCanvas,
         device: &'a wgpu::Device,
         queue: &'a wgpu::Queue,
         view: Option<&'a wgpu::TextureView>,
@@ -246,7 +246,7 @@ pub(crate) fn render_draw<'a, R>(
 
 
 pub struct PlotRenderer<'a, 'b> {
-    canvas: &'a mut PlotCanvas,
+    canvas: &'a mut PipelineCanvas,
     device: &'a wgpu::Device,
     queue: Option<&'a wgpu::Queue>,
     // view: Option<&'a wgpu::TextureView>,

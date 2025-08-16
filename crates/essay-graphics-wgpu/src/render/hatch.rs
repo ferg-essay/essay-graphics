@@ -2,8 +2,7 @@ use std::{collections::HashMap, ops::{Index, IndexMut}};
 
 use essay_graphics_api::{Hatch, TextureId};
 
-use super::texture_store::TextureCache;
-
+use crate::pipelines::texture_store::TextureCache;
 
 pub fn init_hatch(
     device: &wgpu::Device, 

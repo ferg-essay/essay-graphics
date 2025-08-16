@@ -4,7 +4,7 @@ use essay_graphics_api::renderer::{self, Drawable, Renderer};
 use wgpu::BufferView;
 use image::{ImageBuffer, Rgba};
 
-use crate::PlotCanvas;
+use crate::PipelineCanvas;
 
 use crate::render::render::render_draw;
 
@@ -12,7 +12,7 @@ pub struct WgpuHardcopy {
     device: wgpu::Device,
     queue: wgpu::Queue,
 
-    canvas: PlotCanvas,
+    canvas: PipelineCanvas,
 
     texture: wgpu::Texture,
     texture_view: wgpu::TextureView,
@@ -56,7 +56,7 @@ impl WgpuHardcopy {
         let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
 
 
-        let canvas = PlotCanvas::new(
+        let canvas = PipelineCanvas::new(
             &device,
             &queue,
             texture_format,

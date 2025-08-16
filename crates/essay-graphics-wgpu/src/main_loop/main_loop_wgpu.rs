@@ -4,8 +4,7 @@ use essay_graphics_api::{input::{Input}, renderer::{self, Drawable}};
 use essay_graphics_winit::{run_event_loop, MainLoopHandle};
 use winit::{event_loop::EventLoop, window::{CursorIcon, Window}};
 
-use crate::render::{render::render_draw};
-use super::{PlotCanvas};
+use crate::{render::render::render_draw, PipelineCanvas};
 
 pub struct WgpuMainLoop {
     title: Option<String>,
@@ -77,7 +76,7 @@ struct MainLoopData<'window> {
     surface: wgpu::Surface<'window>,
     window: &'window Window,
 
-    canvas: PlotCanvas,
+    canvas: PipelineCanvas,
     drawable: Box<dyn Drawable>,
 }
 
@@ -86,7 +85,7 @@ impl<'window> MainLoopData<'window> {
         device: MainLoopDevice<'window>, 
         draw: Box<dyn Drawable>
     ) -> Self {
-        let canvas = PlotCanvas::new(
+        let canvas = PipelineCanvas::new(
             &device.device,
             &device.queue,
             device.config.format,
