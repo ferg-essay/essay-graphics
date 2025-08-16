@@ -123,6 +123,7 @@ impl TextCache {
             top: placement.top as i32 + descent,
 
             ascent: metrics.ascent,
+            descent: metrics.descent,
             advance_width: glyph_metrics.advance_width(glyph),
             lsb: glyph_metrics.lsb(glyph),
         }
@@ -383,6 +384,7 @@ pub struct TextRect {
 
     pub advance_width: f32,
     pub ascent: f32,
+    pub descent: f32,
     pub lsb: f32,
 }
 
@@ -402,6 +404,7 @@ impl TextRect {
             dy: glyph.top as f32 - glyph.h as f32,
 
             ascent: glyph.ascent,
+            descent: glyph.descent,
             advance_width: glyph.advance_width,
             lsb: glyph.lsb,
         }
@@ -423,6 +426,7 @@ struct GlyphRect {
     top: i32,
 
     ascent: f32,
+    descent: f32,
     advance_width: f32,
     lsb: f32,
 }

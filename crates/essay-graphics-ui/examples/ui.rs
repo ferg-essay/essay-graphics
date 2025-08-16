@@ -5,7 +5,7 @@ fn main() {
     MainLoop::new().show(move |cxt| {
         CentralPanel::new().show(cxt, |ui| {
             ui.label("hello, world");
-            if ui.button("button", button).clicked() {
+            if ui.button("button-g", button).clicked() {
                 button = !button;
             }
             ui.label("second label");

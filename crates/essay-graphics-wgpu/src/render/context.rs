@@ -64,9 +64,11 @@ impl FontCache {
             if glyph != 0 {
                 let glyphs = font.as_ref().glyph_metrics(&[]).scale(size);
 
+                let metrics = font.as_ref().metrics(&[]);
+
                 return GlyphSize {
                     width: glyphs.advance_width(glyph),
-                    height: glyphs.advance_height(glyph),
+                    height: metrics.ascent + metrics.descent,
                     // lsb: glyphs.lsb(glyph),
                 }
             }

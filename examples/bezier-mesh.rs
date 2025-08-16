@@ -27,7 +27,7 @@ fn draw_mesh(
 ) -> renderer::Result<()> {
     let xy = xy.into();
     let p0 = Point(200., 0.) + xy;
-    let p1 = Point(100., 100.) + xy;
+    let p1 = Point(100., -100.) + xy;
     let p2 = Point(0., 0.) + xy;
 
     let path = Path::move_to(p0.0, p0.1)

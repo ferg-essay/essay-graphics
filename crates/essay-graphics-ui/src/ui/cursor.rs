@@ -20,7 +20,7 @@ impl Cursor {
         canvas: Bounds<Canvas>,
         page: Bounds<Page>,
     ) -> Self {
-        let point = Point(canvas.xmin(), canvas.ymax());
+        let point = Point(canvas.xmin(), canvas.ymin());
 
         Self {
             canvas_extent: canvas,
@@ -57,7 +57,7 @@ impl Cursor {
         page_extent: Bounds<Page>,
         fixed_extent: Bounds<Canvas>,
     ) -> Self {
-        let canvas_pos = Point(canvas_extent.xmin(), canvas_extent.ymax());
+        let canvas_pos = Point(canvas_extent.xmin(), canvas_extent.ymin());
 
         Self {
             canvas_extent,
@@ -82,14 +82,14 @@ impl Cursor {
     pub(crate) fn canvas_free(&self) -> Size {
         Size(
             self.canvas_extent.xmax() - self.canvas_pos.x(),
-            self.canvas_pos.y() - self.canvas_extent.ymin()
+            self.canvas_extent.ymax() - self.canvas_pos.y()
         )
     }
 
     pub(crate) fn available_bounds(&self) -> Bounds<Canvas> {
         Bounds::new(
-            Point(self.canvas_pos.x(), self.canvas_extent.ymin()),
-            Point(self.canvas_extent.xmax(), self.canvas_pos.y()),
+            Point(self.canvas_pos.x(), self.canvas_pos.y()),
+            Point(self.canvas_extent.xmax(), self.canvas_extent.ymax()),
         )
     }
 }
@@ -104,14 +104,14 @@ impl CursorUpdate {
     pub fn alloc_pos(&self, pos: Bounds<Canvas>, cursor: &mut Cursor) -> Bounds<Canvas> {
         match self {
             CursorUpdate::Vertical => {
-                cursor.canvas_pos = Point(cursor.canvas_pos.x(), pos.ymin());
+                cursor.canvas_pos = Point(cursor.canvas_pos.x(), cursor.canvas_pos.y());
                 cursor.canvas_allocated = cursor.canvas_allocated.union(&pos);
                 cursor.fixed_allocated = cursor.fixed_allocated.union(&pos);
 
                 pos
             },
             CursorUpdate::Horizontal => {
-                cursor.canvas_pos = Point(pos.xmax(), cursor.canvas_pos.y());
+                cursor.canvas_pos = Point(pos.xmax(), pos.ymax());
                 cursor.canvas_allocated = cursor.canvas_allocated.union(&pos);
                 cursor.fixed_allocated = cursor.fixed_allocated.union(&pos);
 
@@ -124,11 +124,18 @@ impl CursorUpdate {
         match self {
             CursorUpdate::Vertical => {
                 let rect = Bounds::<Canvas>::new(
-                    [cursor.canvas_pos.x(), cursor.canvas_pos.y() - size.height()],
-                    [cursor.canvas_pos.x() + size.width(), cursor.canvas_pos.y()],
+                    [cursor.canvas_pos.x(), cursor.canvas_pos.y()],
+                    [
+                        cursor.canvas_pos.x() + size.width(), 
+                        cursor.canvas_pos.y() + size.height(), 
+                    ],
                 );
         
-                cursor.canvas_pos = Point(cursor.canvas_pos.x(), cursor.canvas_pos.y() - size.height());
+                cursor.canvas_pos = Point(
+                    cursor.canvas_pos.x(),
+                    cursor.canvas_pos.y() + size.height(),
+                );
+
                 cursor.canvas_allocated = cursor.canvas_allocated.union(&rect);
                 cursor.fixed_allocated = cursor.fixed_allocated.union(&rect);
 
@@ -136,11 +143,17 @@ impl CursorUpdate {
             },
             CursorUpdate::Horizontal => {
                 let rect = Bounds::<Canvas>::new(
-                    [cursor.canvas_pos.x(), cursor.canvas_pos.y() - size.height()],
-                    [cursor.canvas_pos.x() + size.width(), cursor.canvas_pos.y()],
+                    [cursor.canvas_pos.x(), cursor.canvas_pos.y()],
+                    [
+                        cursor.canvas_pos.x() + size.width(), 
+                        cursor.canvas_pos.y() + size.height()
+                    ],
                 );
         
-                cursor.canvas_pos = Point(cursor.canvas_pos.x() + size.width(), cursor.canvas_pos.y());
+                cursor.canvas_pos = Point(
+                    cursor.canvas_pos.x() + size.width(), 
+                    cursor.canvas_pos.y(),
+                );
                 cursor.canvas_allocated = cursor.canvas_allocated.union(&rect);
                 cursor.fixed_allocated = cursor.fixed_allocated.union(&rect);
 
@@ -154,7 +167,7 @@ impl CursorUpdate {
             CursorUpdate::Vertical => {
                 let rect = self.alloc_view_canvas(size, cursor);
         
-                cursor.canvas_pos = Point(cursor.canvas_pos.x(), cursor.canvas_pos.y() - rect.height());
+                cursor.canvas_pos = Point(cursor.canvas_pos.x(), cursor.canvas_pos.y());
 
                 let page_rect = self.alloc_view_page(size, cursor);
 
@@ -188,11 +201,11 @@ impl CursorUpdate {
         let rect = Bounds::<Canvas>::new(
             [
                     cursor.canvas_pos.x(),
-                    (cursor.canvas_pos.y() - canvas_size.height()).max(0.)
+                    cursor.canvas_pos.y(),
                 ],
             [
                     (cursor.canvas_pos.x() + canvas_size.width()).min(cursor.canvas_extent.xmax()), 
-                    cursor.canvas_pos.y()
+                    (cursor.canvas_pos.y() + canvas_size.height()).min(cursor.canvas_extent.ymax()), 
                 ],
         );
         
@@ -203,7 +216,7 @@ impl CursorUpdate {
 
     pub fn alloc_view_page(&self, size: Size, cursor: &mut Cursor) -> Bounds<Page> {
         let page_rect = Bounds::<Page>::from((
-            [cursor.page_pos.x(), cursor.page_pos.y() - size.height()],
+            [cursor.page_pos.x(), cursor.page_pos.y()],
             [size.width(), size.height()],
         ));
 

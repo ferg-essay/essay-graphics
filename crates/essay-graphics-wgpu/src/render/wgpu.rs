@@ -1,6 +1,6 @@
 use essay_graphics_api::renderer::{self, Backend, Drawable, GraphicsContext};
 
-use crate::{wgpu::context::WgpuGraphicsContext, WgpuMainLoop};
+use crate::{render::context::WgpuGraphicsContext, WgpuMainLoop};
 
 // use super::main_loop::main_loop;
 

@@ -134,7 +134,7 @@ impl TextRender {
         let start = self.vertex_offset;
 
         // TODO: proper spacing and kerning
-        let text_size = (size + 0.5) as u16;
+        let text_size = size.round() as u16;
 
         let s = self.text_cache.glyph(font_id, text_size, ' ');
         let w_space = s.advance_width;
@@ -236,7 +236,7 @@ impl TextRender {
         size: f32,
     ) -> Size {
         // TODO: proper spacing and kerning
-        let text_size = (size + 0.5) as u16;
+        let text_size = size.ceil() as u16;
 
         let s = self.text_cache.glyph(font_id, text_size, ' ');
         let w_space = s.w + s.dx.max(0.);
@@ -261,7 +261,7 @@ impl TextRender {
 
         let descent = 0.; // 0.3 * size; // TODO
 
-        Size(x, size + descent)
+        Size(x, s.ascent + s.descent)
     }
 
     pub(super) fn flush(&mut self, wgpu: &mut RenderWgpu) {

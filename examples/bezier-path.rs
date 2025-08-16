@@ -19,14 +19,17 @@ fn main() {
 fn arch(point: impl Into<Point>) -> Path<Canvas> {
     let Point(x, y) = point.into();
 
+    let h1 = -50.;
+    let h2 = -100.;
+
     Path::move_to(x, y)
         .line_to(x + 50., y)
-        .bezier2_to([x + 50., y + 50.], [x + 100., y + 50.])
-        .bezier2_to([x + 150., y + 50.], [x + 150., y])
+        .bezier2_to([x + 50., y - h1], [x + 100., y - h1])
+        .bezier2_to([x + 150., y - h1], [x + 150., y])
         .line_to(x + 200., y)
-        .bezier2_to([x + 200., y + 100.], [x + 150., y + 100.])
-        .line_to(x + 50., y + 100.)
-        .bezier2_to([x, y + 100.], [x, y])
+        .bezier2_to([x + 200., y - h2], [x + 150., y - h2])
+        .line_to(x + 50., y - h2)
+        .bezier2_to([x, y - h2], [x, y])
         .close_poly(x, y)
         .to_path()
 }
