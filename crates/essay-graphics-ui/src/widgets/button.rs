@@ -1,6 +1,6 @@
 use essay_graphics_api::{renderer::{Canvas, Renderer}, Path, Point, Size};
 
-use crate::ui::{style::State, ui::Widget, Response, ResponseValue, Ui};
+use crate::{style::State, ui::{ui::Widget, Response, ResponseValue, Ui}};
 
 pub struct Button {
     label: String,

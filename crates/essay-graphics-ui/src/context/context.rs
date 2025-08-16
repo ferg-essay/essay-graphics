@@ -8,7 +8,7 @@ use essay_graphics_api::{Bounds, Point};
 
 use crate::context::widget::{WidgetRect, WidgetRects};
 use crate::painter::GraphicsLayers;
-use crate::ui::style::UiStyle;
+use crate::style::UiStyle;
 use crate::ui::ui::{ResponseValue, Ui, UiBuilder};
 use crate::ui::{Response};
 use crate::util::{Id, IdSet};

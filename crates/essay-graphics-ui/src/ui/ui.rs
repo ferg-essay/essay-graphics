@@ -7,9 +7,7 @@ use essay_graphics_api::{
     Bounds, Point, Size, TextStyle
 };
 
-use crate::{context::{Context, WidgetRect}, painter::Painter, ui::{
-    style::UiStyle, Response
-}, util::Id, widgets::{Button, Label}};
+use crate::{context::{Context, WidgetRect}, painter::Painter, style::UiStyle, ui::Response, util::Id, widgets::{Button, Label}};
 
 use super::cursor::{Cursor, CursorUpdate};
 

@@ -1,8 +1,6 @@
 use essay_graphics_api::{renderer::{Canvas, Renderer}, Bounds, HorizAlign, Path, PathStyle, Point, Size};
 
-use crate::ui::{ResponseValue, Ui};
-
-use super::style::State;
+use crate::{style::State, ui::{ResponseValue, Ui}};
 
 pub struct Tabs<'a, T: PartialEq + Into<String>> {
     select: T,

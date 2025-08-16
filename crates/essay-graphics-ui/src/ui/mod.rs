@@ -2,7 +2,6 @@ mod response;
 mod frame;
 mod panel;
 mod cursor;
-pub mod style;
 mod tabs;
 pub mod ui;
 
