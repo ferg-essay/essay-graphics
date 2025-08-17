@@ -14,7 +14,7 @@ impl TextureStore {
         let (width, height) = (64, 4);
 
         let mut data = Vec::<[u8; 4]>::new();
-        data.resize(width * height, [0xff, 0x00, 0xff, 0xff]);
+        data.resize(width * height, [0xff, 0xff, 0xff, 0xff]);
         let id = textures.add_rgba_u8(
             device, 
             queue, 

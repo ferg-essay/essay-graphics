@@ -401,12 +401,12 @@ pub struct TextRect {
     pub w: f32,
     pub h: f32,
 
-    pub dx: f32,
+    pub _dx: f32,
     pub dy: f32,
 
     pub advance_width: f32,
     pub ascent: f32,
-    pub descent: f32,
+    pub _descent: f32,
     pub lsb: f32,
 }
 
@@ -422,11 +422,11 @@ impl TextRect {
             w: glyph.w as f32,
             h: glyph.h as f32,
 
-            dx: glyph.left as f32,
+            _dx: glyph.left as f32,
             dy: glyph.top as f32 - glyph.h as f32,
 
             ascent: glyph.ascent,
-            descent: glyph.descent,
+            _descent: glyph.descent,
             advance_width: glyph.advance_width,
             lsb: glyph.lsb,
         }

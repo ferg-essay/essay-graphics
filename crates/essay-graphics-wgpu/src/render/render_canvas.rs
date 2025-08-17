@@ -1,7 +1,9 @@
-use essay_graphics_api::{
-    input::Input, renderer::{Canvas, GraphicsContext, Pos, RenderErr}, Affine2d, Bounds, FontStyle, FontTypeId, Point, Size, TextureId};
+use std::collections::HashMap;
 
-use crate::{pipelines::PipelineCanvas, render::{context::WgpuGraphicsContext, render::RenderWgpu, text_cache::{FontId, TextCache}}};
+use essay_graphics_api::{
+    input::Input, renderer::{Canvas, Pos, RenderErr}, Affine2d, Bounds, FontStyle, FontTypeId, Hatch, Point, Size, TextureId};
+
+use crate::{pipelines::PipelineCanvas, render::{context::WgpuGraphicsContext, hatch::init_hatch, render::RenderWgpu, text_cache::{FontId, TextCache}}};
 
 
 pub struct RenderCanvas {
@@ -13,6 +15,8 @@ pub struct RenderCanvas {
 
     pub text_cache: TextCache,
     pub font_context: WgpuGraphicsContext,
+
+    pub hatch_map: HashMap<Hatch, TextureId>,
 
     pub to_gpu: Affine2d,
 
@@ -29,9 +33,10 @@ impl RenderCanvas {
         height: u32,
         scale_factor: f32,
     ) -> Self {
-        // let hatch_map = init_hatch(device, queue, &mut texture_store);
 
         let mut pipeline = PipelineCanvas::new(device, queue, format, width, height);
+
+        let hatch_map = init_hatch(device, queue, pipeline.textures_mut());
 
         let text_cache = TextCache::new(device, pipeline.textures_mut(), 512, 512);
 
@@ -43,6 +48,8 @@ impl RenderCanvas {
             text_cache,
             font_context: WgpuGraphicsContext::new(),
 
+            hatch_map,
+
             cache_pos: Pos::unit(),
             input: Input::default(),
             scale_factor: 4. / 3. * scale_factor,
@@ -53,8 +60,6 @@ impl RenderCanvas {
         };
 
         canvas.input.size = Size(width as f32, height as f32);
-        // canvas.resize(&device);
-
 
         canvas
     }
@@ -83,8 +88,7 @@ impl RenderCanvas {
 
         self.to_gpu = self.bounds.affine_to(&pos_gpu);
 
-        //if self.input.size.width() > 0. {
-        //    self.form3d_render.resize(device, self.cache_size.width() as u32, self.cache_size.height() as u32);
+        // self.pipeline.form3d_render.resize(device, self.cache_size.width() as u32, self.cache_size.height() as u32);
         //}
 
         true
@@ -92,6 +96,10 @@ impl RenderCanvas {
 
     pub fn pos(&self) -> Pos {
         self.bounds
+    }
+
+    pub fn hatch_id(&self, hatch: Hatch) -> TextureId {
+        *self.hatch_map.get(&hatch).unwrap()
     }
 
     pub fn font_texture_id(&self, _font: FontId, _size: f32) -> TextureId {

@@ -31,7 +31,7 @@ impl<'a, 'b> PlotRenderer<'a, 'b> {
 
         let result = (draw)(&mut renderer)?;
 
-        renderer.flush();
+        renderer.flush_inner();
 
         Ok(result)
     }
@@ -239,19 +239,16 @@ impl<'a, 'b> Renderer for PlotRenderer<'a, 'b> {
             let mut is_texture = false;
 
             if let Some(hatch) = style.get_hatch() {
-                /*
                 let (mesh, bezier) = fill_shape(&path);
 
-                let texture = self.hatch_map[&hatch];
+                let texture = self.canvas.hatch_id(hatch);
 
-                let style = vec![(face_color, &self.to_gpu).into()];
+                let style = vec![(face_color, &Affine2d::eye()).into()];
 
-                self.mesh2d_render.draw(wgpu, &self.texture_store, &mesh, texture, &style);
-                self.bezier_mesh_render.draw(wgpu, &bezier, &style);
+                self.draw_mesh2d(&mesh, texture, &style)?;
+                self.draw_bezier_mesh(&bezier, texture, &style)?;
 
                 is_texture = true;
-                */
-                todo!();
             } else if let Some(texture) = style.get_texture() {
                 let (mesh, bezier) = fill_shape(&path);
                 let style = vec![(face_color, &Affine2d::eye()).into()];
@@ -478,7 +475,7 @@ impl<'a, 'b> Renderer for PlotRenderer<'a, 'b> {
     fn flush(
         &mut self,
     ) {
-        self.flush_inner();
+        // self.flush_inner();
     }
 
     fn draw_with<'c>(
@@ -504,7 +501,7 @@ impl<'a, 'b> Renderer for PlotRenderer<'a, 'b> {
 
         (f)(push.ptr)?;
 
-        push.ptr.flush_inner();
+        // push.ptr.flush_inner();
 
         Ok(())
     }
@@ -683,10 +680,6 @@ impl<'a> RenderWgpu<'a> {
             self.staging.finish();
             self.queue.submit(Some(encoder.finish()));
         }
-    }
-
-    fn close(&mut self) {
-        self.flush();
     }
 }
 

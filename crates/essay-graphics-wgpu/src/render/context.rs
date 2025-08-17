@@ -91,7 +91,7 @@ pub struct Font {
 }
 
 impl Font {
-    pub fn load(path: &str) -> Option<Font> {
+    pub fn _load(path: &str) -> Option<Font> {
         fs::read(path).map_or(None,|font_data| {
             Some(Self::from_data(font_data.as_slice()))
         })

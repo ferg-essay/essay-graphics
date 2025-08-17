@@ -1,6 +1,6 @@
 use std::time::{Duration, Instant};
 
-use essay_graphics_api::{input::Input, output::Output, renderer::{self, App, Drawable, Pos}};
+use essay_graphics_api::{input::Input, output::Output, renderer::{self, App, Pos}};
 use essay_graphics_winit::{run_event_loop, MainLoopHandle};
 use wgpu::util::StagingBelt;
 use winit::{event_loop::EventLoop, window::{CursorIcon, Window}};

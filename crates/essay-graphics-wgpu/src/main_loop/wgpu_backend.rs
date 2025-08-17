@@ -1,4 +1,4 @@
-use essay_graphics_api::{output::Output, renderer::{self, App, Backend, Drawable, GraphicsContext}};
+use essay_graphics_api::{renderer::{self, App, Backend, GraphicsContext}};
 
 use crate::{render::context::WgpuGraphicsContext, WgpuMainLoop};
 
