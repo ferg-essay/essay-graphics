@@ -14,7 +14,7 @@ pub(super) struct Mesh2dRender {
 
     style_buffer: wgpu::Buffer,
     style_offset: usize,
-    style_len: usize,
+    _style_len: usize,
     style_stride: usize,
     style_vec: Vec<Style>,
 
@@ -57,7 +57,7 @@ impl Mesh2dRender {
             style_vec,
             style_buffer,
             style_offset: 0,
-            style_len: 0,
+            _style_len: 0,
 
             shape_items: Vec::new(),
             pipeline,

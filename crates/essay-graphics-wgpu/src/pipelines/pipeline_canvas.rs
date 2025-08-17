@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use essay_graphics_api::{
     form::{Form, FormId, Matrix4}, 
     input::Input, path_style::MeshStyle, 
-    renderer::{Canvas, RenderErr, Renderer, Result}, 
+    renderer::{Canvas, RenderErr, Result}, 
     Affine2d, BezierMesh2d, Bounds, Clip, Color, FontStyle, FontTypeId, 
     Hatch, HorizAlign, Mesh2d, Mesh2dColor, 
     PathOpt, Point, Size, TextStyle, TextureId, VertAlign
@@ -11,7 +11,7 @@ use essay_graphics_api::{
 use essay_tensor::tensor::Tensor;
 use wgpu::util::StagingBelt;
 
-use crate::render::{hatch::init_hatch, render::{render_draw_inner, RenderWgpu}};
+use crate::render::{hatch::init_hatch, render::{RenderWgpu}};
 use super::{
     bezier_mesh::BezierMeshRender, form3d::Form3dRender,
     mesh2d::Mesh2dRender, mesh2d_color::Mesh2dColorRender, 
@@ -103,29 +103,6 @@ impl PipelineCanvas {
 
     pub fn request_redraw(&mut self, is_redraw: bool) {
         self.is_request_redraw = is_redraw;
-    }
-
-    pub fn draw<'a, R>(
-        &'a mut self,
-        device: &'a wgpu::Device,
-        queue: &'a wgpu::Queue,
-        view: Option<&'a wgpu::TextureView>,
-        is_flush: bool,
-        draw: impl FnOnce(&mut dyn Renderer) -> Result<R> + 'a
-    ) -> Result<R> {
-        self.clear();
-
-        if self.cache_size != self.input.size {
-            self.resize(device);
-        }        
-
-        let staging = self.take_staging();
-
-        let (result, staging) = render_draw_inner(self, device, queue, view, staging, is_flush, draw);
-
-        self.replace_staging(staging);
-
-        result
     }
     
     pub fn clear(&mut self) {

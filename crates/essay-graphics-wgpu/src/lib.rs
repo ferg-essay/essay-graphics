@@ -9,9 +9,9 @@ pub use crate::pipelines::{
 pub use crate::main_loop::{
     WgpuMainLoop,
     WgpuHardcopy,
+    wgpu_backend::WgpuBackend,
 };
 
 pub use crate::render::{
     PlotRenderer,
-    wgpu::WgpuBackend,
 };

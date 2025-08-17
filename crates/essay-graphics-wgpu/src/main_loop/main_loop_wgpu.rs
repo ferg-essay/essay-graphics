@@ -1,10 +1,11 @@
 use std::time::{Duration, Instant};
 
-use essay_graphics_api::{input::{Input}, renderer::{self, Drawable}};
+use essay_graphics_api::{input::Input, renderer::{self, Drawable, Pos}};
 use essay_graphics_winit::{run_event_loop, MainLoopHandle};
+use wgpu::util::StagingBelt;
 use winit::{event_loop::EventLoop, window::{CursorIcon, Window}};
 
-use crate::{render::render::render_draw, PipelineCanvas};
+use crate::{render::{render::{RenderWgpu, State}, RenderCanvas}, PlotRenderer};
 
 pub struct WgpuMainLoop {
     title: Option<String>,
@@ -40,7 +41,7 @@ impl WgpuMainLoop {
 
         let wgpu_device = pollster::block_on(init_wgpu_device(&window));
 
-        let mut handle = MainLoopData::new(wgpu_device, draw);
+        let mut handle = WgpuViewport::new(wgpu_device, draw);
 
         handle.canvas.set_scale_factor(window.scale_factor() as f32);
 
@@ -67,7 +68,7 @@ struct MainLoopDevice<'window> {
     window: &'window Window,
 }
 
-struct MainLoopData<'window> {
+struct WgpuViewport<'window> {
     // instance: wgpu::Instance,
     // adapter: wgpu::Adapter,
     device: wgpu::Device,
@@ -76,16 +77,18 @@ struct MainLoopData<'window> {
     surface: wgpu::Surface<'window>,
     window: &'window Window,
 
-    canvas: PipelineCanvas,
+    canvas: RenderCanvas,
     drawable: Box<dyn Drawable>,
+
+    input: Input,
 }
 
-impl<'window> MainLoopData<'window> {
+impl<'window> WgpuViewport<'window> {
     fn new(
         device: MainLoopDevice<'window>, 
         draw: Box<dyn Drawable>
     ) -> Self {
-        let canvas = PipelineCanvas::new(
+        let canvas = RenderCanvas::new(
             &device.device,
             &device.queue,
             device.config.format,
@@ -95,8 +98,6 @@ impl<'window> MainLoopData<'window> {
         );
 
         Self {
-            // instance: device.instance,
-            // adapter: device.adapter,
             device: device.device,
             queue: device.queue,
             surface: device.surface,
@@ -105,16 +106,25 @@ impl<'window> MainLoopData<'window> {
 
             canvas,
             drawable: draw,
+            input: Default::default(),
         }
     }
 
     fn main_render(&mut self) {
-        if self.canvas.resize(&self.device) {
-            self.config.width = self.canvas.input().size.width() as u32;
-            self.config.height = self.canvas.input().size.height() as u32;
+        let pos = Pos::from(self.input.size);
+
+        if pos.width() == 0. {
+            return;
+        }
+
+        if pos != self.canvas.pos() {
+            self.config.width = self.input.size.width() as u32;
+            self.config.height = self.input.size.height() as u32;
 
             self.surface.configure(&self.device, &self.config);
-        };
+
+            self.canvas.resize(pos);
+        }
 
         let frame = self.surface.get_current_texture()
             .expect("Failed to get next swap chain texture");
@@ -150,24 +160,39 @@ impl<'window> MainLoopData<'window> {
     
         self.queue.submit(Some(encoder.finish()));
     
-        let is_flush = true;
-        render_draw(&mut self.canvas, &self.device, &self.queue, Some(&view), is_flush,
+        let staging = StagingBelt::new(2048 * 128);
+
+        let mut wgpu = RenderWgpu {
+            device: &self.device,
+            queue: &self.queue,
+            view: &view,
+            scissor: None,
+            encoder: None,
+            state: State::PreInit,
+            bounds: pos,
+            staging,
+        };
+
+        PlotRenderer::render(
+            &mut wgpu,
+            &mut self.canvas,
+            &self.input,
             |ui| {
                 self.drawable.draw(ui)
-        }).unwrap();
-        //self.canvas.draw(self.drawable.as_mut(), &self.device, &self.queue, &view).unwrap();
+            }
+        ).unwrap();
     
         frame.present();
     }
 }
 
-impl MainLoopHandle for MainLoopData<'_> {
+impl MainLoopHandle for WgpuViewport<'_> {
     fn request_redraw(&mut self) {
         self.window.request_redraw();
     }
 
     fn input(&mut self, input: &Input) -> Option<Instant> {
-        self.canvas.set_input(input);
+        self.input = input.clone();
 
         None
     }

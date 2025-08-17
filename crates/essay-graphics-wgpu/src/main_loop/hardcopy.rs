@@ -6,8 +6,6 @@ use image::{ImageBuffer, Rgba};
 
 use crate::PipelineCanvas;
 
-use crate::render::render::render_draw;
-
 pub struct WgpuHardcopy {
     device: wgpu::Device,
     queue: wgpu::Queue,
@@ -154,6 +152,8 @@ impl WgpuHardcopy {
 
         let is_flush = true;
 
+        todo!();
+        /*
         render_draw(
             &mut self.canvas, 
             &self.device, 
@@ -165,6 +165,7 @@ impl WgpuHardcopy {
                 drawable.draw(ui)                
             }
         ).unwrap();
+        */
     }
 
     pub fn draw_viewless<R>(
@@ -175,6 +176,8 @@ impl WgpuHardcopy {
 
         self.canvas.clear();
 
+        todo!();
+        /*
         render_draw(
             &mut self.canvas, 
             &self.device, 
@@ -183,6 +186,7 @@ impl WgpuHardcopy {
             is_flush,
             draw,
         )
+        */
     }
 
     pub fn copy_into_buffer(
