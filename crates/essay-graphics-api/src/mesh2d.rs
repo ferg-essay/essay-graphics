@@ -35,7 +35,7 @@ impl Mesh2d {
     pub fn triangle_uv(
         &mut self, 
         (p0, uv0): (impl Into<Point>, impl Into<Point>), 
-        (p1, uv1): (impl Into<Point>, impl Into<Point>), // bezier control point
+        (p1, uv1): (impl Into<Point>, impl Into<Point>),
         (p2, uv2): (impl Into<Point>, impl Into<Point>),
     ) {
         let (p0, uv0) = (p0.into(), uv0.into());
@@ -45,6 +45,24 @@ impl Mesh2d {
         self.vertices.push([p0.0, p0.1, uv0.0, uv0.1]);
         self.vertices.push([p1.0, p1.1, uv1.0, uv1.1]);
         self.vertices.push([p2.0, p2.1, uv2.0, uv2.1]);
+    }
+
+    #[inline]
+    pub fn rect_uv(
+        &mut self, 
+        (p0, uv0): (impl Into<Point>, impl Into<Point>), 
+        (p1, uv1): (impl Into<Point>, impl Into<Point>),
+    ) {
+        let (p0, uv0) = (p0.into(), uv0.into());
+        let (p1, uv1) = (p1.into(), uv1.into());
+
+        self.vertices.push([p0.0, p0.1, uv0.0, uv0.1]);
+        self.vertices.push([p1.0, p0.1, uv1.0, uv0.1]);
+        self.vertices.push([p1.0, p1.1, uv1.0, uv1.1]);
+
+        self.vertices.push([p0.0, p0.1, uv0.0, uv0.1]);
+        self.vertices.push([p1.0, p1.1, uv1.0, uv1.1]);
+        self.vertices.push([p0.0, p1.1, uv0.0, uv1.1]);
     }
 
     #[inline]

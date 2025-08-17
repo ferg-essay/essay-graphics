@@ -1,11 +1,11 @@
 use essay_graphics_api::TextureId;
 
 
-pub struct TextureCache {
+pub struct TextureStore {
     texture_items: Vec<TextureItem>,
 }
 
-impl TextureCache {
+impl TextureStore {
     pub fn new(device: &wgpu::Device, queue: &wgpu::Queue) -> Self {
         let mut textures = Self {
             texture_items: Vec::new(),
@@ -13,9 +13,15 @@ impl TextureCache {
 
         let (width, height) = (64, 4);
 
-        let mut data = Vec::<u8>::new();
-        data.resize(width * height * 4, 0xff);
-        let id = textures.add_rgba_u8(device, queue, width as u32, height as u32, data.as_slice());
+        let mut data = Vec::<[u8; 4]>::new();
+        data.resize(width * height, [0xff, 0x00, 0xff, 0xff]);
+        let id = textures.add_rgba_u8(
+            device, 
+            queue, 
+            width as u32, 
+            height as u32, 
+            data.as_flattened()
+        );
 
         assert_eq!(id, TextureId::default());
 
@@ -43,7 +49,7 @@ impl TextureCache {
 
         let mut item = TextureItem::new(
             device, 
-            wgpu::TextureFormat::Rgba8Unorm,
+            TextureType::Rgba,
             address_mode,
             width, 
             height
@@ -55,6 +61,59 @@ impl TextureCache {
 
         id
     }
+
+    pub fn create_text(
+        &mut self, 
+        device: &wgpu::Device,
+        width: u32, 
+        height: u32, 
+    ) -> TextureId {
+        let id = TextureId::new(self.texture_items.len());
+        
+        let format = TextureType::Alpha;
+        let address_mode = wgpu::AddressMode::ClampToEdge;
+
+        let item = TextureItem::new(
+            device, 
+            format,
+            address_mode,
+            width, 
+            height
+        );
+
+        self.texture_items.push(item);
+
+        id
+    }
+
+    pub fn write(
+        &mut self, 
+        queue: &wgpu::Queue,
+        id: TextureId,
+        width: u32, 
+        height: u32, 
+        data: &[u8],
+    ) {
+        let item = &mut self.texture_items[id.index()];
+
+        match item.format {
+            TextureType::Alpha => {
+                assert_eq!(data.len() as u32, width * height);
+
+                let data: Vec<[u8; 4]> = data.iter()
+                    .map(|x| [0xff, 0xff, 0xff, *x])
+                    .collect();
+
+                item.write(queue, width * 4, width, height, data.as_flattened());
+            },
+            TextureType::Rgba => {
+                assert_eq!(data.len() as u32, 4 * width * height);
+
+                item.write(queue, width * 4, width, height, data);
+            },
+        };
+
+    }
     
     pub(crate) fn texture_bind_group(&self, id: TextureId) -> &wgpu::BindGroup {
         &self.texture_items[id.index()].bind_group
@@ -63,7 +122,7 @@ impl TextureCache {
 
 struct TextureItem {
     texture: wgpu::Texture,
-    _format: wgpu::TextureFormat,
+    format: TextureType,
     _layout: wgpu::BindGroupLayout,
     bind_group: wgpu::BindGroup,
 }
@@ -71,18 +130,19 @@ struct TextureItem {
 impl TextureItem {
     fn new(
         device: &wgpu::Device, 
-        format: wgpu::TextureFormat,
+        format: TextureType,
         address_mode: wgpu::AddressMode,
         width: u32, 
         height: u32
     ) -> Self {
-        let texture = create_texture(device, format, width, height);
+        let wgpu_format = wgpu::TextureFormat::Rgba8Unorm;
+        let texture = create_texture(device, wgpu_format, width, height);
         let layout = create_bind_group_layout(device);
         let bind_group = create_bind_group(device, &layout, &texture, address_mode);
 
         Self {
             texture,
-            _format: format,
+            format,
             _layout: layout,
             bind_group,
         }
@@ -98,6 +158,11 @@ impl TextureItem {
             height,
         );
     }
+}
+
+enum TextureType {
+    Alpha,
+    Rgba,
 }
 
 fn create_texture(

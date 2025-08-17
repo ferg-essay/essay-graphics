@@ -4,7 +4,7 @@ use essay_graphics_api::renderer::{self, Drawable, Renderer};
 use wgpu::BufferView;
 use image::{ImageBuffer, Rgba};
 
-use crate::PipelineCanvas;
+use crate::pipelines::PipelineCanvas;
 
 pub struct WgpuHardcopy {
     device: wgpu::Device,
@@ -60,7 +60,6 @@ impl WgpuHardcopy {
             texture_format,
             width,
             height,
-            1.,
         );
     
         Self {

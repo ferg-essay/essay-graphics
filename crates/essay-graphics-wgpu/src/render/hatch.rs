@@ -2,12 +2,12 @@ use std::{collections::HashMap, ops::{Index, IndexMut}};
 
 use essay_graphics_api::{Hatch, TextureId};
 
-use crate::pipelines::texture_store::TextureCache;
+use crate::pipelines::texture_store::TextureStore;
 
 pub fn init_hatch(
     device: &wgpu::Device, 
     queue: &wgpu::Queue, 
-    textures: &mut TextureCache
+    textures: &mut TextureStore
 ) -> HashMap<Hatch, TextureId> {
     let mut hatch_map = HashMap::new();
 
@@ -26,7 +26,7 @@ pub fn init_hatch(
 fn hatch_vertical(
     device: &wgpu::Device, 
     queue: &wgpu::Queue, 
-    textures: &mut TextureCache
+    textures: &mut TextureStore
 ) -> TextureId {
     let mut builder = HatchBuilder::new(64, 64);
 
@@ -49,7 +49,7 @@ fn hatch_vertical(
 fn hatch_horizontal(
     device: &wgpu::Device, 
     queue: &wgpu::Queue, 
-    textures: &mut TextureCache
+    textures: &mut TextureStore
 ) -> TextureId {
     let mut builder = HatchBuilder::new(64, 64);
 
@@ -97,7 +97,7 @@ impl HatchBuilder {
         self, 
         device: &wgpu::Device, 
         queue: &wgpu::Queue, 
-        textures: &mut TextureCache
+        textures: &mut TextureStore
     ) -> TextureId {
         let mut rgba = Vec::<u8>::new();
 

@@ -1,18 +1,12 @@
 use std::{mem, num::NonZero};
 
 use essay_graphics_api::{
-    form::{Form, FormId, Matrix4}, 
-    input::Input, 
-    path_style::MeshStyle, 
-    renderer::{Canvas, Pos, RenderErr, Renderer, Result}, 
-    Affine2d, BezierMesh2d, Bounds, CapStyle, Color, FontStyle, FontTypeId, 
-    JoinStyle, LineStyle, Mesh2d, Mesh2dColor, Path, PathCode, PathOpt, 
-    Point, Size, TextStyle, TextureId
+    form::{Form, FormId, Matrix4}, input::Input, path_style::MeshStyle, renderer::{Canvas, GraphicsContext, Pos, RenderErr, Renderer, Result}, Affine2d, BezierMesh2d, Bounds, CapStyle, Color, FontStyle, FontTypeId, HorizAlign, JoinStyle, LineStyle, Mesh2d, Mesh2dColor, Path, PathCode, PathOpt, Point, Size, TextStyle, TextureId, VertAlign
 };
 use essay_tensor::tensor::Tensor;
 use wgpu::util::StagingBelt;
 
-use crate::{render::{lines::lines, triangulate3::fill_shape, RenderCanvas}};
+use crate::render::{lines::lines, text_cache::FontId, triangulate3::fill_shape, RenderCanvas};
 
 pub struct PlotRenderer<'a, 'b> {
     wgpu: &'b mut RenderWgpu<'a>,
@@ -43,6 +37,7 @@ impl<'a, 'b> PlotRenderer<'a, 'b> {
     }
 
     fn flush_inner(&mut self) {
+        self.canvas.flush(self.wgpu);
         self.canvas.pipeline.flush(self.wgpu);
         self.wgpu.flush();
     }
@@ -91,6 +86,96 @@ impl<'a, 'b> PlotRenderer<'a, 'b> {
         } else {
             Ok(())
         }
+    }
+
+    ///
+    /// draw a text item
+    /// 
+    fn draw_text_impl(
+        &mut self, 
+        text: &str, 
+        font_id: FontId, 
+        size: f32,
+        pos: Point, 
+        color: Color,
+        angle: f32,
+        halign: HorizAlign,
+        valign: VertAlign,
+    ) {
+        let x0 = pos.x();
+        let y0 = pos.y();
+
+        let mut mesh = Mesh2d::new();
+
+        let text_size = size.round() as u16;
+
+        let s = self.canvas.text_cache.glyph(font_id, text_size, ' ');
+        let w_space = s.advance_width;
+        
+        let mut x = x0; // x0.floor();
+        let y = (y0 + s.ascent).floor(); // y.floor
+        let mut is_first = true;
+
+        for ch in text.chars() {
+            let r = self.canvas.text_cache.glyph(font_id, text_size, ch);
+            
+            //x = x.round();
+
+            if r.is_none() || ch == ' ' {
+                x += w_space;
+                continue;
+            }
+
+            let y_ch = y - r.dy;// - r.h as f32;
+            let x_ch = if is_first {
+                x.floor()
+            } else {
+                (x + r.lsb).floor()
+            };
+
+            is_first = false;
+
+            let w = r.w; // .ceil();
+            let h = r.h; // .ceil();
+
+            mesh.rect_uv(
+                ([x_ch, y_ch], [r.tx_min, r.ty_min]),
+                ([x_ch + w, y_ch - h], [r.tx_max, r.ty_max]),
+            );
+
+            x += r.advance_width;
+        }
+
+        let dx = match halign {
+            HorizAlign::Left => 0.,
+            HorizAlign::Center => - 0.5 * (x - x0),
+            HorizAlign::Right => - (x - x0),
+        };
+
+        let descent = 0.;
+
+        let dy = match valign {
+            VertAlign::Top => - size - descent,
+            VertAlign::Center => - 0.5 * (size + descent),
+            VertAlign::BaselineBottom => 0.,
+            VertAlign::Bottom => - descent,
+        };
+
+        let mut affine = Affine2d::eye();
+        if angle != 0. {
+            affine = affine.rotate_around(0.5 * (x0 + x), y0, angle)
+        }
+
+        affine = affine.translate(dx, dy);
+
+        let style = MeshStyle {
+            color,
+            affine,
+        };
+
+        let texture_id = self.canvas.font_texture_id(font_id, size);
+
+        self.draw_mesh2d(&mesh, texture_id, &[style]).unwrap();
     }
 }
 
@@ -275,18 +360,60 @@ impl<'a, 'b> Renderer for PlotRenderer<'a, 'b> {
         &mut self,
         style: &FontStyle
     ) -> Result<FontTypeId, RenderErr> {
-        self.canvas.pipeline.font(style)
+        self.canvas.font(style)
     }
 
     fn draw_text(
-        &mut self, 
+        &mut self,
         xy: Point, // location in Canvas coordinates
         text: &str,
         angle: f32,
         style: &dyn PathOpt, 
         text_style: &TextStyle,
     ) -> Result<(), RenderErr> {
-        self.canvas.pipeline.draw_text(xy, text, angle, style, text_style)
+        if text.len() == 0 { // todo: more sophisticated validation
+            return Ok(());
+        }
+
+        let color = match style.get_face_color() {
+            Some(color) => color,
+            None => Color(0x000000ff),
+        };
+
+        let size = match &text_style.get_size() {
+            Some(size) => *size,
+            None => 10.,
+        };
+
+        let size = self.to_px(size);
+
+        let halign = match text_style.get_width_align() {
+            Some(align) => align.clone(),
+            None => HorizAlign::Center,
+        };
+
+        let valign = match text_style.get_height_align() {
+            Some(align) => align.clone(),
+            None => VertAlign::Bottom,
+        };
+
+        let font_id = match text_style.get_font() {
+            Some(type_id) => FontId(type_id.0),
+            None => self.canvas.text_cache.font_id("default"),
+        };
+
+        self.draw_text_impl(
+            text,
+            font_id,
+            size,
+            xy, 
+            color,
+            angle,
+            halign,
+            valign,
+        );
+ 
+        Ok(())
     }
 
     fn text_size(
@@ -294,7 +421,29 @@ impl<'a, 'b> Renderer for PlotRenderer<'a, 'b> {
         text: &str,
         text_style: &TextStyle,
     ) -> Size {
-        self.canvas.pipeline.text_size(text, text_style)
+        let mut font_set = self.canvas.font_context.default_font_set();
+
+        let size = self.to_px(text_style.get_size().unwrap_or(10.));
+
+        let mut width = 0.;
+        let mut height = 0.0f32;
+        let mut is_first = true;
+        
+        for ch in text.chars() {
+            let rect = font_set.glyph_size(size, ch);
+
+            height = height.max(rect.height as f32);
+
+            if is_first {
+                width += rect.width;
+            } else {
+                width += rect.width + rect.lsb;
+            }
+
+            is_first = false;
+        }
+
+        Size(width, height)
     }
 
     fn create_form(

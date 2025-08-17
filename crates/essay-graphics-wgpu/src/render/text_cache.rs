@@ -1,10 +1,13 @@
 use std::{collections::HashMap, fs, ops::Index};
 
+use essay_graphics_api::TextureId;
 use swash::{FontRef, scale::{ScaleContext, Source, Render}, CacheKey, Charmap, zeno::Format};
 
-use super::text_texture::TextTexture;
+use crate::pipelines::texture_store::TextureStore;
 
 pub struct TextCache {
+    texture_id: TextureId,
+
     context: ScaleContext,
     font_map: HashMap<String, FontId>,
     fonts: Vec<FontSet>,
@@ -16,10 +19,19 @@ pub struct TextCache {
 }
 
 impl TextCache {
-    pub fn new(width: u32, height: u32) -> Self {
+    pub fn new(
+        device: &wgpu::Device,
+        textures: &mut TextureStore, 
+        width: u32, 
+        height: u32
+    ) -> Self {
         assert!(width % 256 == 0);
 
+        let texture_id = textures.create_text(device, width, height);
+
         Self {
+            texture_id,
+            
             context: ScaleContext::new(),
             font_map: HashMap::default(),
             fonts: Vec::new(),
@@ -55,6 +67,10 @@ impl TextCache {
         }
 
         *id
+    }
+
+    pub fn texture_id(&self) -> TextureId {
+        self.texture_id
     }
 
     pub fn glyph(&mut self, font_id: FontId, size: u16, glyph: char) -> TextRect {
@@ -132,12 +148,18 @@ impl TextCache {
     pub(crate) fn flush(
         &mut self, 
         queue: &wgpu::Queue, 
-        texture: &TextTexture,
+        textures: &mut TextureStore,
     ) {
         if self.is_modified {
             self.is_modified = false;
 
-            texture.write_data(queue, &self.store.data);
+            textures.write(
+                queue, 
+                self.texture_id, 
+                self.store.width as u32, 
+                self.store.height as u32,
+                &self.store.data
+            );
         }
     }
 }

@@ -5,7 +5,7 @@ use essay_graphics_api::{path_style::MeshStyle, Affine2d, Color, Mesh2d, Texture
 use wgpu::util::DeviceExt;
 
 use crate::render::{render::RenderWgpu};
-use super::{texture_store::TextureCache};
+use super::{texture_store::TextureStore};
 
 pub(super) struct Mesh2dRender {
     vertex_buffer: wgpu::Buffer,
@@ -67,7 +67,7 @@ impl Mesh2dRender {
     pub(super) fn draw(
         &mut self, 
         wgpu: &mut RenderWgpu,
-        textures: &TextureCache,
+        textures: &TextureStore,
         mesh: &Mesh2d,
         texture: TextureId,
         style: &[MeshStyle],
@@ -167,7 +167,7 @@ impl Mesh2dRender {
     pub(super) fn flush(
         &mut self, wgpu: 
         &mut RenderWgpu,
-        textures: &TextureCache,
+        textures: &TextureStore,
     ) {
         if self.shape_items.len() == 0 {
             return;

@@ -1,7 +1,7 @@
 use essay_graphics_api::{
-    input::Input, renderer::{Canvas, Pos}, Affine2d, Bounds, Point, Size};
+    input::Input, renderer::{Canvas, GraphicsContext, Pos, RenderErr}, Affine2d, Bounds, FontStyle, FontTypeId, Point, Size, TextureId};
 
-use crate::{PipelineCanvas};
+use crate::{pipelines::PipelineCanvas, render::{context::WgpuGraphicsContext, render::RenderWgpu, text_cache::{FontId, TextCache}}};
 
 
 pub struct RenderCanvas {
@@ -9,9 +9,12 @@ pub struct RenderCanvas {
     scale_factor: f32,
     input: Input,
 
-    pub(crate) pipeline: PipelineCanvas,
+    pub pipeline: PipelineCanvas,
 
-    pub(crate) to_gpu: Affine2d,
+    pub text_cache: TextCache,
+    pub font_context: WgpuGraphicsContext,
+
+    pub to_gpu: Affine2d,
 
     cache_pos: Pos,
     is_request_redraw: bool,
@@ -28,10 +31,17 @@ impl RenderCanvas {
     ) -> Self {
         // let hatch_map = init_hatch(device, queue, &mut texture_store);
 
+        let mut pipeline = PipelineCanvas::new(device, queue, format, width, height);
+
+        let text_cache = TextCache::new(device, pipeline.textures_mut(), 512, 512);
+
         let mut canvas = Self {
             bounds: Bounds::unit(),
 
-            pipeline: PipelineCanvas::new(device, queue, format, width, height, scale_factor),
+            pipeline,
+
+            text_cache,
+            font_context: WgpuGraphicsContext::new(),
 
             cache_pos: Pos::unit(),
             input: Input::default(),
@@ -44,6 +54,7 @@ impl RenderCanvas {
 
         canvas.input.size = Size(width as f32, height as f32);
         // canvas.resize(&device);
+
 
         canvas
     }
@@ -81,5 +92,29 @@ impl RenderCanvas {
 
     pub fn pos(&self) -> Pos {
         self.bounds
+    }
+
+    pub fn font_texture_id(&self, _font: FontId, _size: f32) -> TextureId {
+        self.text_cache.texture_id()
+    }
+
+    pub fn font(
+        &mut self,
+        style: &FontStyle,
+    ) -> Result<FontTypeId, RenderErr> {
+        if let Some(family) = style.get_family() {
+            let font_id = self.text_cache.font_id(family);
+
+            Ok(FontTypeId(font_id.0)) // i()))
+        } else {
+            Err(RenderErr::NotImplemented)            
+        }
+    }
+
+    pub fn flush(
+        &mut self,
+        wgpu: &RenderWgpu,
+    ) {
+        self.text_cache.flush(wgpu.queue, self.pipeline.textures_mut());
     }
 }

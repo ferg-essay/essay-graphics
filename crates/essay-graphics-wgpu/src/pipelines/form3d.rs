@@ -3,7 +3,7 @@ use essay_graphics_api::{form::{Form, FormId, Matrix4}, TextureId};
 use wgpu::util::DeviceExt;
 
 use crate::render::render::RenderWgpu;
-use super::{texture_store::TextureCache};
+use super::{texture_store::TextureStore};
 
 pub struct Form3dRender {
     vertex_stride: usize,
@@ -255,7 +255,7 @@ impl Form3dRender {
     pub(super) fn flush(
         &mut self, 
         wgpu: &mut RenderWgpu,
-        textures: &TextureCache,
+        textures: &TextureStore,
     ) {
         if self.draw_items.len() == 0 {
             return;
