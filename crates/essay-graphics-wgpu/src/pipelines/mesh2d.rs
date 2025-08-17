@@ -1,3 +1,5 @@
+use std::num::NonZero;
+
 use bytemuck_derive::{Zeroable, Pod};
 use essay_graphics_api::{path_style::MeshStyle, Affine2d, Color, Mesh2d, TextureId};
 use wgpu::util::DeviceExt;
@@ -6,19 +8,18 @@ use crate::render::{render::RenderWgpu};
 use super::{texture_store::TextureCache};
 
 pub(super) struct Mesh2dRender {
-    vertex_stride: usize,
-    vertex_vec: Vec<Vertex>,
     vertex_buffer: wgpu::Buffer,
     vertex_offset: usize,
+    vertex_len: usize,
 
-    style_stride: usize,
-    style_vec: Vec<Style>,
     style_buffer: wgpu::Buffer,
     style_offset: usize,
+    style_len: usize,
+    style_stride: usize,
+    style_vec: Vec<Style>,
 
     shape_items: Vec<Item>,
 
-    // texture_cache: TextureCache,
     pipeline: wgpu::RenderPipeline,
 }
 
@@ -29,16 +30,7 @@ impl Mesh2dRender {
     ) -> Self {
         let len = 2048;
 
-        let mut vertex_vec = Vec::<Vertex>::new();
-        vertex_vec.resize(len, Vertex::empty());
-
-        let vertex_buffer = device.create_buffer_init(
-            &wgpu::util::BufferInitDescriptor {
-                label: None,
-                contents: bytemuck::cast_slice(vertex_vec.as_slice()),
-                usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
-            }
-        );
+        let vertex_buffer = create_vertex_buffer(device, len);
 
         let mut style_vec = Vec::<Style>::new();
         style_vec.resize(len, Style::empty());
@@ -57,15 +49,15 @@ impl Mesh2dRender {
         );
     
         Self {
-            vertex_stride: std::mem::size_of::<Vertex>(),
-            vertex_vec,
             vertex_buffer,
             vertex_offset: 0,
+            vertex_len: len,
 
             style_stride: std::mem::size_of::<Style>(),
             style_vec,
             style_buffer,
             style_offset: 0,
+            style_len: 0,
 
             shape_items: Vec::new(),
             pipeline,
@@ -86,25 +78,31 @@ impl Mesh2dRender {
             return;
         }
 
-        if self.vertex_vec.len() < self.vertex_offset + mesh.as_slice().len()
+        if self.vertex_len < self.vertex_offset + mesh.as_slice().len()
             || self.style_vec.len() <= self.style_offset + style.len() {
             self.flush(wgpu, textures);
-        }
-
-        if self.vertex_vec.len() < self.vertex_offset + mesh.as_slice().len()
-            || self.style_vec.len() <= self.style_offset + style.len() {
             self.resize_buffers(wgpu.device, mesh);
         }
 
-        let offset = self.vertex_offset;
-
         self.start_shape(texture);
 
-        for (dst, src) in self.vertex_vec.iter_mut().skip(offset).zip(mesh.as_slice()) {
-            dst.position[0] = src[0];
-            dst.position[1] = src[1];
-            dst.uv[0] = src[2];
-            dst.uv[1] = src[3];
+        let vec: Vec<Vertex> = mesh.as_slice().iter().map(|src| {
+            Vertex {
+                position: [src[0], src[1]],
+                uv: [src[2], src[3]],
+            }
+        }).collect();
+
+        let start_offset = self.vertex_offset * Vertex::size_of();
+        let end_offset = (self.vertex_offset + len) * Vertex::size_of();
+        if let Some(mut view) = wgpu.queue.write_buffer_with(
+                &mut self.vertex_buffer, 
+                start_offset as u64,
+                NonZero::new((end_offset - start_offset) as u64).unwrap(),
+        ) {
+            view.copy_from_slice(
+                bytemuck::cast_slice(vec.as_slice())
+            );
         }
 
         self.vertex_offset += len;
@@ -119,25 +117,19 @@ impl Mesh2dRender {
         device: &wgpu::Device,
         mesh: &Mesh2d,
     ) {
-        let mut size = self.vertex_vec.len();
+        let mut size = self.vertex_len;
 
         while size < mesh.as_slice().len() {
             size += 2048;
         }
 
-        let mut vertex_vec = Vec::new();
-        vertex_vec.resize(size, Vertex::empty());
+        self.vertex_len = size;
 
-        let vertex_buffer = device.create_buffer_init(
-            &wgpu::util::BufferInitDescriptor {
-                label: None,
-                contents: bytemuck::cast_slice(vertex_vec.as_slice()),
-                usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
-            }
-        );
+        self.vertex_buffer = create_vertex_buffer(device, size);
 
-        self.vertex_buffer = vertex_buffer;
-        self.vertex_vec = vertex_vec;
+        // need to copy old data or force a redraw
+        todo!("need to copy old data");
+
     }
 
     fn start_shape(&mut self, texture: TextureId) {
@@ -182,11 +174,6 @@ impl Mesh2dRender {
         }
 
         wgpu.write_buffer(
-            &mut self.vertex_buffer, 
-            bytemuck::cast_slice(&self.vertex_vec.as_slice()[0..self.vertex_offset])
-        );
-
-        wgpu.write_buffer(
             &mut self.style_buffer, 
             bytemuck::cast_slice(&self.style_vec.as_slice()[0..self.style_offset])
         );
@@ -198,7 +185,7 @@ impl Mesh2dRender {
                 rpass.set_bind_group(0, textures.texture_bind_group(item.texture), &[]);
     
                 if item.v_start < item.v_end && item.s_start < item.s_end {
-                    let stride = self.vertex_stride;
+                    let stride = Vertex::size_of();
                     rpass.set_vertex_buffer(0, self.vertex_buffer.slice(
                         (stride * item.v_start) as u64..(stride * item.v_end) as u64
                     ));
@@ -245,12 +232,24 @@ impl Vertex {
         }
     }
 
-    fn empty() -> Vertex {
-        Self {
-            position: [0., 0.],
-            uv: [0., 0.],
-        }
+    pub(crate) fn size_of() -> usize {
+        std::mem::size_of::<Vertex>()
     }
+}
+
+fn create_vertex_buffer(
+    device: &wgpu::Device,
+    len: usize,
+) -> wgpu::Buffer {
+    let size = (Vertex::size_of() * len) as u64;
+
+    device.create_buffer(
+        &wgpu::BufferDescriptor {
+        label: None,
+        usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
+        size,
+        mapped_at_creation: false,
+    })
 }
 
 #[derive(Debug)]
