@@ -1,14 +1,14 @@
 use essay_graphics_api::{
     form::{Form, FormId, Matrix4}, 
     path_style::MeshStyle, 
-    renderer::{RenderErr, Result}, 
+    renderer::{self, RenderErr, Result}, 
     Affine2d, BezierMesh2d, 
     Mesh2d, Mesh2dColor, 
     TextureId,
 };
 use essay_tensor::tensor::Tensor;
 
-use crate::render::{render::{RenderWgpu}};
+use crate::{pipelines::{bezier_mesh::BezierFlush, mesh2d::Mesh2dFlush}, render::render::RenderWgpu};
 use super::{
     bezier_mesh::BezierMeshRender, form3d::Form3dRender,
     mesh2d::Mesh2dRender, mesh2d_color::Mesh2dColorRender, 
@@ -16,14 +16,14 @@ use super::{
 };
 
 pub(crate) struct PipelineCanvas {
+    texture_store: TextureStore,
+
     mesh2d_render: Mesh2dRender,
     bezier_mesh_render: BezierMeshRender,
-
     mesh2d_color_render: Mesh2dColorRender,
-
     form3d_render: Form3dRender,
 
-    texture_store: TextureStore,
+    flush_items: Vec<FlushItem>,
 
     is_request_redraw: bool,
 }
@@ -48,17 +48,19 @@ impl PipelineCanvas {
         // let hatch_map = init_hatch(device, queue, &mut texture_store);
 
         let mut canvas = Self {
+            texture_store,
+
             mesh2d_render,
             bezier_mesh_render,
             mesh2d_color_render,
             form3d_render,
 
-            texture_store,
+            flush_items: Vec::new(),
 
             is_request_redraw: false,
         };
 
-        canvas.resize(&device);
+        canvas.resize(&device, width as f32, height as f32);
 
         canvas
     }
@@ -68,26 +70,18 @@ impl PipelineCanvas {
     }
     
     pub fn clear(&mut self) {
+        self.flush_items.clear();
+        self.mesh2d_render.clear();
     }
 
     pub fn textures_mut(&mut self) -> &mut TextureStore {
         &mut self.texture_store
     }
 
-    pub fn resize(&mut self, device: &wgpu::Device) -> bool {
-        /*
-        if self.cache_size == self.input.size || self.input.size.width() == 0. {
-            return false;
+    pub fn resize(&mut self, device: &wgpu::Device, width: f32, height: f32) {
+        if width > 0. {
+            self.form3d_render.resize(device, width as u32, height as u32);
         }
-        */
-
-        /*
-        if self.input.size.width() > 0. {
-            self.form3d_render.resize(device, self.cache_size.width() as u32, self.cache_size.height() as u32);
-        }
-        */
-
-        true
     }
 
     pub(crate) fn draw_bezier_mesh(
@@ -97,9 +91,9 @@ impl PipelineCanvas {
         _texture: TextureId,
         style: &[MeshStyle],
     ) -> Result<(), RenderErr> {
-        self.bezier_mesh_render.draw(wgpu, mesh, style);
+        let item = self.bezier_mesh_render.draw(wgpu, mesh, style);
 
-        Ok(())
+        self.push_flush(item)
     }
 
     pub(crate) fn draw_mesh2d(
@@ -109,13 +103,18 @@ impl PipelineCanvas {
         texture: TextureId,
         style: &[MeshStyle],
     ) -> Result<(), RenderErr> {
-        self.mesh2d_render.draw(
-            wgpu, 
-            &self.texture_store, 
-            mesh, 
-            texture,
-            style,
-        );
+        let item = self.mesh2d_render.draw(wgpu, mesh, texture, style);
+
+        self.push_flush(item)
+    }
+
+    fn push_flush(&mut self, item: FlushItem) -> renderer::Result<()> {
+        match item {
+            FlushItem::None => {}
+            _ => {
+                self.flush_items.push(item);
+            }
+        }
 
         Ok(())
     }
@@ -172,9 +171,41 @@ impl PipelineCanvas {
     }
 
     pub(crate) fn flush(&mut self, wgpu: &mut RenderWgpu) {
-        self.bezier_mesh_render.flush(wgpu);
-        self.mesh2d_render.flush(wgpu, &self.texture_store);
+        //self.bezier_mesh_render.flush(wgpu);
+        //self.mesh2d_render.flush(wgpu, &self.texture_store);
         self.mesh2d_color_render.flush(wgpu);
         self.form3d_render.flush(wgpu, &self.texture_store);
+
+        wgpu.render_pass(|rpass| {
+            for item in self.flush_items.drain(..) {
+                match item {
+                    FlushItem::None => {},
+                    FlushItem::Mesh2d(item) => {
+                        self.mesh2d_render.flush_item(
+                            rpass, 
+                            &self.texture_store, 
+                            item
+                        );
+                    },
+                    FlushItem::Bezier(item) => {
+                        self.bezier_mesh_render.flush_item(
+                            rpass, 
+                            item
+                        );
+                    },
+                }
+            }
+        });
+
+        self.mesh2d_render.clear();
+        self.bezier_mesh_render.clear();
      }
 }
+
+#[derive(Debug)]
+pub enum FlushItem {
+    None,
+    Mesh2d(Mesh2dFlush),
+    Bezier(BezierFlush),
+}
+

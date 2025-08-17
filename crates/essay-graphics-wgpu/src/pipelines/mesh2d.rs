@@ -2,9 +2,8 @@ use std::num::NonZero;
 
 use bytemuck_derive::{Zeroable, Pod};
 use essay_graphics_api::{path_style::MeshStyle, Affine2d, Color, Mesh2d, TextureId};
-use wgpu::util::DeviceExt;
 
-use crate::render::{render::RenderWgpu};
+use crate::{pipelines::pipeline_canvas::FlushItem, render::render::RenderWgpu};
 use super::{texture_store::TextureStore};
 
 pub(super) struct Mesh2dRender {
@@ -14,11 +13,7 @@ pub(super) struct Mesh2dRender {
 
     style_buffer: wgpu::Buffer,
     style_offset: usize,
-    _style_len: usize,
-    style_stride: usize,
-    style_vec: Vec<Style>,
-
-    shape_items: Vec<Item>,
+    style_len: usize,
 
     pipeline: wgpu::RenderPipeline,
 }
@@ -31,17 +26,7 @@ impl Mesh2dRender {
         let len = 2048;
 
         let vertex_buffer = create_vertex_buffer(device, len);
-
-        let mut style_vec = Vec::<Style>::new();
-        style_vec.resize(len, Style::empty());
-
-        let style_buffer = device.create_buffer_init(
-            &wgpu::util::BufferInitDescriptor {
-                label: None,
-                contents: bytemuck::cast_slice(style_vec.as_slice()),
-                usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
-            }
-        );
+        let style_buffer = create_style_buffer(device, len);
 
         let pipeline = create_shape2d_pipeline(
             device, 
@@ -53,13 +38,10 @@ impl Mesh2dRender {
             vertex_offset: 0,
             vertex_len: len,
 
-            style_stride: std::mem::size_of::<Style>(),
-            style_vec,
             style_buffer,
             style_offset: 0,
-            _style_len: 0,
+            style_len: len,
 
-            shape_items: Vec::new(),
             pipeline,
         }
     }
@@ -67,24 +49,22 @@ impl Mesh2dRender {
     pub(super) fn draw(
         &mut self, 
         wgpu: &mut RenderWgpu,
-        textures: &TextureStore,
         mesh: &Mesh2d,
         texture: TextureId,
         style: &[MeshStyle],
-    ) {
+    ) -> FlushItem {
         let len = mesh.vertices.len();
 
         if len == 0 || style.len() == 0 {
-            return;
+            return FlushItem::None;
         }
 
         if self.vertex_len < self.vertex_offset + mesh.as_slice().len()
-            || self.style_vec.len() <= self.style_offset + style.len() {
-            self.flush(wgpu, textures);
-            self.resize_buffers(wgpu.device, mesh);
+            || self.style_len <= self.style_offset + style.len() {
+            todo!();
+            // self.flush(wgpu, textures);
+            // self.resize_buffers(wgpu.device, mesh);
         }
-
-        self.start_shape(texture);
 
         let vec: Vec<Vertex> = mesh.as_slice().iter().map(|src| {
             Vertex {
@@ -93,121 +73,77 @@ impl Mesh2dRender {
             }
         }).collect();
 
-        let start_offset = self.vertex_offset * Vertex::size_of();
-        let end_offset = (self.vertex_offset + len) * Vertex::size_of();
+        let len = vec.len();
+        let v_start = self.vertex_offset;
+        let v_end = v_start + len;
+        self.vertex_offset += len;
+
         if let Some(mut view) = wgpu.queue.write_buffer_with(
                 &mut self.vertex_buffer, 
-                start_offset as u64,
-                NonZero::new((end_offset - start_offset) as u64).unwrap(),
+                (v_start * Vertex::size_of()) as u64,
+                NonZero::new(((v_end - v_start) * Vertex::size_of()) as u64).unwrap(),
         ) {
             view.copy_from_slice(
                 bytemuck::cast_slice(vec.as_slice())
             );
         }
 
-        self.vertex_offset += len;
-        
-        for MeshStyle { color, affine } in style {
-            self.draw_style(*color, affine);
+        let vec: Vec<Style> = style.iter().map(|src| {
+            Style::new(&src.affine, src.color)
+        }).collect();
+
+        let len = vec.len();
+        let s_start = self.style_offset;
+        let s_end = s_start + len;
+        self.style_offset += len;
+
+        if let Some(mut view) = wgpu.queue.write_buffer_with(
+                &mut self.style_buffer, 
+                (s_start * Style::size_of()) as u64,
+                NonZero::new(((s_end - s_start) * Style::size_of()) as u64).unwrap(),
+        ) {
+            view.copy_from_slice(
+                bytemuck::cast_slice(vec.as_slice())
+            );
         }
-    }
 
-    fn resize_buffers(
-        &mut self, 
-        device: &wgpu::Device,
-        mesh: &Mesh2d,
-    ) {
-        let mut size = self.vertex_len;
+        FlushItem::Mesh2d(Mesh2dFlush {
+            v_start,
+            v_end,
 
-        while size < mesh.as_slice().len() {
-            size += 2048;
-        }
+            s_start,
+            s_end,
 
-        self.vertex_len = size;
-
-        self.vertex_buffer = create_vertex_buffer(device, size);
-
-        // need to copy old data or force a redraw
-        todo!("need to copy old data");
-
-    }
-
-    fn start_shape(&mut self, texture: TextureId) {
-        let start = self.vertex_offset;
-
-        self.shape_items.push(Item {
-            v_start: start,
-            v_end: usize::MAX,
-            s_start: self.style_offset,
-            s_end: usize::MAX,
             texture,
-        });
+        })
     }
 
-    fn draw_style(
+    pub(super) fn flush_item(
         &mut self, 
-        color: Color,
-        affine: &Affine2d,
-    ) {
-        let end = self.vertex_offset;
-
-        let len = self.shape_items.len();
-
-        assert!(self.style_offset < self.style_vec.len());
-
-        let item = &mut self.shape_items[len - 1];
-        item.v_end = end;
-
-        self.style_vec[self.style_offset] = Style::new(affine, color);
-        self.style_offset += 1;
-
-        item.s_end = self.style_offset;
-    }
-
-    pub(super) fn flush(
-        &mut self, wgpu: 
-        &mut RenderWgpu,
+        rpass: &mut wgpu::RenderPass,
         textures: &TextureStore,
+        item: Mesh2dFlush,
     ) {
-        if self.shape_items.len() == 0 {
-            return;
-        }
-
-        wgpu.write_buffer(
-            &mut self.style_buffer, 
-            bytemuck::cast_slice(&self.style_vec.as_slice()[0..self.style_offset])
-        );
-
-        wgpu.render_pass(|rpass| {
-            rpass.set_pipeline(&self.pipeline);
-
-            for item in self.shape_items.drain(..) {
-                rpass.set_bind_group(0, textures.texture_bind_group(item.texture), &[]);
+        rpass.set_pipeline(&self.pipeline);
+        rpass.set_bind_group(0, textures.texture_bind_group(item.texture), &[]);
     
-                if item.v_start < item.v_end && item.s_start < item.s_end {
-                    let stride = Vertex::size_of();
-                    rpass.set_vertex_buffer(0, self.vertex_buffer.slice(
-                        (stride * item.v_start) as u64..(stride * item.v_end) as u64
-                    ));
+        let stride = Vertex::size_of();
+        rpass.set_vertex_buffer(0, self.vertex_buffer.slice(
+            (stride * item.v_start) as u64..(stride * item.v_end) as u64
+        ));
 
-                    let stride = self.style_stride;
-                    rpass.set_vertex_buffer(1, self.style_buffer.slice(
-                        (stride * item.s_start) as u64..(stride * item.s_end) as u64
-                    ));
+        let stride = Style::size_of();
+        rpass.set_vertex_buffer(1, self.style_buffer.slice(
+            (stride * item.s_start) as u64..(stride * item.s_end) as u64
+        ));
 
-                    rpass.draw(
-                        0..(item.v_end - item.v_start) as u32,
-                        0..(item.s_end - item.s_start) as u32,
-                    );
-                }
-            }
-        });
-
-        self.clear();
+        rpass.draw(
+            0..(item.v_end - item.v_start) as u32,
+            0..(item.s_end - item.s_start) as u32,
+        )
     }
 
-    fn clear(&mut self) {
-        self.shape_items.drain(..);
+    pub fn clear(&mut self) {
         self.vertex_offset = 0;
         self.style_offset = 0;
     }
@@ -233,7 +169,7 @@ impl Vertex {
     }
 
     pub(crate) fn size_of() -> usize {
-        std::mem::size_of::<Vertex>()
+        std::mem::size_of::<Self>()
     }
 }
 
@@ -252,8 +188,23 @@ fn create_vertex_buffer(
     })
 }
 
+fn create_style_buffer(
+    device: &wgpu::Device,
+    len: usize,
+) -> wgpu::Buffer {
+    let size = (Style::size_of() * len) as u64;
+
+    device.create_buffer(
+        &wgpu::BufferDescriptor {
+        label: None,
+        usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
+        size,
+        mapped_at_creation: false,
+    })
+}
+
 #[derive(Debug)]
-pub struct Item {
+pub struct Mesh2dFlush {
     v_start: usize,
     v_end: usize,
 
@@ -262,6 +213,7 @@ pub struct Item {
 
     texture: TextureId,
 }
+
 #[repr(C)]
 #[derive(Copy, Clone, Debug, Pod, Zeroable)]
 pub struct Style {
@@ -286,12 +238,8 @@ impl Style {
         }
     }
 
-    pub fn empty() -> Style {
-        Self {
-            affine_0: [0., 0., 0., 0.],
-            affine_1: [0., 0., 0., 0.],
-            color: [0., 0., 0., 0.],
-        }
+    pub(crate) fn size_of() -> usize {
+        std::mem::size_of::<Self>()
     }
 
     fn new(affine: &Affine2d, color: Color) -> Self {
