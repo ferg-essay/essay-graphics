@@ -1,3 +1,4 @@
+pub mod output;
 pub mod input;
 pub mod affine2d;
 mod bounds;

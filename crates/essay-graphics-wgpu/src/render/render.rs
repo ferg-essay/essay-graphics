@@ -22,12 +22,12 @@ pub struct PlotRenderer<'a, 'b> {
 }
 
 impl<'a, 'b> PlotRenderer<'a, 'b> {
-    pub(crate) fn render(
+    pub(crate) fn render<R>(
         wgpu: &'b mut RenderWgpu<'a>,
         canvas: &'b mut RenderCanvas,
         input: &'b Input,
-        draw: impl FnOnce(&mut dyn Renderer) -> Result<()>,
-    ) -> Result<()> {
+        draw: impl FnOnce(&mut dyn Renderer) -> Result<R>,
+    ) -> Result<R> {
         let mut renderer = Self {
             wgpu,
             canvas,
@@ -35,11 +35,11 @@ impl<'a, 'b> PlotRenderer<'a, 'b> {
             pos: Pos::from(input.size),
         };
 
-        (draw)(&mut renderer)?;
+        let result = (draw)(&mut renderer)?;
 
         renderer.flush();
 
-        Ok(())
+        Ok(result)
     }
 
     fn flush_inner(&mut self) {

@@ -1,6 +1,6 @@
 use essay_graphics_wgpu::{WgpuBackend, WgpuHardcopy};
 
-use essay_graphics_api::renderer::{Backend, Drawable};
+use essay_graphics_api::{output::Output, renderer::{self, App, Backend, Drawable, Renderer}};
 
 pub struct MainLoop {
     device: Box<dyn Backend>,
@@ -45,7 +45,7 @@ impl MainLoop {
     {
         let mut device = self.device;
 
-        device.main_loop(Box::new(drawable)).unwrap();
+        device.main_loop(Box::new(DrawApp(Box::new(drawable)))).unwrap();
     }
 
     pub fn save(
@@ -63,5 +63,15 @@ impl MainLoop {
         let mut drawable = drawable;
         hardcopy.draw(&mut drawable);
         hardcopy.save(surface, path, dpi as usize);
+    }
+}
+
+struct DrawApp(Box<dyn Drawable>);
+
+impl App for DrawApp {
+    fn render(&mut self, ui: &mut dyn Renderer) -> renderer::Result<Output> {
+        self.0.draw(ui);
+
+        Ok(Output::default())
     }
 }

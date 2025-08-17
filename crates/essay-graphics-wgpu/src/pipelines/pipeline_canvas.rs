@@ -138,9 +138,9 @@ impl PipelineCanvas {
             Clip::Bounds(p0, p1) => {
                 Some((
                     p0.0 as u32, 
-                    (self.bounds.height() - p1.1) as u32, 
+                    p1.0 as u32,
                     (p1.0 - p0.0) as u32, 
-                    (p1.1 - p0.1) as u32
+                    (p1.1 - p1.0) as u32
                 ))
             }
         }

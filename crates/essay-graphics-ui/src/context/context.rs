@@ -3,7 +3,8 @@ use std::sync::{Arc, RwLock};
 use std::time::Instant;
 
 use essay_graphics_api::input::Input;
-use essay_graphics_api::renderer::{Canvas, FontSetMetrics, GraphicsContext, Renderer};
+use essay_graphics_api::output::Output;
+use essay_graphics_api::renderer::{self, Canvas, FontSetMetrics, GraphicsContext, Renderer};
 use essay_graphics_api::{Bounds, Point};
 
 use crate::context::widget::{WidgetRect, WidgetRects};
@@ -102,6 +103,7 @@ impl Context {
 }
 
 impl Context {
+    /*
     pub fn run_ui<R>(
         &self, 
         renderer: &mut dyn Renderer, 
@@ -117,12 +119,13 @@ impl Context {
             })
         })
     }
+    */
 
-    pub fn run<R>(
+    pub fn run(
         &self, 
         renderer: &mut dyn Renderer, 
-        mut draw: impl FnMut(&Self) -> R + Send
-    ) -> R {
+        mut draw: impl FnMut(&Self)
+    ) -> renderer::Result<Output> {
         loop {
             let is_resize = self.write(|cxt| {
                 if cxt.viewport.screen_pos != renderer.pos() {
@@ -135,16 +138,20 @@ impl Context {
 
             self.start_pass(is_resize, renderer.input());
 
-            let result = (draw)(self);
+            (draw)(self);
 
             if ! is_resize {
                 self.graphics_mut(|layers| {
                     layers.render(renderer).unwrap();
                 });
 
-                return result;
+                return Ok(self.output());
             }
         }
+    }
+
+    fn output(&self) -> Output {
+        Output::default()
     }
 
     fn start_pass(&self, _is_resize: bool, input: &Input) {

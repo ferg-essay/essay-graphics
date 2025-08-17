@@ -1,6 +1,6 @@
 use std::time::{Duration, Instant};
 
-use essay_graphics_api::{input::Input, renderer::{self, Drawable, Pos}};
+use essay_graphics_api::{input::Input, output::Output, renderer::{self, App, Drawable, Pos}};
 use essay_graphics_winit::{run_event_loop, MainLoopHandle};
 use wgpu::util::StagingBelt;
 use winit::{event_loop::EventLoop, window::{CursorIcon, Window}};
@@ -29,7 +29,7 @@ impl WgpuMainLoop {
         self
     }
 
-    pub fn main_loop(&mut self, draw: Box<dyn Drawable>) -> renderer::Result<()> {
+    pub fn main_loop(&mut self, app: Box<dyn App>) -> renderer::Result<()> {
         let event_loop = EventLoop::new().unwrap();
         let window = winit::window::Window::new(&event_loop).unwrap();
 
@@ -41,7 +41,7 @@ impl WgpuMainLoop {
 
         let wgpu_device = pollster::block_on(init_wgpu_device(&window));
 
-        let mut handle = WgpuViewport::new(wgpu_device, draw);
+        let mut handle = WgpuViewport::new(wgpu_device, app);
 
         handle.canvas.set_scale_factor(window.scale_factor() as f32);
 
@@ -78,7 +78,7 @@ struct WgpuViewport<'window> {
     window: &'window Window,
 
     canvas: RenderCanvas,
-    drawable: Box<dyn Drawable>,
+    app: Box<dyn App>,
 
     input: Input,
 }
@@ -86,7 +86,7 @@ struct WgpuViewport<'window> {
 impl<'window> WgpuViewport<'window> {
     fn new(
         device: MainLoopDevice<'window>, 
-        draw: Box<dyn Drawable>
+        app: Box<dyn App>
     ) -> Self {
         let canvas = RenderCanvas::new(
             &device.device,
@@ -105,16 +105,16 @@ impl<'window> WgpuViewport<'window> {
             window: device.window,
 
             canvas,
-            drawable: draw,
+            app,
             input: Default::default(),
         }
     }
 
-    fn main_render(&mut self) {
+    fn main_render(&mut self) -> renderer::Result<Output> {
         let pos = Pos::from(self.input.size);
 
         if pos.width() == 0. {
-            return;
+            return Ok(Output::default());
         }
 
         if pos != self.canvas.pos() {
@@ -173,16 +173,18 @@ impl<'window> WgpuViewport<'window> {
             staging,
         };
 
-        PlotRenderer::render(
+        let result = PlotRenderer::render(
             &mut wgpu,
             &mut self.canvas,
             &self.input,
             |ui| {
-                self.drawable.draw(ui)
+                self.app.render(ui)
             }
         ).unwrap();
     
         frame.present();
+
+        Ok(result)
     }
 }
 
@@ -197,10 +199,8 @@ impl MainLoopHandle for WgpuViewport<'_> {
         None
     }
 
-    fn redraw(&mut self) -> renderer::Result<Option<Instant>> {
-        self.main_render();
-
-        Ok(None)
+    fn redraw(&mut self) -> renderer::Result<Output> {
+        self.main_render()
     }
 }
 

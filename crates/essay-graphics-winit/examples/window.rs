@@ -1,6 +1,6 @@
-use std::time::Instant;
+use std::{time::Instant};
 
-use essay_graphics_api::input::Input;
+use essay_graphics_api::{input::Input, output::Output};
 use essay_graphics_api::renderer::Result;
 use essay_graphics_winit::{run_event_loop, MainLoopHandle};
 use winit::{event_loop::EventLoop, window::Window};
@@ -35,8 +35,8 @@ impl MainLoopHandle for Handle {
         None
     }
 
-    fn redraw(&mut self) -> Result<Option<Instant>> {
+    fn redraw(&mut self) -> Result<Output> {
         println!("Redraw");
-        Ok(None)
+        Ok(Output::default())
     }
 }

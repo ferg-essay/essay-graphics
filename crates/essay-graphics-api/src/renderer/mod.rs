@@ -5,7 +5,7 @@ mod canvas;
 mod drawable;
 mod renderer;
 
-pub use backend::{Backend, GraphicsContext, FontSetMetrics, GlyphSize};
+pub use backend::{App, Backend, GraphicsContext, FontSetMetrics, GlyphSize};
 
 pub use canvas::{Canvas, Pos};
 

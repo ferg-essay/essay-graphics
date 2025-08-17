@@ -1,8 +1,7 @@
 use std::{sync::{Arc, Mutex}, time::Instant};
 
 use essay_graphics_api::{
-    input::{Input},
-    renderer,
+    input::Input, output::Command, renderer
 };
 use winit::{
     event::{self, StartCause, WindowEvent }, 
@@ -36,8 +35,15 @@ pub fn run_event_loop(
                 }
 
                 match handle.redraw() {
-                    Ok(next_wait_until) => {
-                        wait_until = next_wait_until;
+                    Ok(mut output) => {
+                        for cmd in output.drain_commands() {
+                            match cmd {
+                                Command::RedrawAfterDelay(instant) => {
+                                    wait_until = Some(instant);
+                                },
+                                _ => {}
+                            }
+                        }
                     }
                     Err(err) => {
                         result_handle.lock().unwrap().err = Some(err);
