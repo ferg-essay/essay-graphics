@@ -8,7 +8,7 @@ use essay_graphics_api::{
 };
 use essay_tensor::tensor::Tensor;
 
-use crate::{pipelines::{bezier_mesh::BezierFlush, mesh2d::Mesh2dFlush}, render::render::RenderWgpu};
+use crate::{pipelines::{bezier_mesh::BezierFlush, mesh2d::Mesh2dFlush, mesh2d_color::Mesh2dColorItem}, render::render::RenderWgpu};
 use super::{
     bezier_mesh::BezierMeshRender, form3d::Form3dRender,
     mesh2d::Mesh2dRender, mesh2d_color::Mesh2dColorRender, 
@@ -108,30 +108,19 @@ impl PipelineCanvas {
         self.push_flush(item)
     }
 
-    fn push_flush(&mut self, item: FlushItem) -> renderer::Result<()> {
-        match item {
-            FlushItem::None => {}
-            _ => {
-                self.flush_items.push(item);
-            }
-        }
-
-        Ok(())
-    }
-
     pub(crate) fn draw_mesh2d_color(
         &mut self, 
         wgpu: &mut RenderWgpu,
         mesh: &Mesh2dColor,
         affine: &Affine2d,
     ) -> Result<(), RenderErr> {
-        self.mesh2d_color_render.draw(
+        let item = self.mesh2d_color_render.draw(
             wgpu, 
             mesh, 
             affine,
         );
 
-        Ok(())
+        self.push_flush(item)
     }
 
     pub fn create_form(
@@ -149,6 +138,17 @@ impl PipelineCanvas {
         self.form3d_render.camera(camera);
         self.form3d_render.draw_form(form);
         
+        Ok(())
+    }
+
+    fn push_flush(&mut self, item: FlushItem) -> renderer::Result<()> {
+        match item {
+            FlushItem::None => {}
+            _ => {
+                self.flush_items.push(item);
+            }
+        }
+
         Ok(())
     }
 
@@ -173,7 +173,7 @@ impl PipelineCanvas {
     pub(crate) fn flush(&mut self, wgpu: &mut RenderWgpu) {
         //self.bezier_mesh_render.flush(wgpu);
         //self.mesh2d_render.flush(wgpu, &self.texture_store);
-        self.mesh2d_color_render.flush(wgpu);
+        //self.mesh2d_color_render.flush(wgpu);
         self.form3d_render.flush(wgpu, &self.texture_store);
 
         wgpu.render_pass(|rpass| {
@@ -193,12 +193,19 @@ impl PipelineCanvas {
                             item
                         );
                     },
+                    FlushItem::Mesh2dColor(item) => {
+                        self.mesh2d_color_render.flush_item(
+                            rpass, 
+                            item
+                        );
+                    },
                 }
             }
         });
 
         self.mesh2d_render.clear();
         self.bezier_mesh_render.clear();
+        self.mesh2d_color_render.clear();
      }
 }
 
@@ -207,5 +214,6 @@ pub enum FlushItem {
     None,
     Mesh2d(Mesh2dFlush),
     Bezier(BezierFlush),
+    Mesh2dColor(Mesh2dColorItem),
 }
 
