@@ -79,7 +79,8 @@ impl WgpuHardcopy {
     }
 
     pub fn scale_factor(&mut self, scale_factor: f32) {
-        self.canvas.set_scale_factor(scale_factor);
+        todo!()
+        //self.canvas.set_scale_factor(scale_factor);
     }
 
     pub fn add_surface(&mut self) -> SurfaceId {

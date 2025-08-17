@@ -11,7 +11,7 @@ pub struct RenderCanvas {
 
     pub(crate) pipeline: PipelineCanvas,
 
-    to_gpu: Affine2d,
+    pub(crate) to_gpu: Affine2d,
 
     cache_pos: Pos,
     is_request_redraw: bool,

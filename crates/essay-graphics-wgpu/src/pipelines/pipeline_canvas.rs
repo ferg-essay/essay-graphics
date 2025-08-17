@@ -40,7 +40,7 @@ pub struct PipelineCanvas {
 
     font_id_default: FontId,
 
-    to_gpu: Affine2d,
+    // to_gpu: Affine2d,
 
     cache_size: Size,
     is_request_redraw: bool,
@@ -90,12 +90,12 @@ impl PipelineCanvas {
             hatch_map,
 
             staging: Some(staging),
-            to_gpu: Affine2d::eye(),
+            // to_gpu: Affine2d::eye(),
 
             is_request_redraw: false,
         };
 
-        canvas.input.size = Size(width as f32, height as f32);
+        // canvas.input.size = Size(width as f32, height as f32);
         canvas.resize(&device);
 
         canvas
@@ -113,20 +113,11 @@ impl PipelineCanvas {
             return false;
         }
 
-        self.cache_size = self.input.size;
-        self.request_redraw(true);
-        self.bounds = Bounds::from(self.input.size);
-
-        let pos_gpu = Bounds::<Canvas>::new_flat(
-            Point(-1., 1.),
-            Point(1., -1.)
-        );
-
-        self.to_gpu = self.bounds.affine_to(&pos_gpu);
-
+        /*
         if self.input.size.width() > 0. {
             self.form3d_render.resize(device, self.cache_size.width() as u32, self.cache_size.height() as u32);
         }
+        */
 
         true
     }
@@ -162,34 +153,9 @@ impl PipelineCanvas {
         self.bounds
     }
 
-    pub fn set_scale_factor(&mut self, scale_factor: f32) {
-        // traditional pt to px
-        let pt_to_px = 4. / 3.;
-
-        self.scale_factor = scale_factor * pt_to_px;
-        //self.scale_factor = 1.; // TK
-    }
-
-    #[inline]
-    pub fn scale_factor(&self) -> f32 {
-        self.scale_factor
-    }
-
     #[inline]
     pub fn to_px(&self, size: f32) -> f32 {
         self.scale_factor * size
-    }
-
-    pub fn input(&self) -> &Input {
-        &self.input
-    }
-
-    pub fn input_mut(&mut self) -> &mut Input {
-        &mut self.input
-    }
-
-    pub fn set_input(&mut self, input: &Input) {
-        self.input = input.clone();
     }
 
     pub(crate) fn draw_bezier_mesh(
@@ -199,14 +165,7 @@ impl PipelineCanvas {
         _texture: TextureId,
         style: &[MeshStyle],
     ) -> Result<(), RenderErr> {
-        let style: Vec<MeshStyle> = style.iter().map(|marker| {
-            MeshStyle {
-                color: marker.color,
-                affine: marker.affine.compose(&self.to_gpu),
-            }
-        }).collect();
-
-        self.bezier_mesh_render.draw(wgpu, mesh, style.as_slice());
+        self.bezier_mesh_render.draw(wgpu, mesh, style);
 
         Ok(())
     }
@@ -218,19 +177,12 @@ impl PipelineCanvas {
         texture: TextureId,
         style: &[MeshStyle],
     ) -> Result<(), RenderErr> {
-        let style: Vec<MeshStyle> = style.iter().map(|marker| {
-            MeshStyle {
-                color: marker.color,
-                affine: marker.affine.compose(&self.to_gpu),
-            }
-        }).collect();
-
         self.mesh2d_render.draw(
             wgpu, 
             &self.texture_store, 
             mesh, 
             texture,
-            style.as_slice(),
+            style,
         );
 
         Ok(())
@@ -240,11 +192,12 @@ impl PipelineCanvas {
         &mut self, 
         wgpu: &mut RenderWgpu,
         mesh: &Mesh2dColor,
+        affine: &Affine2d,
     ) -> Result<(), RenderErr> {
         self.mesh2d_color_render.draw(
             wgpu, 
             mesh, 
-            &self.to_gpu,
+            affine,
         );
 
         Ok(())

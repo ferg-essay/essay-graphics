@@ -1,28 +1,24 @@
 use std::{mem, num::NonZero};
 
 use essay_graphics_api::{
-    form::{Form, FormId, Matrix4}, input::Input, path_style::MeshStyle, renderer::{self, Canvas, Drawable, Pos, RenderErr, Renderer, Result}, Affine2d, BezierMesh2d, Bounds, CapStyle, Color, FontStyle, FontTypeId, JoinStyle, LineStyle, Mesh2d, Mesh2dColor, Path, PathCode, PathOpt, Point, Size, TextStyle, TextureId
+    form::{Form, FormId, Matrix4}, 
+    input::Input, 
+    path_style::MeshStyle, 
+    renderer::{Canvas, Pos, RenderErr, Renderer, Result}, 
+    Affine2d, BezierMesh2d, Bounds, CapStyle, Color, FontStyle, FontTypeId, 
+    JoinStyle, LineStyle, Mesh2d, Mesh2dColor, Path, PathCode, PathOpt, 
+    Point, Size, TextStyle, TextureId
 };
 use essay_tensor::tensor::Tensor;
 use wgpu::util::StagingBelt;
 
-use crate::{pipelines::pipeline_canvas::PipelineCanvas, render::{lines::lines, triangulate3::fill_shape, RenderCanvas}};
+use crate::{render::{lines::lines, triangulate3::fill_shape, RenderCanvas}};
 
 pub struct PlotRenderer<'a, 'b> {
     wgpu: &'b mut RenderWgpu<'a>,
     canvas: &'b mut RenderCanvas,
-
+    input: &'b Input,
     pos: Pos,
-    /*
-    canvas: &'a mut PipelineCanvas,
-    device: &'a wgpu::Device,
-    queue: Option<&'a wgpu::Queue>,
-    // view: Option<&'a wgpu::TextureView>,
-
-    wgpu: Option<&'b mut RenderWgpu<'a>>,
-
-    pos: Pos,
-    */
 }
 
 impl<'a, 'b> PlotRenderer<'a, 'b> {
@@ -35,6 +31,7 @@ impl<'a, 'b> PlotRenderer<'a, 'b> {
         let mut renderer = Self {
             wgpu,
             canvas,
+            input,
             pos: Pos::from(input.size),
         };
 
@@ -46,14 +43,6 @@ impl<'a, 'b> PlotRenderer<'a, 'b> {
     }
 
     fn flush_inner(&mut self) {
-        /*
-        if let Some(wgpu) = self.wgpu.as_mut() {
-            self.canvas.flush(wgpu);
-
-            wgpu.flush();
-        }
-        */
-
         self.canvas.pipeline.flush(self.wgpu);
         self.wgpu.flush();
     }
@@ -73,11 +62,6 @@ impl<'a, 'b> PlotRenderer<'a, 'b> {
         let scissor = self.get_scissor();
 
         self.wgpu.scissor = scissor;
-        /*
-        if let Some(wgpu) = &mut self.wgpu {
-            (*wgpu).scissor = scissor;
-        }
-        */
     }
 
     fn draw_lines2(
@@ -102,47 +86,11 @@ impl<'a, 'b> PlotRenderer<'a, 'b> {
         let texture = TextureId::default();
 
         if let Some((mesh, bezier)) = lines(path, joinstyle, capstyle, linewidth) {
-            //let Some(wgpu) = self.wgpu.as_mut() else {
-            //    return Ok(())
-            //}
-
-            self.draw_mesh2d_wgpu(&mesh, texture, styles)?;
-            self.draw_bezier_wgpu(&bezier, texture, styles)
+            self.draw_mesh2d(&mesh, texture, styles)?;
+            self.draw_bezier_mesh(&bezier, texture, styles)
         } else {
             Ok(())
         }
-    }
-
-    fn draw_mesh2d_wgpu(
-        &mut self, 
-        mesh: &Mesh2d,
-        texture: TextureId,
-        style: &[MeshStyle],
-    ) -> Result<(), RenderErr> {
-        self.canvas.pipeline.draw_mesh2d(self.wgpu, mesh, texture, style)
-        /*
-        if let Some(wgpu) = &mut self.wgpu {
-            self.canvas.draw_mesh2d(*wgpu, mesh, texture, style)
-        } else {
-            Ok(())
-        }
-        */
-    }
-
-    fn draw_bezier_wgpu(
-        &mut self, 
-        mesh: &BezierMesh2d,
-        texture: TextureId,
-        style: &[MeshStyle],
-    ) -> Result<(), RenderErr> {
-        self.canvas.pipeline.draw_bezier_mesh(self.wgpu, mesh, texture, style)
-        /*
-        if let Some(wgpu) = &mut self.wgpu {
-            self.canvas.draw_bezier_mesh(*wgpu, mesh, texture, style)
-        } else {
-            Ok(())
-        }
-        */
     }
 }
 
@@ -156,15 +104,16 @@ impl<'a, 'b> Renderer for PlotRenderer<'a, 'b> {
     }
 
     fn scale_factor(&self) -> f32 {
-        self.canvas.pipeline.scale_factor()
+        //self.input.scale_factor * 4. / 3.
+        2. * 4. / 3.
     }
 
     fn to_px(&self, size: f32) -> f32 {
-        self.canvas.pipeline.to_px(size)
+        self.scale_factor() * size
     }
 
     fn input(&self) -> &Input {
-        &self.canvas.pipeline.input()
+        self.input
     }
 
     fn draw_path(
@@ -222,8 +171,8 @@ impl<'a, 'b> Renderer for PlotRenderer<'a, 'b> {
                 let (mesh, bezier) = fill_shape(&path);
                 let style = vec![(face_color, &Affine2d::eye()).into()];
 
-                self.draw_mesh2d_wgpu(&mesh, texture, &style)?;
-                self.draw_bezier_wgpu(&bezier, texture, &style)?;
+                self.draw_mesh2d(&mesh, texture, &style)?;
+                self.draw_bezier_mesh(&bezier, texture, &style)?;
 
                 is_texture = true;
             } else {
@@ -232,21 +181,14 @@ impl<'a, 'b> Renderer for PlotRenderer<'a, 'b> {
                 // self.to_gpu
                 let style = vec![(face_color, &Affine2d::eye()).into()];
 
-                self.draw_mesh2d_wgpu(&mesh, texture, style.as_slice())?;
-                self.draw_bezier_wgpu(&bezier, texture, style.as_slice())?;
-                /*
-
-                self.mesh2d_render.draw(wgpu, &self.texture_store, &mesh, texture, &style);
-                self.bezier_mesh_render.draw(wgpu, &bezier, &style);
-                */
+                self.draw_mesh2d(&mesh, texture, style.as_slice())?;
+                self.draw_bezier_mesh(&bezier, texture, style.as_slice())?;
             }
 
             if (face_color != edge_color || is_texture) && edge_color.alpha() > 0. {
-                // self.draw_lines2(wgpu, &path, style, &vec![(edge_color, &self.to_gpu).into()]);
                 self.draw_lines2(&path, style, &vec![(edge_color, &Affine2d::eye()).into()])?;
             }
         } else if edge_color.alpha() > 0. {
-            // self.draw_lines2(wgpu, &path, style, &vec![(edge_color, &self.to_gpu).into()]);
             self.draw_lines2(&path, style, &vec![(edge_color, &Affine2d::eye()).into()])?;
         }
 
@@ -274,18 +216,11 @@ impl<'a, 'b> Renderer for PlotRenderer<'a, 'b> {
 
         let texture = TextureId::default();
 
-        /*
-        let marker_style: Vec<MeshStyle> = marker_style.iter()
-            .map(|style| {
-                MeshStyle::from((style.color, &self.to_gpu.matmul(&style.affine)))
-            }).collect();
-        */
-
         if path.is_closed_path() && ! face_color.is_none() {
             let (mesh, bezier) = fill_shape(&path);
 
-            self.draw_mesh2d_wgpu(&mesh, texture, &marker_style)?;
-            self.draw_bezier_wgpu(&bezier, texture, &marker_style)?;
+            self.draw_mesh2d(&mesh, texture, &marker_style)?;
+            self.draw_bezier_mesh(&bezier, texture, &marker_style)?;
 
             if face_color != edge_color && ! edge_color.is_none() {
                 self.draw_lines2(&path, path_style, marker_style)?;
@@ -296,141 +231,6 @@ impl<'a, 'b> Renderer for PlotRenderer<'a, 'b> {
 
         Ok(())
     }
-
-    /*
-    fn draw_path(
-        &mut self, 
-        path: &Path<Canvas>, 
-        style: &dyn PathOpt, 
-    ) -> Result<(), RenderErr> {
-        if let Some(wgpu) = self.wgpu.as_mut() {
-            self.canvas.draw_path(wgpu, path, style)?;
-        }
-
-        Ok(())
-    }
-    */
-
-    /*
-    pub(crate) fn draw_path(
-        &mut self, 
-        wgpu: &mut RenderWgpu,
-        path: &Path<Canvas>, 
-        style: &dyn PathOpt, 
-    ) -> Result<(), RenderErr> {
-        let mut face_color = style.get_face_color()
-            .unwrap_or(Color::black());
-
-        let mut edge_color = style.get_edge_color()
-            .unwrap_or(face_color);
-
-        if let Some(alpha) = style.get_alpha() {
-            face_color = face_color.with_alpha(alpha * face_color.alpha());
-            edge_color = edge_color.with_alpha(alpha * edge_color.alpha());
-        }
-
-        let texture = TextureId::default();
-
-        let path = match style.get_line_style() {
-            Some(LineStyle::Solid) | None => {
-                transform_solid_path(path)
-            }
-            Some(line_style) => {
-                let lw = match style.get_line_width() {
-                    Some(lw) => self.to_px(lw),
-                    None => self.to_px(2.),
-                };
-                
-                let pattern = line_style.to_pattern(lw);
-
-                transform_dashed_path(path, pattern)
-            },
-        };
-
-        if path.is_closed_path() && face_color.alpha() > 0. {
-            let mut is_texture = false;
-
-            if let Some(hatch) = style.get_hatch() {
-                let (mesh, bezier) = fill_shape(&path);
-
-                let texture = self.hatch_map[&hatch];
-
-                let style = vec![(face_color, &self.to_gpu).into()];
-
-                self.mesh2d_render.draw(wgpu, &self.texture_store, &mesh, texture, &style);
-                self.bezier_mesh_render.draw(wgpu, &bezier, &style);
-
-                is_texture = true;
-            } else if let Some(texture) = style.get_texture() {
-                let (mesh, bezier) = fill_shape(&path);
-                let style = vec![(face_color, &self.to_gpu).into()];
-
-                self.mesh2d_render.draw(wgpu, &self.texture_store, &mesh, texture, &style);
-                self.bezier_mesh_render.draw(wgpu, &bezier, &style);
-
-                is_texture = true;
-            } else {
-                let (mesh, bezier) = fill_shape(&path);
-
-                let style = vec![(face_color, &self.to_gpu).into()];
-
-                self.mesh2d_render.draw(wgpu, &self.texture_store, &mesh, texture, &style);
-                self.bezier_mesh_render.draw(wgpu, &bezier, &style);
-            }
-
-            if (face_color != edge_color || is_texture) && edge_color.alpha() > 0. {
-                self.draw_lines2(wgpu, &path, style, &vec![(edge_color, &self.to_gpu).into()]);
-            }
-        } else if edge_color.alpha() > 0. {
-            self.draw_lines2(wgpu, &path, style, &vec![(edge_color, &self.to_gpu).into()]);
-        }
-
-
-        return Ok(());
-    }
-
-    pub(crate) fn draw_markers(
-        &mut self, 
-        wgpu: &mut RenderWgpu,
-        path: &Path<Canvas>, 
-        path_style: &dyn PathOpt, 
-        marker_style: &[MeshStyle],
-    ) -> Result<(), RenderErr> {
-        let path = transform_solid_path(path);
-
-        let face_color = match path_style.get_face_color() {
-            Some(color) => color,
-            None => Color(0x000000ff)
-        };
-
-        let edge_color = match path_style.get_edge_color() {
-            Some(color) => color,
-            None => face_color
-        };
-
-        let texture = TextureId::default();
-
-        let marker_style: Vec<MeshStyle> = marker_style.iter()
-            .map(|style| {
-                MeshStyle::from((style.color, &self.to_gpu.matmul(&style.affine)))
-            }).collect();
-
-        if path.is_closed_path() && ! face_color.is_none() {
-            let (mesh, bezier) = fill_shape(&path);
-
-            self.mesh2d_render.draw(wgpu, &self.texture_store, &mesh, texture, &marker_style);
-            self.bezier_mesh_render.draw(wgpu, &bezier, &marker_style);
-
-            if face_color != edge_color && ! edge_color.is_none() {
-                self.draw_lines2(wgpu, &path, path_style, &marker_style);
-            }
-        } else if ! edge_color.is_none() {
-            self.draw_lines2(wgpu, &path, path_style, &marker_style);
-        }
-
-        Ok(())
-    }
-    */
     
     fn draw_bezier_mesh(
         &mut self,
@@ -438,14 +238,14 @@ impl<'a, 'b> Renderer for PlotRenderer<'a, 'b> {
         texture: TextureId,
         style: &[MeshStyle],
     ) -> Result<()> {
-        /*
-        if let Some(wgpu) = self.wgpu.as_mut() {
-            self.canvas.draw_bezier_mesh(wgpu, mesh, texture, style)?;
-        }
+        let style: Vec<MeshStyle> = style.iter().map(|marker| {
+            MeshStyle {
+                color: marker.color,
+                affine: marker.affine.compose(&self.canvas.to_gpu),
+            }
+        }).collect();
 
-        Ok(())
-        */
-        self.canvas.pipeline.draw_bezier_mesh(self.wgpu, mesh, texture, style)
+        self.canvas.pipeline.draw_bezier_mesh(self.wgpu, mesh, texture, style.as_slice())
     }
     
     fn draw_mesh2d(
@@ -454,44 +254,22 @@ impl<'a, 'b> Renderer for PlotRenderer<'a, 'b> {
         texture: TextureId,
         style: &[MeshStyle],
     ) -> Result<()> {
-        self.canvas.pipeline.draw_mesh2d(self.wgpu, mesh, texture, style)
-        /*
-        if let Some(wgpu) = self.wgpu.as_mut() {
-            self.canvas.draw_mesh2d(wgpu, mesh, texture, style)?;
-        }
+        let style: Vec<MeshStyle> = style.iter().map(|marker| {
+            MeshStyle {
+                color: marker.color,
+                affine: marker.affine.compose(&self.canvas.to_gpu),
+            }
+        }).collect();
 
-        Ok(())
-        */
+        self.canvas.pipeline.draw_mesh2d(self.wgpu, mesh, texture, style.as_slice())
     }
     
     fn draw_mesh2d_color(
         &mut self,
         mesh: &Mesh2dColor,
     ) -> Result<()> {
-        self.canvas.pipeline.draw_mesh2d_color(self.wgpu, mesh)
-        /*
-        if let Some(wgpu) = self.wgpu.as_mut() {
-            self.canvas.draw_mesh2d_color(wgpu, mesh)?;
-        }
-
-        Ok(())
-        */
+        self.canvas.pipeline.draw_mesh2d_color(self.wgpu, mesh, &self.canvas.to_gpu)
     }
-
-    /*
-    fn draw_markers(
-        &mut self, 
-        marker: &Path<Canvas>, 
-        path_style: &dyn PathOpt, 
-        marker_style: &[MeshStyle],
-    ) -> Result<(), RenderErr> {
-        if let Some(wgpu) = self.wgpu.as_mut() {
-            self.canvas.draw_markers(wgpu, marker, path_style, marker_style)?;
-        }
-
-        Ok(())
-    }
-    */
 
     fn font(
         &mut self,
