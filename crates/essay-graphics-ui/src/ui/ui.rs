@@ -9,7 +9,7 @@ use essay_graphics_api::{
 
 use crate::{context::{Context, WidgetRect}, painter::Painter, style::UiStyle, ui::Response, util::Id, widgets::{Button, Label}};
 
-use super::alloc::{Alloc, CursorUpdate};
+use super::alloc::{Alloc, AllocUpdate};
 
 pub struct Ui {
     id: Id,
@@ -17,7 +17,7 @@ pub struct Ui {
     next_auto_id_salt: u64,
     
     alloc: Alloc,
-    update: CursorUpdate,
+    update: AllocUpdate,
 
     painter: Painter,
     style: Arc<UiStyle>,
@@ -58,7 +58,7 @@ impl Ui {
             unique_id: id,
             next_auto_id_salt: id.with("auto").value(),
             alloc: cursor,
-            update: CursorUpdate::Vertical,
+            update: AllocUpdate::Vertical,
             painter: Painter::new(&ctx),
             style: ctx.style(),
     
@@ -129,6 +129,7 @@ impl Ui {
 
         let alloc = self.alloc.child(
             Point(max_bounds.xmin(), max_bounds.ymin()),
+            self.update,
             alloc_cache.clone()
         );
 
@@ -145,7 +146,7 @@ impl Ui {
 
         let result = (add_content)(&mut child);
 
-        self.alloc.merge_child(&child.alloc, is_view);
+        self.alloc.merge_child(&child.alloc, self.update, is_view);
 
         let response = child.end();
 
@@ -262,7 +263,7 @@ impl Ui {
 
         let result = self.child(UiBuilder::default()
             .max_bounds(bounds)
-            .update(CursorUpdate::Horizontal),
+            .update(AllocUpdate::Horizontal),
             add_content
         );
 
@@ -281,7 +282,7 @@ impl Ui {
 
         let result = self.child(UiBuilder::default()
             .max_bounds(bounds)
-            .update(CursorUpdate::Vertical),
+            .update(AllocUpdate::Vertical),
             add_content
         );
 
@@ -295,12 +296,12 @@ impl Ui {
         add_content: impl FnOnce(&mut Ui) -> R
     ) -> ResponseValue<R> {
         let pos = self.update.alloc_view(Size(1., 1.), &mut self.alloc);
-        println!("  pos {:?}", pos);
+
         let result = self.child(
             UiBuilder::default()
                 .max_bounds(pos)
                 .view(true)
-                .update(CursorUpdate::Vertical),
+                .update(AllocUpdate::Vertical),
             add_content
         );
 
@@ -335,7 +336,7 @@ impl Ui {
         let result = self.child(UiBuilder::default()
             .max_bounds(bounds)
             .view(is_view)
-            .update(CursorUpdate::Horizontal),
+            .update(AllocUpdate::Horizontal),
             add_content
         );
 
@@ -370,7 +371,7 @@ impl Ui {
         let result = self.child(UiBuilder::default()
             .max_bounds(bounds)
             .view(is_view)
-            .update(CursorUpdate::Vertical),
+            .update(AllocUpdate::Vertical),
             add_content
         );
 
@@ -381,11 +382,11 @@ impl Ui {
 
     fn update_pos(&mut self) {
         match self.update {
-            CursorUpdate::Vertical => {
+            AllocUpdate::Vertical => {
                 self.alloc.pos = Point(self.alloc.pos.x(), self.alloc.canvas_allocated.ymax());
                 self.alloc.view_pos = Point(self.alloc.view_pos.x(), self.alloc.view_allocated.ymax());
             },
-            CursorUpdate::Horizontal => {
+            AllocUpdate::Horizontal => {
                 self.alloc.pos = Point(self.alloc.canvas_allocated.xmax(), self.alloc.pos.y());
                 self.alloc.view_pos = Point(self.alloc.view_allocated.xmax(), self.alloc.view_pos.y());
             },
@@ -428,7 +429,7 @@ impl Ui {
 pub(crate) struct UiBuilder {
     id_salt: Option<Id>,
     max_bounds: Option<Bounds<Canvas>>,
-    update: Option<CursorUpdate>,
+    update: Option<AllocUpdate>,
     is_view: bool,
 }
 
@@ -448,7 +449,7 @@ impl UiBuilder {
     }
 
     #[inline]
-    pub(crate) fn update(mut self, update: CursorUpdate) -> Self {
+    pub(crate) fn update(mut self, update: AllocUpdate) -> Self {
         self.update = Some(update);
 
         self

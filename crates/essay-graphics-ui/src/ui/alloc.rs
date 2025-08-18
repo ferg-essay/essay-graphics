@@ -42,15 +42,29 @@ impl Alloc {
         }
     }
 
-    pub(super) fn child(&self, pos: Point, cache: Option<CacheAlloc>) -> Self {
+    pub(super) fn child(
+        &self, 
+        pos: Point, 
+        update: AllocUpdate,
+        cache: Option<CacheAlloc>
+    ) -> Self {
         let (view_cache, fixed_cache) = match cache {
             Some(cache) => { (cache.view, cache.fixed) },
             None => { (Bounds::unit(), Bounds::zero()) }
         };
 
+        let view_extent = match update {
+            AllocUpdate::Vertical => {
+                Bounds::from(Size(view_cache.width(), self.view_extent.height()))
+            }
+            AllocUpdate::Horizontal => {
+                Bounds::from(Size(self.view_extent.width(), view_cache.height()))
+            }
+        };        
+
         Self {
             canvas_extent: self.canvas_extent,
-            view_extent: view_cache,
+            view_extent, // view_cache,
             fixed_extent: fixed_cache,
 
             pos,
@@ -62,12 +76,39 @@ impl Alloc {
         }
     }
 
-    pub(super) fn merge_child(&mut self, child: &Self, is_view: bool) {
+    pub(super) fn merge_child(
+        &mut self, 
+        child: &Self, 
+        update: AllocUpdate,
+        is_view: bool
+    ) {
         self.canvas_allocated = self.canvas_allocated.union(child.canvas_allocated);
 
         if ! is_view {
-            self.view_allocated = self.view_allocated.union(child.view_allocated);
             self.fixed_allocated = self.fixed_allocated.union(child.fixed_allocated);
+
+            let view = self.view_allocated;
+            let child = child.view_allocated;
+            self.view_allocated = match update {
+                AllocUpdate::Vertical => {
+                    Bounds::from((
+                        [view.x0(), view.y0()], 
+                        [
+                            view.width().max(child.width()),
+                            view.height() + child.height().min(1.)
+                        ]
+                    ))
+                },
+                AllocUpdate::Horizontal => {
+                    Bounds::from((
+                        [view.x0(), view.y0()], 
+                        [
+                            view.width() + child.width().min(1.),
+                            view.height().max(child.height())
+                        ]
+                    ))
+                },
+            }
         }
     }
 
@@ -94,15 +135,15 @@ impl Alloc {
 }
 
 #[derive(Clone, Copy)]
-pub(crate) enum CursorUpdate {
+pub(crate) enum AllocUpdate {
     Vertical,
     Horizontal,
 }
 
-impl CursorUpdate {
+impl AllocUpdate {
     pub fn alloc_canvas(&self, size: Size, cursor: &mut Alloc) -> Bounds<Canvas> {
         match self {
-            CursorUpdate::Vertical => {
+            AllocUpdate::Vertical => {
                 let rect = Bounds::<Canvas>::new(
                     [cursor.pos.x(), cursor.pos.y()],
                     [
@@ -121,7 +162,7 @@ impl CursorUpdate {
 
                 rect
             },
-            CursorUpdate::Horizontal => {
+            AllocUpdate::Horizontal => {
                 let rect = Bounds::<Canvas>::new(
                     [cursor.pos.x(), cursor.pos.y()],
                     [
@@ -145,7 +186,7 @@ impl CursorUpdate {
 
     pub fn alloc_view(&self, size: Size, cursor: &mut Alloc) -> Bounds<Canvas> {
         match self {
-            CursorUpdate::Vertical => {
+            AllocUpdate::Vertical => {
                 let rect = self.alloc_view_canvas(size, cursor);
         
                 cursor.pos = Point(rect.xmin(), rect.ymax());
@@ -156,7 +197,7 @@ impl CursorUpdate {
 
                 rect
             },
-            CursorUpdate::Horizontal => {
+            AllocUpdate::Horizontal => {
                 let rect = self.alloc_view_canvas(size, cursor);
         
                 cursor.pos = Point(rect.xmax(), rect.ymin());
