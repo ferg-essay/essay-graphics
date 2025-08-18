@@ -1,18 +1,11 @@
-use std::{mem, num::NonZero};
-
 use bytemuck_derive::{Pod, Zeroable};
 use essay_graphics_api::{path_style::MeshStyle, Affine2d, BezierMesh2d, Color};
 
-use crate::{pipelines::{pipeline_canvas::FlushItem}, render::render::RenderWgpu};
+use crate::{pipelines::{buffer::VertexBuffer, pipeline_canvas::FlushItem}, render::render::RenderWgpu};
 
 pub struct BezierMeshRender {
-    vertex_buffer: wgpu::Buffer,
-    vertex_len: usize,
-    vertex_offset: usize,
-
-    style_buffer: wgpu::Buffer,
-    style_len: usize,
-    style_offset: usize,
+    vertex: VertexBuffer<Vertex>,
+    style: VertexBuffer<Style>,
 
     pipeline: wgpu::RenderPipeline,
 }
@@ -24,29 +17,14 @@ impl BezierMeshRender {
     ) -> Self {
         let len = 2048;
 
-        let vertex_buffer = create_vertex_buffer(
-            device,
-            len * mem::size_of::<Vertex>()
-        );
-
-        let style_buffer = create_vertex_buffer(
-            device,
-            len * mem::size_of::<Style>()
-        );
-
         let pipeline = create_bezier_pipeline(
             device, 
             format,
         );
     
         Self {
-            vertex_buffer,
-            vertex_offset: 0,
-            vertex_len: len,
-
-            style_buffer,
-            style_offset: 0,
-            style_len: len,
+            vertex: VertexBuffer::new(device, len),
+            style: VertexBuffer::new(device, len),
 
             pipeline,
         }
@@ -64,11 +42,12 @@ impl BezierMeshRender {
             return FlushItem::None;
         }
 
-        if self.vertex_len < self.vertex_offset + mesh.as_slice().len()
-            || self.style_len <= self.style_offset + style.len() {
-            todo!();
-            // self.flush(wgpu, textures);
-            // self.resize_buffers(wgpu.device, mesh);
+        if self.vertex.expand(wgpu, mesh.as_slice().len()) {
+            return FlushItem::Redraw;
+        }
+
+        if self.style.expand(wgpu, style.len()) {
+            return FlushItem::Redraw;
         }
 
         let vec: Vec<Vertex> = mesh.as_slice().iter().map(|src| {
@@ -79,39 +58,13 @@ impl BezierMeshRender {
             }
         }).collect();
 
-        let len = vec.len();
-        let v_start = self.vertex_offset;
-        let v_end = v_start + len;
-        self.vertex_offset += len;
-
-        if let Some(mut view) = wgpu.queue.write_buffer_with(
-                &mut self.vertex_buffer, 
-                (v_start * mem::size_of::<Vertex>()) as u64,
-                NonZero::new(((v_end - v_start) * mem::size_of::<Vertex>()) as u64).unwrap(),
-        ) {
-            view.copy_from_slice(
-                bytemuck::cast_slice(vec.as_slice())
-            );
-        }
+        let (v_start, v_end) = self.vertex.write(wgpu, &vec);
 
         let vec: Vec<Style> = style.iter().map(|src| {
             Style::new(&src.affine, src.color)
         }).collect();
 
-        let len = vec.len();
-        let s_start = self.style_offset;
-        let s_end = s_start + len;
-        self.style_offset += len;
-
-        if let Some(mut view) = wgpu.queue.write_buffer_with(
-                &mut self.style_buffer, 
-                (s_start * mem::size_of::<Style>()) as u64,
-                NonZero::new(((s_end - s_start) * mem::size_of::<Style>()) as u64).unwrap(),
-        ) {
-            view.copy_from_slice(
-                bytemuck::cast_slice(vec.as_slice())
-            );
-        }
+        let (s_start, s_end) = self.style.write(wgpu, &vec);
 
         FlushItem::Bezier(BezierFlush {
             v_start,
@@ -131,15 +84,8 @@ impl BezierMeshRender {
     ) {
         rpass.set_pipeline(&self.pipeline);
     
-        let stride = std::mem::size_of::<Vertex>();
-        rpass.set_vertex_buffer(0, self.vertex_buffer.slice(
-            (stride * item.v_start) as u64..(stride * item.v_end) as u64
-        ));
-
-        let stride = std::mem::size_of::<Style>();
-        rpass.set_vertex_buffer(1, self.style_buffer.slice(
-            (stride * item.s_start) as u64..(stride * item.s_end) as u64
-        ));
+        rpass.set_vertex_buffer(0, self.vertex.buffer_slice(item.v_start, item.v_end));
+        rpass.set_vertex_buffer(1, self.style.buffer_slice(item.s_start, item.s_end));
 
         rpass.draw(
             0..(item.v_end - item.v_start) as u32,
@@ -148,22 +94,9 @@ impl BezierMeshRender {
     }
 
     pub fn clear(&mut self) {
-        self.vertex_offset = 0;
-        self.style_offset = 0;
+        self.vertex.clear();
+        self.style.clear();
     }
-}
-
-fn create_vertex_buffer(
-    device: &wgpu::Device,
-    size: usize,
-) -> wgpu::Buffer {
-    device.create_buffer(
-        &wgpu::BufferDescriptor {
-        label: None,
-        usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
-        size: size as u64,
-        mapped_at_creation: false,
-    })
 }
 
 #[repr(C)]

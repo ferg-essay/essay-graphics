@@ -14,6 +14,7 @@ pub mod renderer;
 mod path;
 pub mod path_opt;
 pub mod path_style;
+mod shapes;
 mod size;
 mod text;
 
@@ -48,6 +49,8 @@ pub use path_opt::{
 };
 
 pub use path_style::PathStyle;
+
+pub use shapes::Shapes;
 
 pub use text::{
     TextStyle, VertAlign, HorizAlign, 
