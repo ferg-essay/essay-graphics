@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use essay_graphics_api::{
     input::Input, renderer::{Canvas, Pos, RenderErr}, Affine2d, Bounds, FontStyle, FontTypeId, Hatch, Point, Size, TextureId};
 
-use crate::{pipelines::PipelineCanvas, render::{context::WgpuGraphicsContext, hatch::init_hatch, render::RenderWgpu, text_cache::{FontId, TextCache}}};
+use crate::{pipelines::PipelineCanvas, render::{context::WgpuGraphicsContext, hatch::init_hatch, render::RenderWgpu, text_atlas::{FontId, TextCache}}};
 
 
 pub struct RenderCanvas {

@@ -180,6 +180,7 @@ impl PipelineCanvas {
             for item in self.flush_items.drain(..) {
                 match item {
                     FlushItem::None => {},
+                    FlushItem::Redraw => panic!("Redraw should not allow flush()"),
                     FlushItem::Mesh2d(item) => {
                         self.mesh2d_render.flush_item(
                             rpass, 
@@ -212,6 +213,7 @@ impl PipelineCanvas {
 #[derive(Debug)]
 pub enum FlushItem {
     None,
+    Redraw, // force skipping of flush and redraw
     Mesh2d(Mesh2dFlush),
     Bezier(BezierFlush),
     Mesh2dColor(Mesh2dColorItem),

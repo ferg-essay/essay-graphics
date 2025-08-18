@@ -6,7 +6,7 @@ use essay_graphics_api::{
 use essay_tensor::tensor::Tensor;
 use wgpu::util::StagingBelt;
 
-use crate::render::{lines::lines, text_cache::FontId, triangulate3::fill_shape, RenderCanvas};
+use crate::render::{lines::lines, text_atlas::FontId, triangulate3::fill_shape, RenderCanvas};
 
 pub struct PlotRenderer<'a, 'b> {
     wgpu: &'b mut RenderWgpu<'a>,

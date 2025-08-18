@@ -45,10 +45,11 @@ impl Mesh2dRender {
         }
 
         if self.vertex.expand(wgpu, mesh.as_slice().len()) {
-            todo!();
+            return FlushItem::Redraw;
         }
-        if self.style.expand(wgpu, 1) {
-            todo!();
+
+        if self.style.expand(wgpu, style.len()) {
+            return FlushItem::Redraw;
         }
 
         let vec: Vec<Vertex> = mesh.as_slice().iter().map(|src| {
@@ -121,16 +122,6 @@ impl Vertex {
         }
     }
 }
-#[derive(Debug)]
-pub struct Mesh2dFlush {
-    v_start: usize,
-    v_end: usize,
-
-    s_start: usize,
-    s_end: usize,
-
-    texture: TextureId,
-}
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug, Pod, Zeroable)]
@@ -170,6 +161,17 @@ impl Style {
             ],
         }
     }
+}
+
+#[derive(Debug)]
+pub struct Mesh2dFlush {
+    v_start: usize,
+    v_end: usize,
+
+    s_start: usize,
+    s_end: usize,
+
+    texture: TextureId,
 }
 
 fn create_shape2d_pipeline(
