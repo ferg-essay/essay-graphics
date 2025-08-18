@@ -10,7 +10,7 @@ fn main() {
 
     MainLoop::new().show(move |ctx| {
         CentralPanel::new().show(ctx, |ui: &mut Ui| {
-            if ui.button("hello", hello).clicked() { hello=!hello; }
+            if ui.button("hello-g", hello).clicked() { hello=!hello; }
             if ui.button("there", there).clicked() { there=!there; }
             ui.horizontal(|ui| {
                 ui.label("gab");

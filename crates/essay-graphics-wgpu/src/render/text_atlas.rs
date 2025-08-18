@@ -125,10 +125,14 @@ impl TextCache {
         );
 
         let metrics = font.as_ref().metrics(&[]).scale(size);
+        let ascent = (metrics.ascent) as i32;
         let descent = (metrics.descent) as i32;
 
         let glyph_metrics = font.as_ref().glyph_metrics(&[]).scale(size);
         self.is_modified = true;
+
+        //println!("Glyph '{:?}' top {:?} height {:?} left {:?} ascent {:?} descent {:?}",
+        //    ch, placement.top, p_h, placement.left, metrics.ascent, metrics.descent);
 
         GlyphRect {
             x,
@@ -136,7 +140,7 @@ impl TextCache {
             w: p_w,
             h: p_h,
             left: placement.left as i32,
-            top: placement.top as i32 + descent,
+            top: placement.top as i32, // metrics.ascent as i32, // descent,
 
             ascent: metrics.ascent,
             descent: metrics.descent,
@@ -401,7 +405,7 @@ pub struct TextRect {
     pub w: f32,
     pub h: f32,
 
-    pub _dx: f32,
+    pub dx: f32,
     pub dy: f32,
 
     pub advance_width: f32,
@@ -422,8 +426,8 @@ impl TextRect {
             w: glyph.w as f32,
             h: glyph.h as f32,
 
-            _dx: glyph.left as f32,
-            dy: glyph.top as f32 - glyph.h as f32,
+            dx: glyph.left as f32,
+            dy: (glyph.ascent as i32 - glyph.top) as f32,
 
             ascent: glyph.ascent,
             _descent: glyph.descent,

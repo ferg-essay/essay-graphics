@@ -1,10 +1,5 @@
 use essay_graphics_api::{
-    form::{Form, FormId, Matrix4}, 
-    path_style::MeshStyle, 
-    renderer::{self, RenderErr, Result}, 
-    Affine2d, BezierMesh2d, 
-    Mesh2d, Mesh2dColor, 
-    TextureId,
+    form::{Form, FormId, Matrix4}, path_style::MeshStyle, renderer::{self, Canvas, RenderErr, Result}, Affine2d, BezierMesh2d, Bounds, Mesh2d, Mesh2dColor, Size, TextureId
 };
 use essay_tensor::tensor::Tensor;
 
@@ -22,6 +17,8 @@ pub(crate) struct PipelineCanvas {
     bezier_mesh_render: BezierMeshRender,
     mesh2d_color_render: Mesh2dColorRender,
     form3d_render: Form3dRender,
+
+    pos: Bounds<Canvas>,
 
     flush_items: Vec<FlushItem>,
 
@@ -55,6 +52,8 @@ impl PipelineCanvas {
             mesh2d_color_render,
             form3d_render,
 
+            pos: Bounds::from(Size(width as f32, height as f32)),
+
             flush_items: Vec::new(),
 
             is_request_redraw: false,
@@ -80,6 +79,7 @@ impl PipelineCanvas {
 
     pub fn resize(&mut self, device: &wgpu::Device, width: f32, height: f32) {
         if width > 0. {
+            self.pos = Bounds::from([width, height]);
             self.form3d_render.resize(device, width as u32, height as u32);
         }
     }
@@ -177,6 +177,15 @@ impl PipelineCanvas {
         self.form3d_render.flush(wgpu, &self.texture_store);
 
         wgpu.render_pass(|rpass| {
+            rpass.set_viewport(
+                self.pos.x0(), 
+                self.pos.y0(), 
+                self.pos.width(), 
+                self.pos.height(),
+                0.,
+                1.
+            );
+
             for item in self.flush_items.drain(..) {
                 match item {
                     FlushItem::None => {},

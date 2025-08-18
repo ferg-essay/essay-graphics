@@ -122,8 +122,7 @@ impl<'window> WgpuViewport<'window> {
             self.config.height = self.input.size.height() as u32;
 
             self.surface.configure(&self.device, &self.config);
-
-            self.canvas.resize(pos);
+            self.canvas.resize(&self.device, pos);
         }
 
         let frame = self.surface.get_current_texture()

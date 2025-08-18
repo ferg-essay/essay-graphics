@@ -113,7 +113,7 @@ impl<'a, 'b> PlotRenderer<'a, 'b> {
         let w_space = s.advance_width;
         
         let mut x = x0; // x0.floor();
-        let y = (y0 + s.ascent).floor(); // y.floor
+        let y = y0.floor(); // (y0 + s.ascent).floor(); // y.floor
         let mut is_first = true;
 
         for ch in text.chars() {
@@ -126,11 +126,11 @@ impl<'a, 'b> PlotRenderer<'a, 'b> {
                 continue;
             }
 
-            let y_ch = y - r.dy;// - r.h as f32;
+            let y_ch = (y + r.dy).floor(); // (y - r.dy).floor();// - r.h as f32;
             let x_ch = if is_first {
-                x.floor()
+                (x - r.dx).floor()
             } else {
-                (x + r.lsb).floor()
+                (x - r.dx + r.lsb).floor()
             };
 
             is_first = false;
@@ -139,8 +139,8 @@ impl<'a, 'b> PlotRenderer<'a, 'b> {
             let h = r.h; // .ceil();
 
             mesh.rect_uv(
-                ([x_ch, y_ch], [r.tx_min, r.ty_min]),
-                ([x_ch + w, y_ch - h], [r.tx_max, r.ty_max]),
+                ([x_ch, y_ch], [r.tx_min, r.ty_max]),
+                ([x_ch + w, y_ch + h], [r.tx_max, r.ty_min]),
             );
 
             x += r.advance_width;

@@ -72,7 +72,7 @@ impl RenderCanvas {
         self.is_request_redraw = is_redraw;
     }
 
-    pub fn resize(&mut self, pos: Pos) -> bool {
+    pub fn resize(&mut self, device: &wgpu::Device, pos: Pos) -> bool {
         if self.cache_pos == pos || pos.width() == 0. {
             return false;
         }
@@ -87,6 +87,7 @@ impl RenderCanvas {
         );
 
         self.to_gpu = self.bounds.affine_to(&pos_gpu);
+        self.pipeline.resize(device, pos.width(), pos.height());
 
         // self.pipeline.form3d_render.resize(device, self.cache_size.width() as u32, self.cache_size.height() as u32);
         //}

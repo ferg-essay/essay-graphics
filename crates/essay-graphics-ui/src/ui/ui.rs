@@ -257,8 +257,8 @@ impl Ui {
         let extent = self.alloc.canvas_extent;
 
         let bounds = Bounds::from([
-            [pos.x(), extent.ymin()],
-            [extent.xmax(), pos.y()]
+            [pos.x(), pos.y()],
+            [extent.xmax(), extent.ymax()]
         ]);
 
         let result = self.child(UiBuilder::default()
@@ -276,8 +276,8 @@ impl Ui {
         let pos = self.alloc.pos;
         let extent = self.alloc.canvas_extent;
         let bounds = Bounds::<Canvas>::from((
-            [pos.x(), extent.ymin()],
-            [extent.xmax() - pos.x(), pos.y() - extent.ymin()]
+            [pos.x(), pos.y()],
+            [extent.xmax(), extent.ymax()]
         ));
 
         let result = self.child(UiBuilder::default()
