@@ -1,4 +1,4 @@
-use crate::{renderer::Renderer, Bounds, Coord};
+use crate::{Bounds, Coord};
 
 pub struct Canvas {}
 

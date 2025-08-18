@@ -9,14 +9,14 @@ use essay_graphics_api::{
 
 use crate::{context::{Context, WidgetRect}, painter::Painter, style::UiStyle, ui::Response, util::Id, widgets::{Button, Label}};
 
-use super::cursor::{Cursor, CursorUpdate};
+use super::alloc::{Alloc, CursorUpdate};
 
 pub struct Ui {
     id: Id,
     unique_id: Id,
     next_auto_id_salt: u64,
     
-    cursor: Cursor,
+    alloc: Alloc,
     update: CursorUpdate,
 
     painter: Painter,
@@ -33,7 +33,7 @@ impl Ui {
     }
 
     pub(crate) fn top<R>(
-        cxt: &Context,
+        ctx: &Context,
         id: Id,
         builder: UiBuilder,
         add_content: impl FnOnce(&mut Ui) -> R
@@ -43,25 +43,25 @@ impl Ui {
             ..
         } = builder;
 
-        let pos = max_bounds.unwrap_or_else(|| {
-            cxt.screen_pos()
+        let canvas = max_bounds.unwrap_or_else(|| {
+            ctx.screen_pos()
         });
 
-        let page = Bounds::unit();
+        let alloc_cache = ctx.last_pass(|pass| pass.alloc_map.get(&id).cloned());
 
-        let cursor = Cursor::new(pos, page);
+        // println!("TopCache {:?}", alloc_cache);
+
+        let cursor = Alloc::new(canvas, alloc_cache.clone());
         
         let mut ui = Ui {
             id,
             unique_id: id,
             next_auto_id_salt: id.with("auto").value(),
-            cursor,
+            alloc: cursor,
             update: CursorUpdate::Vertical,
-            painter: Painter::new(&cxt),
-            style: cxt.style(),
+            painter: Painter::new(&ctx),
+            style: ctx.style(),
     
-            // prev_cache,
-            // next_cache,
             cache_index: 0,
         };
 
@@ -73,14 +73,21 @@ impl Ui {
     
         let result = (add_content)(&mut ui);
     
-        // next_cache.page = ui.cursor.page_allocated;
-
         let response = ui.end();
+
+        let new_alloc = ui.alloc.to_cache();
+        if new_alloc.is_changed(&alloc_cache) {
+            println!("AllocChangeTop")
+        }
+
+        ctx.pass_mut(|pass| {
+            pass.alloc_map.insert(id, new_alloc);
+        });
 
         ResponseValue::new(result, response)
     }
     
-    pub fn child<R>(
+    pub(crate) fn child<R>(
         &mut self,
         builder: UiBuilder,
         add_content: impl FnOnce(&mut Ui) -> R
@@ -88,7 +95,8 @@ impl Ui {
         let UiBuilder {
             id_salt,
             max_bounds,
-            update,
+            update: alloc_update,
+            is_view,
         } = builder;
         
         let id_salt = id_salt.unwrap_or_else(|| Id::from("child"));
@@ -98,8 +106,8 @@ impl Ui {
         let next_auto_id_salt = unique_id.value().wrapping_add(1);
 
         let max_bounds = max_bounds.unwrap_or_else(|| {
-            let pos = self.cursor.canvas_pos;
-            let extent = self.cursor.canvas_extent;
+            let pos = self.alloc.pos;
+            let extent = self.alloc.canvas_extent;
 
             Bounds::from([
                 [pos.x(), extent.ymin()],
@@ -107,7 +115,7 @@ impl Ui {
             ])
         });
 
-        let update = update.unwrap_or_else(|| self.update);
+        let update = alloc_update.unwrap_or_else(|| self.update);
 
         let bounds = Bounds::none();
         self.context().create_widget(WidgetRect {
@@ -115,30 +123,46 @@ impl Ui {
             rect: bounds,
         });
 
+        let alloc_cache = self.context().last_pass(|pass| {
+            pass.alloc_map.get(&unique_id).cloned()
+        });
+
+        let alloc = self.alloc.child(
+            Point(max_bounds.xmin(), max_bounds.ymin()),
+            alloc_cache.clone()
+        );
+
         let mut child = Ui {
             id: stable_id,
             unique_id,
             next_auto_id_salt,
-            cursor: self.cursor.child(Point(max_bounds.xmin(), max_bounds.ymax())),
+            alloc,
             update,
             painter: Painter::new(self.painter.context()),
             style: self.style.clone(),
-            // prev_cache: self.prev_cache,
-            // next_cache: self.next_cache,
             cache_index: self.cache_index,
         };
 
         let result = (add_content)(&mut child);
 
-        self.cursor.merge_child(&child.cursor);
+        self.alloc.merge_child(&child.alloc, is_view);
 
         let response = child.end();
+
+        let new_alloc = child.alloc.to_cache();
+        if new_alloc.is_changed(&alloc_cache) {
+            println!("AllocChange")
+        }
+
+        self.context().pass_mut(|pass| {
+            pass.alloc_map.insert(unique_id, new_alloc);
+        });
 
         ResponseValue::new(result, response)
     }
 
     fn end(&mut self) -> Response {
-        let bounds = self.cursor.canvas_allocated;
+        let bounds = self.alloc.canvas_allocated;
         let response = self.context().create_widget(WidgetRect {
             id: self.unique_id,
             rect: bounds,
@@ -158,19 +182,19 @@ impl Ui {
     }
 
     pub fn available_bounds(&self) -> Bounds<Canvas> {
-        self.cursor.available_bounds()
+        self.alloc.available_bounds()
     }
 
     #[inline]
     pub fn allocate_rect(&mut self, size: Size) -> ResponseValue<Bounds<Canvas>> {
-        let pos = self.update.alloc_canvas(size, &mut self.cursor);
+        let pos = self.update.alloc_canvas(size, &mut self.alloc);
 
         self.alloc_response(pos)
     }
     
     #[inline]
-    pub fn allocate_page(&mut self, size: Size) -> ResponseValue<Bounds<Canvas>> {
-        let pos = self.update.alloc_page(size, &mut self.cursor);
+    pub fn allocate_view(&mut self, size: Size) -> ResponseValue<Bounds<Canvas>> {
+        let pos = self.update.alloc_view(size, &mut self.alloc);
 
         self.alloc_response(pos)
     }
@@ -191,7 +215,7 @@ impl Ui {
 
     #[inline]
     pub fn remaining_size(&mut self) -> Size {
-        self.cursor.canvas_free()
+        self.alloc.canvas_free()
     }
 
     #[inline]
@@ -213,12 +237,12 @@ impl Ui {
         self.add(button)
     }
 
-    pub fn view(&mut self, draw: impl Drawable + 'static) -> Response {
+    pub fn draw(&mut self, draw: impl Drawable + 'static) -> Response {
         self.draw_size(Size(1., 1.), draw)
     }
 
     pub fn draw_size(&mut self, size: Size, draw: impl Drawable + 'static) -> Response {
-        let ResponseValue { response, .. } = self.allocate_page(size);
+        let ResponseValue { response, .. } = self.allocate_view(size);
         
         self.painter_mut().add(draw);
         // self.renderer().draw_with(value, Box::new(|ui| draw.draw(ui))).unwrap();
@@ -228,8 +252,8 @@ impl Ui {
     }
 
     pub fn horizontal<R>(&mut self, add_content: impl FnOnce(&mut Ui) -> R) -> ResponseValue<R> {
-        let pos = self.cursor.canvas_pos;
-        let extent = self.cursor.canvas_extent;
+        let pos = self.alloc.pos;
+        let extent = self.alloc.canvas_extent;
 
         let bounds = Bounds::from([
             [pos.x(), extent.ymin()],
@@ -242,14 +266,14 @@ impl Ui {
             add_content
         );
 
-        self.cursor.canvas_pos = Point(self.cursor.canvas_pos.x(), self.cursor.canvas_allocated.ymin());
+        self.update_pos();
 
         result
     }
 
     pub fn vertical<R>(&mut self, add_content: impl FnOnce(&mut Ui) -> R) -> ResponseValue<R> {
-        let pos = self.cursor.canvas_pos;
-        let extent = self.cursor.canvas_extent;
+        let pos = self.alloc.pos;
+        let extent = self.alloc.canvas_extent;
         let bounds = Bounds::<Canvas>::from((
             [pos.x(), extent.ymin()],
             [extent.xmax() - pos.x(), pos.y() - extent.ymin()]
@@ -261,74 +285,111 @@ impl Ui {
             add_content
         );
 
-        self.cursor.canvas_pos = Point(self.cursor.canvas_allocated.xmax(), self.cursor.canvas_pos.y());
-        self.cursor.page_pos = Point(self.cursor.page_allocated.xmax(), self.cursor.page_pos.y());
+        self.update_pos();
 
         result
     }
 
-    pub fn horizontal_view<R>(
+    pub fn view<R>(
+        &mut self, 
+        add_content: impl FnOnce(&mut Ui) -> R
+    ) -> ResponseValue<R> {
+        let pos = self.update.alloc_view(Size(1., 1.), &mut self.alloc);
+        println!("  pos {:?}", pos);
+        let result = self.child(
+            UiBuilder::default()
+                .max_bounds(pos)
+                .view(true)
+                .update(CursorUpdate::Vertical),
+            add_content
+        );
+
+        self.update_pos();
+
+        result
+    }
+
+    pub fn horizontal_size<R>(
         &mut self, 
         size: UiSize, 
         add_content: impl FnOnce(&mut Ui) -> R
     ) -> ResponseValue<R> {
+        let mut is_view = false;
+
         let bounds = match size {
             UiSize::Canvas(width, height) => {
                 self.update.alloc_canvas(
                     Size(width, height), 
-                    &mut self.cursor
+                    &mut self.alloc
                 )
             }
-            UiSize::Page(width, height) => {
-                self.update.alloc_page(
+            UiSize::View(width, height) => {
+                is_view = true;
+                self.update.alloc_view(
                     Size(width, height), 
-                    &mut self.cursor
+                    &mut self.alloc
                 )
             }
         };
 
         let result = self.child(UiBuilder::default()
             .max_bounds(bounds)
+            .view(is_view)
             .update(CursorUpdate::Horizontal),
             add_content
         );
 
-        self.cursor.canvas_pos = Point(self.cursor.canvas_allocated.xmax(), self.cursor.canvas_pos.y());
-        self.cursor.page_pos = Point(self.cursor.page_allocated.xmax(), self.cursor.page_pos.y());
+        self.update_pos();
 
         result
     }
 
-    pub fn vertical_view<R>(
+    pub fn vertical_size<R>(
         &mut self, 
         size: UiSize, 
         add_content: impl FnOnce(&mut Ui) -> R
     ) -> ResponseValue<R> {
+        let mut is_view = false;
+
         let bounds = match size {
             UiSize::Canvas(width, height) => {
                 self.update.alloc_canvas(
                     Size(width, height), 
-                    &mut self.cursor
+                    &mut self.alloc
                 )
             }
-            UiSize::Page(width, height) => {
-                self.update.alloc_page(
+            UiSize::View(width, height) => {
+                is_view = true;
+                self.update.alloc_view(
                     Size(width, height), 
-                    &mut self.cursor
+                    &mut self.alloc
                 )
             }
         };
 
         let result = self.child(UiBuilder::default()
             .max_bounds(bounds)
+            .view(is_view)
             .update(CursorUpdate::Vertical),
             add_content
         );
 
-        self.cursor.canvas_pos = Point(self.cursor.canvas_allocated.xmax(), self.cursor.canvas_pos.y());
-        self.cursor.page_pos = Point(self.cursor.page_allocated.xmax(), self.cursor.page_pos.y());
+        self.update_pos();
 
         result
+    }
+
+    fn update_pos(&mut self) {
+        match self.update {
+            CursorUpdate::Vertical => {
+                self.alloc.pos = Point(self.alloc.pos.x(), self.alloc.canvas_allocated.ymax());
+                self.alloc.view_pos = Point(self.alloc.view_pos.x(), self.alloc.view_allocated.ymax());
+            },
+            CursorUpdate::Horizontal => {
+                self.alloc.pos = Point(self.alloc.canvas_allocated.xmax(), self.alloc.pos.y());
+                self.alloc.view_pos = Point(self.alloc.view_allocated.xmax(), self.alloc.view_pos.y());
+            },
+        }
     }
     
     #[inline]
@@ -364,10 +425,11 @@ impl Ui {
 }
 
 #[derive(Default)]
-pub struct UiBuilder {
+pub(crate) struct UiBuilder {
     id_salt: Option<Id>,
     max_bounds: Option<Bounds<Canvas>>,
-    update: Option<CursorUpdate>
+    update: Option<CursorUpdate>,
+    is_view: bool,
 }
 
 impl UiBuilder {
@@ -386,8 +448,15 @@ impl UiBuilder {
     }
 
     #[inline]
-    pub fn update(mut self, update: CursorUpdate) -> Self {
+    pub(crate) fn update(mut self, update: CursorUpdate) -> Self {
         self.update = Some(update);
+
+        self
+    }
+
+    #[inline]
+    pub fn view(mut self, is_view: bool) -> Self {
+        self.is_view = is_view;
 
         self
     }
@@ -396,39 +465,8 @@ impl UiBuilder {
 #[derive(Copy, Clone, Debug)]
 pub enum UiSize {
     Canvas(f32, f32),
-    Page(f32, f32),
+    View(f32, f32),
 }
-
-/*
-pub struct Response {
-    onclick: bool,
-}
-
-impl Response {
-    pub fn with_onclick(mut self, onclick: bool) -> Self {
-        self.onclick = onclick;
-
-        self
-    }
-
-    pub fn onclick(&self, fun: impl FnOnce()) -> &Self {
-        if self.onclick {
-            (fun)();
-        }
-
-        self
-    }
-}
-
-impl Default for Response {
-    fn default() -> Self {
-        Self {
-            onclick: false,
-        }
-    }
-}
-    */
-
 
 pub struct OnceView<T: Drawable> {
     view: Option<T>,

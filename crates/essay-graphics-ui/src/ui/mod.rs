@@ -1,7 +1,7 @@
 mod response;
 mod frame;
 mod panel;
-mod cursor;
+mod alloc;
 mod tabs;
 pub mod ui;
 

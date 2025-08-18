@@ -258,7 +258,7 @@ impl PageBuilder2 {
         let result = (f)(&mut sub);
 
         self.children.push(Box::new(PageHoriz {
-            size: UiSize::Page(size, size),
+            size: UiSize::View(size, size),
             children: sub.children,
         }));
 
@@ -284,7 +284,7 @@ impl PageBuilder2 {
         let result = (add_content)(&mut sub);
 
         self.children.push(Box::new(PageVert {
-            size: UiSize::Page(size, size),
+            size: UiSize::View(size, size),
             children: sub.children,
         }));
 
@@ -320,7 +320,7 @@ impl BuildTabs {
         let result = (add_content)(&mut content);
 
         self.tabs.push((label, Box::new(PageVert { 
-            size: UiSize::Page(1., 1.),
+            size: UiSize::View(1., 1.),
             children: content.children 
         })));
 
@@ -465,7 +465,7 @@ struct _PageUi {
 
 impl PageDraw for _PageUi {
     fn draw(&mut self, ui: &mut Ui) {
-        ui.vertical_view(self.size, |ui| {
+        ui.vertical_size(self.size, |ui| {
             (self.add_content)(ui)
         });
     }
@@ -478,7 +478,7 @@ struct PageHoriz {
 
 impl PageDraw for PageHoriz {
     fn draw(&mut self, ui: &mut Ui) {
-        ui.horizontal_view(self.size, |ui| {
+        ui.horizontal_size(self.size, |ui| {
             for child in &mut self.children {
                 child.draw(ui);
             }
@@ -493,7 +493,7 @@ struct PageVert {
 
 impl PageDraw for PageVert {
     fn draw(&mut self, ui: &mut Ui) {
-        ui.vertical_view(self.size, |ui| {
+        ui.vertical_size(self.size, |ui| {
             for child in &mut self.children {
                 child.draw(ui);
             }

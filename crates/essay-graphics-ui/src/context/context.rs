@@ -7,10 +7,11 @@ use essay_graphics_api::output::Output;
 use essay_graphics_api::renderer::{self, Canvas, FontSetMetrics, GraphicsContext, Renderer};
 use essay_graphics_api::{Bounds, Point};
 
-use crate::context::widget::{WidgetRect, WidgetRects};
+use crate::context::widget::{WidgetRect};
+use crate::context::RenderPass;
 use crate::painter::GraphicsLayers;
 use crate::style::UiStyle;
-use crate::ui::ui::{ResponseValue, Ui, UiBuilder};
+use crate::ui::ui::{Ui, UiBuilder};
 use crate::ui::{Response};
 use crate::util::{Id, IdSet};
 
@@ -82,10 +83,12 @@ impl Context {
         self.read(|cxt| (reader)(&cxt.viewport.last_pass))
     }
 
+    /*
     #[inline]
     pub fn last_pass_mut<R>(&self, writer: impl FnOnce(&mut RenderPass) -> R) -> R {
         self.write(|cxt| (writer)(&mut cxt.viewport.last_pass))
     }
+    */
 
     #[inline]
     pub fn style(&self) -> Arc<UiStyle> {
@@ -146,6 +149,8 @@ impl Context {
                 });
 
                 return Ok(self.output());
+            } else {
+                println!("Resize");
             }
         }
     }
@@ -156,9 +161,9 @@ impl Context {
 
     fn start_pass(&self, _is_resize: bool, input: &Input) {
         self.write(|ctx| {
-            let mut pass = RenderPass::default();
-            std::mem::swap(&mut ctx.viewport.pass, &mut pass);
-            std::mem::swap(&mut ctx.viewport.last_pass, &mut pass);
+            let pass = RenderPass::default();
+            let last_pass = std::mem::replace(&mut ctx.viewport.pass, pass);
+            ctx.viewport.last_pass = last_pass;
 
             ctx.viewport.input = input.clone(); // TODO: transfer input
             ctx.viewport.interact.clicked = None;
@@ -257,19 +262,6 @@ impl Default for Interact {
             clicked: Default::default(), 
             last_cursor_move: Instant::now(),
         }
-    }
-}
-
-#[derive(Default)]
-pub struct RenderPass {
-    widgets: WidgetRects,
-
-    // view_size: ViewSizeCache,
-}
-
-impl RenderPass {
-    pub fn widgets(&self) -> &WidgetRects {
-        &self.widgets
     }
 }
 

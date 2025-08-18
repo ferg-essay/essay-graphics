@@ -1,4 +1,4 @@
-use crate::{output::Output, renderer::{self, Drawable, Renderer}};
+use crate::{output::Output, renderer::{self, Renderer}};
 
 pub trait Backend {
     fn context(&self) -> Box<dyn GraphicsContext>;
