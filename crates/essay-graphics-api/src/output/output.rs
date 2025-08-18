@@ -1,6 +1,6 @@
 use crate::output::Command;
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct Output {
     commands: Vec<Command>,
 }

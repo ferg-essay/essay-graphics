@@ -22,7 +22,7 @@ impl MainLoop {
         let mut device = self.device;
 
         let context = Context::new(device.context());
-        let mut app = Box::new(app);
+        let app = Box::new(app);
 
         /*
         device.main_loop(Box::new(move |ui: &mut dyn Renderer| {

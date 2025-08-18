@@ -1,9 +1,9 @@
 use std::ops::{Deref, DerefMut};
 use std::sync::{Arc, RwLock};
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
 use essay_graphics_api::input::Input;
-use essay_graphics_api::output::Output;
+use essay_graphics_api::output::{Command, Output};
 use essay_graphics_api::renderer::{self, Canvas, FontSetMetrics, GraphicsContext, Renderer};
 use essay_graphics_api::{Bounds, Point};
 
@@ -11,7 +11,6 @@ use crate::context::widget::{WidgetRect};
 use crate::context::RenderPass;
 use crate::painter::GraphicsLayers;
 use crate::style::UiStyle;
-use crate::ui::ui::{Ui, UiBuilder};
 use crate::ui::{Response};
 use crate::util::{Id, IdSet};
 
@@ -83,6 +82,18 @@ impl Context {
         self.read(|cxt| (reader)(&cxt.viewport.last_pass))
     }
 
+    #[inline]
+    pub fn output_mut<R>(&self, writer: impl FnOnce(&mut Output) -> R) -> R {
+        self.write(|cxt| {
+            match &mut cxt.viewport.pass.output {
+                Some(output) => {
+                    (writer)(output)
+                },
+                None => { panic!("output has already been taken"); }
+            }
+        })
+    }
+
     /*
     #[inline]
     pub fn last_pass_mut<R>(&self, writer: impl FnOnce(&mut RenderPass) -> R) -> R {
@@ -100,8 +111,11 @@ impl Context {
         self.viewport(|viewport| viewport.screen_pos)
     }
     
-    pub fn request_redraw_when(&self, _duration: f32) {
+    pub fn request_redraw_when(&self, time: f32) {
+        let duration = Duration::from_millis((time * 1000.).ceil() as u64);
         
+        let time = Instant::now().checked_add(duration).unwrap();
+        self.output_mut(|output| output.command(Command::RedrawAfterDelay(time)));
     }
 }
 
@@ -148,20 +162,22 @@ impl Context {
                     layers.render(renderer).unwrap();
                 });
 
-                return Ok(self.output());
+                return Ok(self.take_output());
             } else {
                 println!("Resize");
             }
         }
     }
 
-    fn output(&self) -> Output {
-        Output::default()
+    fn take_output(&self) -> Output {
+        self.pass_mut(|pass| pass.output.take()).unwrap()
     }
 
     fn start_pass(&self, _is_resize: bool, input: &Input) {
         self.write(|ctx| {
-            let pass = RenderPass::default();
+            let mut pass = RenderPass::default();
+            pass.output = Some(Output::default());
+
             let last_pass = std::mem::replace(&mut ctx.viewport.pass, pass);
             ctx.viewport.last_pass = last_pass;
 

@@ -54,6 +54,7 @@ pub fn run_event_loop(
                 input.update_after_draw();
             }
             event::Event::NewEvents(StartCause::ResumeTimeReached { .. }) => {
+                wait_until = None;
                 handle.request_redraw();
             },
             event::Event::AboutToWait => {

@@ -17,15 +17,15 @@ impl Tooltip {
     }
 
     pub fn should_show_tooltip(response: &Response) -> bool {
-        response.ctx.viewport(|viewport| {
-            let last_move = viewport.interact.since_cursor_move();
+        let last_move = response.ctx.viewport(|viewport| {
+            viewport.interact.since_cursor_move()
+        });
 
-            if last_move > 1. {
-                true
-            } else {
-                response.ctx.request_redraw_when(1. - last_move);
-                false
-            }
-        })
+        if last_move > 1. {
+            true
+        } else {
+            response.ctx.request_redraw_when(1. - last_move);
+            false
+        }
     }
 }

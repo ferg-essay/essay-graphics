@@ -1,4 +1,4 @@
-use essay_graphics_api::{renderer::Canvas, Bounds};
+use essay_graphics_api::{output::Output, renderer::Canvas, Bounds};
 
 use crate::{context::widget::WidgetRects, page::Page, util::IdMap};
 
@@ -9,6 +9,8 @@ pub struct RenderPass {
 
     // view_size: ViewSizeCache,
     pub alloc_map: IdMap<CacheAlloc>,
+
+    pub output: Option<Output>,
 }
 
 impl RenderPass {

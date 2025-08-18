@@ -181,7 +181,7 @@ impl<'window> WgpuViewport<'window> {
                 self.app.render(ui)
             }
         ).unwrap();
-    
+
         frame.present();
 
         Ok(result)
