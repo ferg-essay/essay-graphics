@@ -68,7 +68,8 @@ impl FontCache {
 
                 return GlyphSize {
                     width: glyphs.advance_width(glyph),
-                    height: metrics.ascent + metrics.descent,
+                    ascent: metrics.ascent,
+                    descent: metrics.descent,
                     lsb: glyphs.lsb(glyph),
                 }
             }

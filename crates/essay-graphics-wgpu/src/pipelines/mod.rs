@@ -1,3 +1,4 @@
+mod buffer;
 mod bezier_mesh;
 pub mod pipeline_canvas;
 mod form3d;

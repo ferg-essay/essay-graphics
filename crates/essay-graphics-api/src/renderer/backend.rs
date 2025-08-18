@@ -27,7 +27,8 @@ pub trait FontSetMetrics: Send + Sync {
 #[derive(Clone, Copy, Debug)]
 pub struct GlyphSize {
     pub width: f32,
-    pub height: f32,
+    pub ascent: f32,
+    pub descent: f32,
     pub lsb: f32,
     // TODO: descend
 }

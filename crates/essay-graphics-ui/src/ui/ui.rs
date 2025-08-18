@@ -408,7 +408,7 @@ impl Ui {
                 let rect = fonts.glyph_size(size, ch);
 
                 width += rect.width;
-                height = rect.height.max(height);
+                height = (rect.ascent + rect.descent).max(height);
             }
 
             Size(width, height)

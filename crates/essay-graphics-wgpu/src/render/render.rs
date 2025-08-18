@@ -429,7 +429,7 @@ impl<'a, 'b> Renderer for PlotRenderer<'a, 'b> {
         for ch in text.chars() {
             let rect = font_set.glyph_size(size, ch);
 
-            height = height.max(rect.height as f32);
+            height = height.max((rect.ascent + rect.descent) as f32);
 
             if is_first {
                 width += rect.width;
