@@ -6,7 +6,7 @@ struct VertexInput {
 struct StyleInput {
     @location(2) a0: vec4<f32>,
     @location(3) a1: vec4<f32>,
-    @location(4) color: vec4<f32>,
+    @location(4) color: u32,
 }
 
 struct VertexOutput {
@@ -35,7 +35,7 @@ fn vs_shape(
 
     var out: VertexOutput;
     out.pos = vec4<f32>(x, y, 0.0, 1.0);
-    out.color = style.color;
+    out.color = unpack_color(style.color);
     out.uv = model.uv;
 
     return out;
@@ -53,4 +53,13 @@ fn fs_shape(
         sample.b * in.color[2], 
         sample.a * in.color[3]
     );
+}
+
+fn unpack_color(color: u32) -> vec4<f32> {
+    return vec4<f32>(
+        f32((color >> 24u) & 0xffu),
+        f32((color >> 16u) & 0xffu),
+        f32((color >> 8u) & 0xffu),
+        f32(color & 0xffu),
+    ) / 255.0;
 }

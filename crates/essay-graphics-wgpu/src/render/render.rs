@@ -128,9 +128,9 @@ impl<'a, 'b> PlotRenderer<'a, 'b> {
 
             let y_ch = (y + r.dy).floor(); // (y - r.dy).floor();// - r.h as f32;
             let x_ch = if is_first {
-                (x - r.dx).floor()
+                (x).floor()
             } else {
-                (x - r.dx + r.lsb).floor()
+                (x + r.lsb).floor()
             };
 
             is_first = false;

@@ -431,8 +431,8 @@ impl TextRect {
 
             ascent: glyph.ascent,
             _descent: glyph.descent,
-            advance_width: glyph.advance_width,
-            lsb: glyph.lsb,
+            advance_width: glyph.advance_width.round(),
+            lsb: glyph.lsb.round(),
         }
     }
 

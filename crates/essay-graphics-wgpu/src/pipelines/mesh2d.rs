@@ -128,7 +128,7 @@ impl Vertex {
 pub struct Style {
     affine_0: [f32; 4],
     affine_1: [f32; 4],
-    color: [f32; 4],
+    color: u32,
 }
 
 impl Style {
@@ -136,7 +136,7 @@ impl Style {
         wgpu::vertex_attr_array![
             2 => Float32x4, 
             3 => Float32x4,
-            4 => Float32x4
+            4 => Uint32,
         ];
 
     pub(crate) fn desc() -> wgpu::VertexBufferLayout<'static> {
@@ -153,12 +153,7 @@ impl Style {
         Self {
             affine_0: [mat[0], mat[1], 0., mat[2]],
             affine_1: [mat[3], mat[4], 0., mat[5]],
-            color: [
-                Color::srgb_to_lrgb(color.red()),
-                Color::srgb_to_lrgb(color.green()),
-                Color::srgb_to_lrgb(color.blue()),
-                color.alpha(),
-            ],
+            color: color.to_rgba(),
         }
     }
 }
