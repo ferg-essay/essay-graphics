@@ -144,11 +144,11 @@ impl PipelineCanvas {
         wgpu: &mut RenderWgpu,
         shape: &Shapes,
         texture: TextureId,
-        color: Color,
     ) -> Result<(), RenderErr> {
         let item = match shape {
-            Shapes::Rectangle(pos, size, r1, _) => {
-                self.shape_rect_render.draw(wgpu, *pos, *size, *r1, texture, color)
+            Shapes::None => { FlushItem::None },
+            Shapes::Rectangle(pos, size, r1, color) => {
+                self.shape_rect_render.draw(wgpu, *pos, *size, *r1, texture, *color)
             }
         };
 

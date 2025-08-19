@@ -24,8 +24,17 @@ impl Painter {
         })
     }
 
-    pub fn add(&self, draw: impl Drawable + 'static) {
-        self.paint(|paint_list| paint_list.add(draw));
+    pub fn add(&self, draw: impl Drawable + 'static) -> PaintIndex {
+        self.paint(|paint_list| {
+            paint_list.add(draw);
+            PaintIndex(paint_list.len() - 1)
+        })
+    }
+
+    pub fn set(&self, index: PaintIndex, draw: impl Drawable + 'static) {
+        self.paint(|paint_list| {
+            paint_list.set(index, draw);
+        })
     }
 
     pub fn extend<I>(&self, iter: I) 
@@ -40,7 +49,8 @@ impl Painter {
     }
 }
 
-
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub struct PaintIndex(usize);
 
 #[derive(Default)]
 pub struct GraphicsLayers {
@@ -65,7 +75,17 @@ impl GraphicsLayers {
 pub struct PaintList(Vec<Box<dyn Drawable + Send + 'static>>);
 
 impl PaintList {
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
     pub fn add(&mut self, draw: impl Drawable + Send + 'static) {
         self.0.push(Box::new(draw));
+    }
+
+    pub fn set(&mut self, index: PaintIndex, draw: impl Drawable + Send + 'static) {
+        assert!(index.0 < self.0.len());
+
+        self.0[index.0] = Box::new(draw);
     }
 }

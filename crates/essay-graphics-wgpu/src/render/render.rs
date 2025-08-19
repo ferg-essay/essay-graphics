@@ -356,11 +356,8 @@ impl<'a, 'b> Renderer for PlotRenderer<'a, 'b> {
     fn draw_shape(
         &mut self, 
         shape: &Shapes,
-        style: &dyn PathOpt, 
     ) -> Result<()> {
-        let color = style.get_face_color().unwrap_or(Color::black());
-
-        self.canvas.pipeline.draw_shape(self.wgpu, shape, TextureId::default(), color)
+        self.canvas.pipeline.draw_shape(self.wgpu, shape, TextureId::default())
     }
 
     fn font(

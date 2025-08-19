@@ -181,10 +181,10 @@ impl Renderer for TestRenderer {
         todo!()
     }
     
+    #[allow(unused)]
     fn draw_shape(
         &mut self, 
         shape: &essay_graphics_api::Shapes,
-        style: &dyn PathOpt, 
     ) -> Result<()> {
         todo!()
     }

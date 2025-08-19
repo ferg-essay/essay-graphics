@@ -88,7 +88,6 @@ pub trait Renderer {
     fn draw_shape(
         &mut self, 
         shape: &Shapes,
-        style: &dyn PathOpt, 
     ) -> Result<()>;
 
     fn font(

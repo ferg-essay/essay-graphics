@@ -1,4 +1,4 @@
-use essay_graphics_api::{renderer::{Canvas, Renderer}, Path, Point, Size};
+use essay_graphics_api::{renderer::{Canvas, Renderer}, Color, Path, Point, Shapes, Size};
 
 use crate::{style::State, ui::{ui::Widget, Response, ResponseValue, Ui}};
 
@@ -63,8 +63,20 @@ impl Widget for Button {
             ui.style()[State::Inactive].foreground
         };
 
+        let background_color = ui.style()[state].background;
+
         ui.painter_mut().add(move |ui: &mut dyn Renderer| {
-            ui.draw_path(&background, &style)?;
+            let sz = 2.;
+            let r = 10.;
+            ui.draw_shape(&Shapes::Rectangle(
+                bounds.p0() - Point(sz, sz), bounds.size() + Size(2. * sz, 2. * sz), r + 1., 
+                Color(0x404040ff)
+            ))?;
+
+            ui.draw_shape(&Shapes::Rectangle(
+                bounds.p0(), bounds.size(), r, background_color,
+            ))?;
+            // ui.draw_path(&background, &style)?;
             style.edge_color(text_color);
             style.face_color(text_color);
             ui.draw_text(pos, &label, 0., &style, &button_text)

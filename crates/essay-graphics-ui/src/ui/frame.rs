@@ -1,4 +1,4 @@
-use essay_graphics_api::{renderer::Renderer, Color, Margin, Path, PathStyle};
+use essay_graphics_api::{renderer::Renderer, Color, Margin, Path, PathStyle, Shapes};
 
 use crate::ui::ui::{ResponseValue, Ui, UiBuilder};
 
@@ -27,6 +27,8 @@ impl Frame {
         assert!(max_bounds.x0() < max_bounds.x1());
         assert!(max_bounds.y0() < max_bounds.y1());
 
+        let index = ui.painter_mut().add(Shapes::None);
+
         let builder = UiBuilder::default()
             .max_bounds(max_bounds);
 
@@ -48,13 +50,9 @@ impl Frame {
 
         let pos = rect.rect;
 
-        ui.painter_mut().add(move |ui: &mut dyn Renderer| {
-            let mut style = PathStyle::new();
-            style.face_color(Color(0x0));
-            style.edge_color(0x808080);
-            
-            ui.draw_path(&Path::rect(pos), &style)
-        });
+        ui.painter_mut().set(index, Shapes::Rectangle(
+            pos.p0(), pos.size(), 5., Color(0x202020ff)
+        ));
 
         ResponseValue::new(value, response)
     }
