@@ -154,6 +154,11 @@ impl Color {
     }
 
     #[inline]
+    pub fn to_lrgb_u32(&self) -> u32 {
+        Self::from(self.to_lrgb()).to_rgba()
+    }
+
+    #[inline]
     pub fn from_lrgb(&self) -> [f32; 4] {
         [
             Self::srgb_to_lrgb(self.red()),

@@ -180,6 +180,14 @@ impl Renderer for TestRenderer {
     ) -> Result<()> {
         todo!()
     }
+    
+    fn draw_shape(
+        &mut self, 
+        shape: &essay_graphics_api::Shapes,
+        style: &dyn PathOpt, 
+    ) -> Result<()> {
+        todo!()
+    }
 }
 
 #[cfg(test)]

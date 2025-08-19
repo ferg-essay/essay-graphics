@@ -1,7 +1,7 @@
 use std::{mem, num::NonZero};
 
 use essay_graphics_api::{
-    form::{Form, FormId, Matrix4}, input::Input, path_style::MeshStyle, renderer::{Canvas, GraphicsContext, Pos, RenderErr, Renderer, Result}, Affine2d, BezierMesh2d, Bounds, CapStyle, Color, FontStyle, FontTypeId, HorizAlign, JoinStyle, LineStyle, Mesh2d, Mesh2dColor, Path, PathCode, PathOpt, Point, Size, TextStyle, TextureId, VertAlign
+    form::{Form, FormId, Matrix4}, input::Input, path_style::MeshStyle, renderer::{Canvas, GraphicsContext, Pos, RenderErr, Renderer, Result}, Affine2d, BezierMesh2d, Bounds, CapStyle, Color, FontStyle, FontTypeId, HorizAlign, JoinStyle, LineStyle, Mesh2d, Mesh2dColor, Path, PathCode, PathOpt, Point, Shapes, Size, TextStyle, TextureId, VertAlign
 };
 use essay_tensor::tensor::Tensor;
 use wgpu::util::StagingBelt;
@@ -351,6 +351,16 @@ impl<'a, 'b> Renderer for PlotRenderer<'a, 'b> {
         mesh: &Mesh2dColor,
     ) -> Result<()> {
         self.canvas.pipeline.draw_mesh2d_color(self.wgpu, mesh, &self.canvas.to_gpu)
+    }
+    
+    fn draw_shape(
+        &mut self, 
+        shape: &Shapes,
+        style: &dyn PathOpt, 
+    ) -> Result<()> {
+        let color = style.get_face_color().unwrap_or(Color::black());
+
+        self.canvas.pipeline.draw_shape(self.wgpu, shape, TextureId::default(), color)
     }
 
     fn font(

@@ -3,11 +3,7 @@ use std::ops;
 use essay_tensor::tensor::Tensor;
 
 use crate::{
-    form::{Form, FormId, Matrix4},
-    input::Input, 
-    mesh2d::{BezierMesh2d, Mesh2d}, 
-    path_style::MeshStyle, Bounds, FontStyle, FontTypeId,
-    Mesh2dColor, Path, PathOpt, Point, Size, TextStyle, TextureId
+    form::{Form, FormId, Matrix4}, input::Input, mesh2d::{BezierMesh2d, Mesh2d}, path_style::MeshStyle, Bounds, FontStyle, FontTypeId, Mesh2dColor, Path, PathOpt, Point, Shapes, Size, TextStyle, TextureId
 };
 
 use super::{Canvas, RenderErr, Result};
@@ -87,6 +83,12 @@ pub trait Renderer {
     fn draw_mesh2d_color(
         &mut self,
         mesh: &Mesh2dColor,
+    ) -> Result<()>;
+
+    fn draw_shape(
+        &mut self, 
+        shape: &Shapes,
+        style: &dyn PathOpt, 
     ) -> Result<()>;
 
     fn font(

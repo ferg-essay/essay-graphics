@@ -4,5 +4,6 @@ pub mod pipeline_canvas;
 mod form3d;
 mod mesh2d;
 mod mesh2d_color;
+mod shape_rect;
 pub mod texture_store;
 pub(crate) use pipeline_canvas::PipelineCanvas;

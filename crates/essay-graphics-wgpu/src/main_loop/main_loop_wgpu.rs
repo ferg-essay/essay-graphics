@@ -122,7 +122,6 @@ impl<'window> WgpuViewport<'window> {
             self.config.height = self.input.size.height() as u32;
 
             self.surface.configure(&self.device, &self.config);
-            self.canvas.resize(&self.device, pos);
         }
 
         let frame = self.surface.get_current_texture()
@@ -171,6 +170,8 @@ impl<'window> WgpuViewport<'window> {
             bounds: pos,
             staging,
         };
+
+        self.canvas.resize(&mut wgpu, pos);
 
         let result = PlotRenderer::render(
             &mut wgpu,

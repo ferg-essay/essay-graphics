@@ -246,8 +246,6 @@ impl Ui {
         let ResponseValue { response, .. } = self.allocate_view(size);
         
         self.painter_mut().add(draw);
-        // self.renderer().draw_with(value, Box::new(|ui| draw.draw(ui))).unwrap();
-        //todo!();
 
         response
     }

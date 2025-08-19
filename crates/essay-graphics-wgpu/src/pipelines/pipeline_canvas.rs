@@ -1,9 +1,18 @@
 use essay_graphics_api::{
-    form::{Form, FormId, Matrix4}, path_style::MeshStyle, renderer::{self, Canvas, RenderErr, Result}, Affine2d, BezierMesh2d, Bounds, Mesh2d, Mesh2dColor, Size, TextureId
+    form::{Form, FormId, Matrix4}, 
+    path_style::MeshStyle, 
+    renderer::{self, Canvas, RenderErr, Result}, 
+    Affine2d, BezierMesh2d, Bounds, Color, Mesh2d, Mesh2dColor, 
+    Shapes, Size, TextureId
 };
 use essay_tensor::tensor::Tensor;
 
-use crate::{pipelines::{bezier_mesh::BezierFlush, mesh2d::Mesh2dFlush, mesh2d_color::Mesh2dColorItem}, render::render::RenderWgpu};
+use crate::{
+    pipelines::{bezier_mesh::BezierFlush, mesh2d::Mesh2dFlush, mesh2d_color::Mesh2dColorItem, 
+        shape_rect::{ShapeRectFlush, ShapeRectRender}
+    }, 
+    render::render::RenderWgpu
+};
 use super::{
     bezier_mesh::BezierMeshRender, form3d::Form3dRender,
     mesh2d::Mesh2dRender, mesh2d_color::Mesh2dColorRender, 
@@ -17,6 +26,8 @@ pub(crate) struct PipelineCanvas {
     bezier_mesh_render: BezierMeshRender,
     mesh2d_color_render: Mesh2dColorRender,
     form3d_render: Form3dRender,
+
+    shape_rect_render: ShapeRectRender,
 
     pos: Bounds<Canvas>,
 
@@ -35,22 +46,25 @@ impl PipelineCanvas {
     ) -> Self {
         let mesh2d_render = Mesh2dRender::new(device, format);
         let bezier_mesh_render = BezierMeshRender::new(device, format);
-
         let mesh2d_color_render = Mesh2dColorRender::new(device, format);
 
         let form3d_render = Form3dRender::new(device, format, width, height);
+
+        // let shape_rect_render = ShapeRectRender::new(device, format);
 
         let texture_store = TextureStore::new(device, queue);
 
         // let hatch_map = init_hatch(device, queue, &mut texture_store);
 
-        let mut canvas = Self {
+        let canvas = Self {
             texture_store,
 
             mesh2d_render,
             bezier_mesh_render,
             mesh2d_color_render,
             form3d_render,
+
+            shape_rect_render: ShapeRectRender::new(device, format),
 
             pos: Bounds::from(Size(width as f32, height as f32)),
 
@@ -59,7 +73,7 @@ impl PipelineCanvas {
             is_request_redraw: false,
         };
 
-        canvas.resize(&device, width as f32, height as f32);
+        //canvas.resize(&device, width as f32, height as f32);
 
         canvas
     }
@@ -77,10 +91,12 @@ impl PipelineCanvas {
         &mut self.texture_store
     }
 
-    pub fn resize(&mut self, device: &wgpu::Device, width: f32, height: f32) {
+    pub fn resize(&mut self, wgpu: &mut RenderWgpu, width: f32, height: f32) {
         if width > 0. {
             self.pos = Bounds::from([width, height]);
-            self.form3d_render.resize(device, width as u32, height as u32);
+            self.form3d_render.resize(wgpu.device, width as u32, height as u32);
+
+            self.shape_rect_render.resize(wgpu, self.pos);
         }
     }
 
@@ -119,6 +135,22 @@ impl PipelineCanvas {
             mesh, 
             affine,
         );
+
+        self.push_flush(item)
+    }
+
+    pub(crate) fn draw_shape(
+        &mut self, 
+        wgpu: &mut RenderWgpu,
+        shape: &Shapes,
+        texture: TextureId,
+        color: Color,
+    ) -> Result<(), RenderErr> {
+        let item = match shape {
+            Shapes::Rectangle(pos, size, r1, _) => {
+                self.shape_rect_render.draw(wgpu, *pos, *size, *r1, texture, color)
+            }
+        };
 
         self.push_flush(item)
     }
@@ -209,6 +241,13 @@ impl PipelineCanvas {
                             item
                         );
                     },
+                    FlushItem::ShapeRect(item) => {
+                        self.shape_rect_render.flush_item(
+                            rpass, 
+                            &self.texture_store,
+                            item,
+                        );
+                    },
                 }
             }
         });
@@ -216,6 +255,8 @@ impl PipelineCanvas {
         self.mesh2d_render.clear();
         self.bezier_mesh_render.clear();
         self.mesh2d_color_render.clear();
+
+        self.shape_rect_render.clear();
      }
 }
 
@@ -226,5 +267,7 @@ pub enum FlushItem {
     Mesh2d(Mesh2dFlush),
     Bezier(BezierFlush),
     Mesh2dColor(Mesh2dColorItem),
+
+    ShapeRect(ShapeRectFlush),
 }
 
