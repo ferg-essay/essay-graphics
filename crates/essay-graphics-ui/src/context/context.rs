@@ -8,7 +8,7 @@ use essay_graphics_api::renderer::{self, Canvas, FontSetMetrics, GraphicsContext
 use essay_graphics_api::{Bounds, Point};
 
 use crate::context::widget::{WidgetRect};
-use crate::context::RenderPass;
+use crate::context::{Memory, RenderPass};
 use crate::painter::GraphicsLayers;
 use crate::style::UiStyle;
 use crate::ui::{Response};
@@ -45,6 +45,16 @@ impl Context {
     #[inline]
     pub fn input<R>(&self, reader: impl FnOnce(&Input) -> R) -> R {
         self.read(|cxt| (reader)(&cxt.viewport.input))
+    }
+
+    #[inline]
+    pub fn memory<R>(&self, reader: impl FnOnce(&Memory) -> R) -> R {
+        self.read(|cxt| (reader)(&cxt.memory))
+    }
+
+    #[inline]
+    pub fn memory_mut<R>(&self, writer: impl FnOnce(&mut Memory) -> R) -> R {
+        self.write(|cxt| (writer)(&mut cxt.memory))
     }
 
     #[inline]
@@ -222,6 +232,8 @@ pub(crate) struct ContextInner {
 
     viewport: Viewport,
 
+    memory: Memory,
+
     style: Arc<UiStyle>,
 }
 
@@ -236,6 +248,7 @@ impl ContextInner {
             },
 
             viewport: Viewport::default(),
+            memory: Default::default(),
             style: Default::default(),
         }
     }

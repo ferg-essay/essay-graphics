@@ -17,7 +17,7 @@ impl Button {
 }
 
 impl Widget for Button {
-    fn ui(&mut self, ui: &mut Ui) -> Response {
+    fn ui(self, ui: &mut Ui) -> Response {
         let button_text = ui.style().button_text.clone();
         let size = ui.text_size(&self.label, &button_text);
 

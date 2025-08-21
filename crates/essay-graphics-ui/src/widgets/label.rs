@@ -16,7 +16,7 @@ impl Label {
 
 impl Widget for Label {
     fn ui(
-        &mut self, 
+        self, 
         ui: &mut Ui, 
     ) -> Response {
         let style = ui.style().label.clone();

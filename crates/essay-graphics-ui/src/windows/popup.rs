@@ -7,7 +7,7 @@ pub struct Popup {
     ctx: Context,
     pos: Point,
 
-    is_enabled: bool,
+    open: Open,
 }
 
 impl Popup {
@@ -16,7 +16,7 @@ impl Popup {
             id,
             ctx: ctx.clone(),
             pos: pos.into(),
-            is_enabled: true,
+            open: Open::Open,
         }
     }
 
@@ -32,13 +32,25 @@ impl Popup {
         )
     }
 
+    pub fn menu(response: &Response) -> Self {
+        Self::from_response(response)
+            .open_memory(response.clicked().then_some(OpenMemory::Toggle))
+    }
+
     pub fn open(mut self, is_enabled: bool) -> Self {
-        self.is_enabled = is_enabled;
+        self.open = Open::Bool(is_enabled);
+        self
+    }
+
+    pub fn open_memory(mut self, open: Option<OpenMemory>) -> Self {
+        self.open = Open::Memory(open);
         self
     }
 
     pub fn show<R>(self, add_content: impl FnOnce(&mut Ui) -> R) -> Option<ResponseValue<R>> {
-        if ! self.is_enabled {
+        self.update_open();
+
+        if ! self.is_open() {
             return None;
         }
 
@@ -56,4 +68,53 @@ impl Popup {
             value
         }))
     }
+
+    fn update_open(&self) {
+        if let Open::Memory(memory) = &self.open {
+            match memory {
+                Some(OpenMemory::Toggle) => {
+                    self.ctx.memory_mut(|memory| {
+                        memory.popup_toggle(self.id)
+                    });
+                },
+                None =>{
+                }
+            }
+        }
+    }
+
+    fn is_open(&self) -> bool {
+        match self.open {
+            Open::Open => true,
+            Open::Close => false,
+            Open::Bool(is_open) => is_open,
+            Open::Memory(_) => self.ctx.memory(|memory| {
+                memory.popup_open(self.id)
+            })
+        }
+    }
+}
+
+enum Open {
+    Open,
+    Close,
+    Bool(bool),
+    Memory(Option<OpenMemory>)
+}
+
+impl Open {
+    fn is_open(&self, ctx: &Context, id: Id) -> bool {
+        match self {
+            Open::Open => true,
+            Open::Close => false,
+            Open::Bool(is_open) => *is_open,
+            Open::Memory(_) => ctx.memory(|memory| {
+                memory.popup_open(id)
+            })
+        }
+    }
+}
+
+pub enum OpenMemory {
+    Toggle
 }

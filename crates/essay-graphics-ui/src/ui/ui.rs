@@ -7,7 +7,7 @@ use essay_graphics_api::{
     Bounds, Point, Size, TextStyle
 };
 
-use crate::{context::{Context, WidgetRect}, painter::Painter, style::UiStyle, ui::Response, util::Id, widgets::{Button, Label}};
+use crate::{context::{Context, WidgetRect}, painter::Painter, style::UiStyle, ui::Response, util::Id, widgets::{Button, Label}, windows::{menu_button, MenuButton}};
 
 use super::alloc::{Alloc, AllocUpdate};
 
@@ -238,6 +238,19 @@ impl Ui {
         self.add(button)
     }
 
+    #[inline]
+    pub fn menu_button<R>(
+        &mut self, 
+        label: &str, 
+        add_content: impl FnOnce(&mut Ui) -> R
+    ) -> ResponseValue<Option<R>> {
+        let (button, popup) = {
+            MenuButton::new(label).ui(self, add_content)
+        };
+
+        ResponseValue::new(None, button)
+    }
+
     pub fn draw(&mut self, draw: impl Drawable + 'static) -> Response {
         self.draw_size(Size(1., 1.), draw)
     }
@@ -421,6 +434,10 @@ impl Ui {
     pub fn input<R>(&self, reader: impl FnOnce(&Input) -> R) -> R {
         self.context().input(reader)
     }
+    
+    pub fn id(&self) -> Id {
+        self.id
+    }
 }
 
 #[derive(Default)]
@@ -514,7 +531,7 @@ impl<T: Drawable> Drawable for OnceView<T> {
 
 pub trait Widget {
     fn ui(
-        &mut self, 
+        self, 
         ui: &mut Ui,
     ) -> Response;
 }
