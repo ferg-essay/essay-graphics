@@ -32,10 +32,16 @@ impl MenuButton {
     }
 
     pub fn ui<R>(
-        self,
+        mut self,
         ui: &mut Ui,
         add_content: impl FnOnce(&mut Ui) -> R
     ) -> (Response, Option<ResponseValue<R>>) {
+        let next_id = ui.next_id().with("popup");
+        let press = ui.context().memory(|memory| {
+            memory.popup_open(next_id)
+        });
+        self.button.set_press(press);
+
         let button_response = self.button.ui(ui);
 
         let popup_response = Popup::menu(&button_response)

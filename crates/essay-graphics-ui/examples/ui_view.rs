@@ -1,4 +1,4 @@
-use essay_graphics_ui::{main_loop::MainLoop, ui::CentralPanel};
+use essay_graphics_ui::{main_loop::MainLoop, ui::{CentralPanel, Frame, Ui}};
 
 fn main() { 
     MainLoop::new().show(move |cxt| {
@@ -26,7 +26,9 @@ fn main() {
                         ui.label("2")
                     });
                     ui.view(|ui| {
-                        ui.label("3")
+                        Frame::group(ui).background("amber").show(ui, |ui| {
+                            ui.label("3");
+                        })
                     });
                 });
             });

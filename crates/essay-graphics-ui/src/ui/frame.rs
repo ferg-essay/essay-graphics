@@ -1,18 +1,37 @@
-use essay_graphics_api::{renderer::Renderer, Color, Margin, Path, PathStyle, Shapes};
+use essay_graphics_api::{renderer::Renderer, Color, Margin, Point, Shapes, Size};
 
 use crate::ui::ui::{ResponseValue, Ui, UiBuilder};
 
 pub struct Frame {
     pub inner_margin: Margin,
     pub outer_margin: Margin,
+
+    pub background: Color,
+    pub is_shadow: bool,
 }
 
 impl Frame {
-    pub fn group() -> Self {
+    pub fn group(ui: &Ui) -> Self {
         Self {
             inner_margin: Margin::from_all(6.),
             outer_margin: Margin::from_all(0.),
+            background: ui.style().background,
+            is_shadow: false,
         }
+    }
+
+    #[inline]
+    pub fn shadow(mut self, is_shadow: bool) -> Self {
+        self.is_shadow = is_shadow;
+
+        self
+    }
+
+    #[inline]
+    pub fn background(mut self, background: impl Into<Color>) -> Self {
+        self.background = background.into();
+
+        self
     }
 
     #[inline]
@@ -50,9 +69,32 @@ impl Frame {
 
         let pos = rect.rect;
 
-        ui.painter_mut().set(index, Shapes::Rectangle(
-            pos.p0(), pos.size(), 5., Color(0x202020ff)
-        ));
+        let background = self.background;
+        let corner = ui.style().corner_radius;
+        let border = ui.style().border;
+        let is_shadow = self.is_shadow;
+        let shadow = ui.style().shadow;
+
+        ui.painter_mut().set(index, move |ui: &mut dyn Renderer| {
+            let pos = pos.round_ui();
+
+            if is_shadow {
+                // cheap shadow
+                let px = 5.;
+
+                ui.draw_shape(&Shapes::Rectangle(
+                    pos.p0() + Point(px, px), pos.size(), corner, shadow,
+                ))?;
+            }
+
+            ui.draw_shape(&Shapes::Rectangle(
+                pos.p0() - Point(1., 1.), pos.size() + Size(2., 2.), corner, border,
+            ))?;
+
+            ui.draw_shape(&Shapes::Rectangle(
+                pos.p0(), pos.size(), corner, background,
+            ))
+        });
 
         ResponseValue::new(value, response)
     }

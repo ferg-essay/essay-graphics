@@ -21,8 +21,7 @@ pub struct Ui {
 
     painter: Painter,
     style: Arc<UiStyle>,
-    // prev_cache: Option<&'a ViewSizeCache>,
-    // next_cache: &'a mut ViewSizeCache,
+
     cache_index: usize,
 }
 
@@ -220,7 +219,7 @@ impl Ui {
     }
 
     #[inline]
-    pub fn add(&mut self, mut widget: impl Widget) -> Response {
+    pub fn add(&mut self, widget: impl Widget) -> Response {
         widget.ui(self)
     }
 
@@ -437,6 +436,10 @@ impl Ui {
     
     pub fn id(&self) -> Id {
         self.id
+    }
+    
+    pub fn next_id(&self) -> Id {
+        self.id.with(self.next_auto_id_salt)
     }
 }
 

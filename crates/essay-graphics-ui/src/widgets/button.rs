@@ -1,4 +1,4 @@
-use essay_graphics_api::{renderer::{Canvas, Renderer}, Color, Path, Point, Shapes, Size};
+use essay_graphics_api::{renderer::{Canvas, Renderer}, Color, Margin, Path, Point, Shapes, Size};
 
 use crate::{style::State, ui::{ui::Widget, Response, ResponseValue, Ui}};
 
@@ -14,6 +14,14 @@ impl Button {
             press,
         }
     }
+
+    pub fn is_press(&self) -> bool {
+        self.press
+    }
+
+    pub fn set_press(&mut self, is_press: bool) {
+        self.press = is_press
+    }
 }
 
 impl Widget for Button {
@@ -21,7 +29,10 @@ impl Widget for Button {
         let button_text = ui.style().button_text.clone();
         let size = ui.text_size(&self.label, &button_text);
 
-        let margin = 10.;
+        let corner = ui.style().corner_radius;
+        let pad = 10.;
+        let margin = pad + corner;
+
         let size = Size(size.0 + 2. * margin, size.1 + 2. * margin);
 
         let ResponseValue {
@@ -29,56 +40,62 @@ impl Widget for Button {
             response
         } = ui.allocate_rect(size);
 
-        let bounds = bounds.round_ui();
+        //let bounds = bounds.round_ui();
 
         let pos = Point(bounds.xmin() + margin, bounds.ymin() + margin);
 
+        let inner = bounds - Margin::from_pair(corner, corner);
+        // println!("Size {:?} Bounds {:?} {:?}", size, bounds, inner);
+
         let mut style = ui.style().button.clone();
-
-        let background = Path::<Canvas>::from(bounds);
-
-        //let press_one = ui.input().left.click && ui.input().cursor_in(&bounds);
 
         let press_one = response.clicked();
 
-        let state = ui.input(|input| {
+        let ui_style = ui.style();
+
+        let (background, foreground) = ui.input(|input| {
+            let is_active = self.press ^ press_one;
+
             if input.cursor
                 .map_or(false, |p| bounds.contains(p)) {
-                State::Hover
-            } else if self.press ^ press_one { 
-                State::Active
+                if is_active {
+                    (ui_style.button2_on.hover_background, ui_style.button2_on.hover_foreground)
+                } else {
+                    (ui_style.button2_off.hover_background, ui_style.button2_off.hover_foreground)
+                }
             } else {
-                State::Inactive
+                if is_active {
+                    (ui_style.button2_on.background, ui_style.button2_on.foreground)
+                } else {
+                    (ui_style.button2_off.background, ui_style.button2_off.foreground)
+                }
             }
         });
-
-        style.edge_color(ui.style()[state].edge);
-        style.color(ui.style()[state].background);
+        
+        //style.edge_color(ui.style()[state].edge);
+        style.color(background);
 
         let label = self.label.clone();
 
-        let text_color = if self.press ^ press_one { 
-            ui.style()[State::Active].foreground
-        } else {
-            ui.style()[State::Inactive].foreground
-        };
-
-        let background_color = ui.style()[state].background;
+        let border = background;
+        let corner = ui_style.corner_radius;
 
         ui.painter_mut().add(move |ui: &mut dyn Renderer| {
-            let sz = 2.;
-            let r = 10.;
-            ui.draw_shape(&Shapes::Rectangle(
-                bounds.p0() - Point(sz, sz), bounds.size() + Size(2. * sz, 2. * sz), r + 1., 
-                Color(0x404040ff)
-            ))?;
+            let sz = 0.;
+            let r = corner;
+            if sz > 0. { // border
+                ui.draw_shape(&Shapes::Rectangle(
+                    inner.p0() - Point(sz, sz), inner.size() + Size(2. * sz, 2. * sz), r + 1., 
+                    border,
+                ))?;
+            }
 
             ui.draw_shape(&Shapes::Rectangle(
-                bounds.p0(), bounds.size(), r, background_color,
+                inner.p0(), inner.size(), r, background,
             ))?;
             // ui.draw_path(&background, &style)?;
-            style.edge_color(text_color);
-            style.face_color(text_color);
+            style.edge_color(foreground);
+            style.face_color(foreground);
             ui.draw_text(pos, &label, 0., &style, &button_text)
         });
 

@@ -57,9 +57,9 @@ impl Popup {
         let builder = UiBuilder::default()
             .max_bounds(([self.pos.x(), self.pos.y()], [400., 100.]));
 
-        let frame = Frame::group();
-        
         Some(Ui::top(&self.ctx, self.id, builder, |ui| {
+            let frame = Frame::group(ui).shadow(true);
+        
             let ResponseValue {
                 value,
                 ..
