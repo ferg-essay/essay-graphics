@@ -17,7 +17,7 @@ pub struct Ui {
     next_auto_id_salt: u64,
     
     alloc: Alloc,
-    update: AllocUpdate,
+    // update: AllocUpdate,
 
     painter: Painter,
     style: Arc<UiStyle>,
@@ -50,14 +50,14 @@ impl Ui {
 
         // println!("TopCache {:?}", alloc_cache);
 
-        let cursor = Alloc::new(canvas, alloc_cache.clone());
+        let alloc = Alloc::new(canvas, AllocUpdate::Vertical, alloc_cache.clone());
         
         let mut ui = Ui {
             id,
             unique_id: id,
             next_auto_id_salt: id.with("auto").value(),
-            alloc: cursor,
-            update: AllocUpdate::Vertical,
+            alloc,
+            // update: AllocUpdate::Vertical,
             painter: Painter::new(&ctx),
             style: ctx.style(),
     
@@ -105,16 +105,10 @@ impl Ui {
         let next_auto_id_salt = unique_id.value().wrapping_add(1);
 
         let max_bounds = max_bounds.unwrap_or_else(|| {
-            let pos = self.alloc.pos;
-            let extent = self.alloc.canvas_extent;
-
-            Bounds::from([
-                [pos.x(), extent.ymin()],
-                [extent.xmax(), pos.y()]
-            ])
+            self.alloc.available_bounds()
         });
 
-        let update = alloc_update.unwrap_or_else(|| self.update);
+        let update = alloc_update.unwrap_or_else(|| self.alloc.update);
 
         let bounds = Bounds::none();
         self.context().create_widget(WidgetRect {
@@ -127,8 +121,8 @@ impl Ui {
         });
 
         let alloc = self.alloc.child(
-            Point(max_bounds.xmin(), max_bounds.ymin()),
-            self.update,
+            max_bounds,
+            update,
             alloc_cache.clone()
         );
 
@@ -137,7 +131,6 @@ impl Ui {
             unique_id,
             next_auto_id_salt,
             alloc,
-            update,
             painter: Painter::new(self.painter.context()),
             style: self.style.clone(),
             cache_index: self.cache_index,
@@ -145,7 +138,7 @@ impl Ui {
 
         let result = (add_content)(&mut child);
 
-        self.alloc.merge_child(&child.alloc, self.update, is_view);
+        self.alloc.merge_child(&child.alloc, is_view);
 
         let response = child.end();
 
@@ -162,7 +155,7 @@ impl Ui {
     }
 
     fn end(&mut self) -> Response {
-        let bounds = self.alloc.canvas_allocated;
+        let bounds = self.alloc.alloc;
         let response = self.context().create_widget(WidgetRect {
             id: self.unique_id,
             rect: bounds,
@@ -187,14 +180,14 @@ impl Ui {
 
     #[inline]
     pub fn allocate_rect(&mut self, size: Size) -> ResponseValue<Bounds<Canvas>> {
-        let pos = self.update.alloc_canvas(size, &mut self.alloc);
+        let pos = self.alloc.alloc_canvas(size);
 
         self.alloc_response(pos)
     }
     
     #[inline]
     pub fn allocate_view(&mut self, size: Size) -> ResponseValue<Bounds<Canvas>> {
-        let pos = self.update.alloc_view(size, &mut self.alloc);
+        let pos = self.alloc.alloc_view(size);
 
         self.alloc_response(pos)
     }
@@ -263,40 +256,19 @@ impl Ui {
     }
 
     pub fn horizontal<R>(&mut self, add_content: impl FnOnce(&mut Ui) -> R) -> ResponseValue<R> {
-        let pos = self.alloc.pos;
-        let extent = self.alloc.canvas_extent;
-
-        let bounds = Bounds::from([
-            [pos.x(), pos.y()],
-            [extent.xmax(), extent.ymax()]
-        ]);
-
         let result = self.child(UiBuilder::default()
-            .max_bounds(bounds)
             .update(AllocUpdate::Horizontal),
             add_content
         );
-
-        self.update_pos();
 
         result
     }
 
     pub fn vertical<R>(&mut self, add_content: impl FnOnce(&mut Ui) -> R) -> ResponseValue<R> {
-        let pos = self.alloc.pos;
-        let extent = self.alloc.canvas_extent;
-        let bounds = Bounds::<Canvas>::from((
-            [pos.x(), pos.y()],
-            [extent.xmax(), extent.ymax()]
-        ));
-
         let result = self.child(UiBuilder::default()
-            .max_bounds(bounds)
             .update(AllocUpdate::Vertical),
             add_content
         );
-
-        self.update_pos();
 
         result
     }
@@ -305,7 +277,7 @@ impl Ui {
         &mut self, 
         add_content: impl FnOnce(&mut Ui) -> R
     ) -> ResponseValue<R> {
-        let pos = self.update.alloc_view(Size(1., 1.), &mut self.alloc);
+        let pos = self.alloc.alloc_view(Size(1., 1.));
 
         let result = self.child(
             UiBuilder::default()
@@ -315,7 +287,7 @@ impl Ui {
             add_content
         );
 
-        self.update_pos();
+        // self.update_pos();
 
         result
     }
@@ -329,17 +301,11 @@ impl Ui {
 
         let bounds = match size {
             UiSize::Canvas(width, height) => {
-                self.update.alloc_canvas(
-                    Size(width, height), 
-                    &mut self.alloc
-                )
+                self.alloc.alloc_canvas(Size(width, height))
             }
             UiSize::View(width, height) => {
                 is_view = true;
-                self.update.alloc_view(
-                    Size(width, height), 
-                    &mut self.alloc
-                )
+                self.alloc.alloc_view(Size(width, height))
             }
         };
 
@@ -350,7 +316,7 @@ impl Ui {
             add_content
         );
 
-        self.update_pos();
+        // self.update_pos();
 
         result
     }
@@ -364,17 +330,11 @@ impl Ui {
 
         let bounds = match size {
             UiSize::Canvas(width, height) => {
-                self.update.alloc_canvas(
-                    Size(width, height), 
-                    &mut self.alloc
-                )
+                self.alloc.alloc_canvas(Size(width, height))
             }
             UiSize::View(width, height) => {
                 is_view = true;
-                self.update.alloc_view(
-                    Size(width, height), 
-                    &mut self.alloc
-                )
+                self.alloc.alloc_view(Size(width, height))
             }
         };
 
@@ -385,11 +345,12 @@ impl Ui {
             add_content
         );
 
-        self.update_pos();
+        // self.update_pos();
 
         result
     }
 
+    /*
     fn update_pos(&mut self) {
         match self.update {
             AllocUpdate::Vertical => {
@@ -402,6 +363,7 @@ impl Ui {
             },
         }
     }
+    */
     
     #[inline]
     pub fn text_size(&mut self, label: &str, style_text: &TextStyle) -> Size {

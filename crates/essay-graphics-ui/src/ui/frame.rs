@@ -12,6 +12,7 @@ pub struct Frame {
 
 impl Frame {
     pub fn group(ui: &Ui) -> Self {
+
         Self {
             inner_margin: Margin::from_all(6.),
             outer_margin: Margin::from_all(0.),
@@ -40,7 +41,9 @@ impl Frame {
     }
 
     pub fn show<R>(self, ui: &mut Ui, add_contents: impl FnOnce(&mut Ui) -> R) -> ResponseValue<R> {
-        let max_bounds = ui.available_bounds() - self.total_margin();
+        let corner_margin = Margin::from_all(ui.style().corner_radius);
+
+        let max_bounds = ui.available_bounds() - self.total_margin() - corner_margin;
 
         // todo: negative bounds
         assert!(max_bounds.x0() < max_bounds.x1());
@@ -56,18 +59,20 @@ impl Frame {
             response
         } = ui.child(builder, add_contents);
 
-        let mut rect = ui.context().pass(|pass| {
+        let rect = ui.context().pass(|pass| {
             *pass.widgets().get(response.id()).unwrap()
         });
 
-        rect.rect = rect.rect + self.total_margin();
+        // rect.rect = rect.rect + corner_margin;
 
         let ResponseValue {
             response,
             ..
-        } = ui.alloc_response(rect.rect);
+        } = ui.alloc_response(rect.rect + self.inner_margin);
 
-        let pos = rect.rect;
+        // rect.rect = rect.rect + self.total_margin();
+
+        let pos = rect.rect + self.inner_margin + corner_margin;
 
         let background = self.background;
         let corner = ui.style().corner_radius;
@@ -86,10 +91,11 @@ impl Frame {
                     pos.p0() + Point(px, px), pos.size(), corner, shadow,
                 ))?;
             }
-
+            /*
             ui.draw_shape(&Shapes::Rectangle(
                 pos.p0() - Point(1., 1.), pos.size() + Size(2., 2.), corner, border,
             ))?;
+            */
 
             ui.draw_shape(&Shapes::Rectangle(
                 pos.p0(), pos.size(), corner, background,

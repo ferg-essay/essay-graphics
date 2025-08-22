@@ -8,11 +8,13 @@ fn main() {
                     ui.view(|ui| {
                         ui.label("A")
                     });
-                    ui.view(|ui| {
-                        ui.label("B")
-                    });
-                    ui.view(|ui| {
-                        ui.label("C")
+                    Frame::group(ui).background("amber").show(ui, |ui| {
+                        ui.view(|ui| {
+                            ui.label("B")
+                        });
+                        ui.view(|ui| {
+                            ui.label("C")
+                        });
                     });
                     ui.view(|ui| {
                         ui.label("D")
@@ -22,13 +24,13 @@ fn main() {
                     ui.view(|ui| {
                         ui.label("1")
                     });
-                    ui.view(|ui| {
-                        ui.label("2")
+                    Frame::group(ui).background("azure").show(ui, |ui| {
+                        ui.view(|ui| {
+                            ui.label("2")
+                        });
                     });
                     ui.view(|ui| {
-                        Frame::group(ui).background("amber").show(ui, |ui| {
-                            ui.label("3");
-                        })
+                        ui.label("3");
                     });
                 });
             });
