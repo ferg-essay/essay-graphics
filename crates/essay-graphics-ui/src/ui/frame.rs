@@ -46,13 +46,18 @@ impl Frame {
         let max_bounds = ui.available_bounds() - self.total_margin() - corner_margin;
 
         // todo: negative bounds
+        /*
         assert!(max_bounds.x0() < max_bounds.x1());
         assert!(max_bounds.y0() < max_bounds.y1());
+        */
 
         let index = ui.painter_mut().add(Shapes::None);
 
+        let margin = self.total_margin() + corner_margin;
+
         let builder = UiBuilder::default()
-            .max_bounds(max_bounds);
+            .margin(margin);
+        //    .max_bounds(max_bounds);
 
         let ResponseValue {
             value,
@@ -68,11 +73,11 @@ impl Frame {
         let ResponseValue {
             response,
             ..
-        } = ui.alloc_response(rect.rect + self.inner_margin);
+        } = ui.alloc_response(rect.rect - self.outer_margin - corner_margin);
 
         // rect.rect = rect.rect + self.total_margin();
 
-        let pos = rect.rect + self.inner_margin + corner_margin;
+        let pos = rect.rect; //  + self.inner_margin + corner_margin;
 
         let background = self.background;
         let corner = ui.style().corner_radius;

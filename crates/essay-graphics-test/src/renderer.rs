@@ -1,9 +1,5 @@
 use essay_graphics_api::{
-    form::{Form, FormId, Matrix4}, 
-    input::Input, path_style::MeshStyle, 
-    renderer::{Canvas, RenderErr, Renderer, Result}, 
-    BezierMesh2d, Bounds, FontStyle, FontTypeId, Mesh2d, Path, PathOpt, 
-    Point, Size, TextStyle, TextureId
+    form::{Form, FormId, Matrix4}, input::Input, path_style::MeshStyle, renderer::{Canvas, RenderErr, Renderer, Result}, BezierMesh2d, Bounds, FontStyle, FontTypeId, Mesh2d, Path, PathOpt, Point, Shapes, Size, TextStyle, TextureId
 };
 use essay_tensor::tensor::Tensor;
 
@@ -36,8 +32,16 @@ impl TestRenderer {
         self.scale_factor = scale_factor;
     }
 
+    fn push(&mut self, value: &str) {
+        self.vec.push(String::from(value));
+    }
+
     pub fn drain(&mut self) -> Vec<String> {
         self.vec.drain(..).collect()
+    }
+
+    pub fn take(&mut self) -> String {
+        self.drain().join("\n")
     }
 }
 
@@ -91,7 +95,9 @@ impl Renderer for TestRenderer {
         style: &dyn PathOpt, 
         text_style: &TextStyle,
     ) -> Result<(), RenderErr> {
-        todo!()
+        self.push(&format!("text ({:.1},{:.1}) '{}'", xy.0, xy.1, text));
+
+        Ok(())
     }
 
     #[allow(unused_variables)]
@@ -186,7 +192,19 @@ impl Renderer for TestRenderer {
         &mut self, 
         shape: &essay_graphics_api::Shapes,
     ) -> Result<()> {
-        todo!()
+        match shape {
+            Shapes::None => {},
+            Shapes::Rectangle(point, size, _, color) => {
+                self.push(&format!(
+                    "rect ({:.1},{:.1}) {:.1}x{:.1} #{:8x}",
+                    point.0, point.1,
+                    size.0, size.1,
+                    color.to_rgba()
+                ));
+            }
+        }
+
+        Ok(())
     }
 }
 

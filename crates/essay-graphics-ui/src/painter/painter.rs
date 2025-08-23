@@ -69,6 +69,10 @@ impl GraphicsLayers {
 
         Ok(())
     }
+
+    pub(crate) fn clear(&mut self) {
+        self.paint_list.clear();
+    }
 }
 
 #[derive(Default)]
@@ -87,5 +91,9 @@ impl PaintList {
         assert!(index.0 < self.0.len());
 
         self.0[index.0] = Box::new(draw);
+    }
+
+    pub fn clear(&mut self) {
+        self.0.drain(..);
     }
 }

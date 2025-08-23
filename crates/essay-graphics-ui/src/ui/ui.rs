@@ -2,9 +2,7 @@ use core::hash;
 use std::{ops, sync::Arc};
 
 use essay_graphics_api::{
-    input::Input, 
-    renderer::{self, Canvas, Drawable, Renderer}, 
-    Bounds, Point, Size, TextStyle
+    input::Input, renderer::{self, Canvas, Drawable, Renderer}, Bounds, Margin, Point, Size, TextStyle
 };
 
 use crate::{context::{Context, WidgetRect}, painter::Painter, style::UiStyle, ui::Response, util::Id, widgets::{Button, Label}, windows::{menu_button, MenuButton}};
@@ -94,6 +92,7 @@ impl Ui {
         let UiBuilder {
             id_salt,
             max_bounds,
+            margin,
             update: alloc_update,
             is_view,
         } = builder;
@@ -122,6 +121,7 @@ impl Ui {
 
         let alloc = self.alloc.child(
             max_bounds,
+            margin,
             update,
             alloc_cache.clone()
         );
@@ -155,7 +155,7 @@ impl Ui {
     }
 
     fn end(&mut self) -> Response {
-        let bounds = self.alloc.alloc;
+        let bounds = self.alloc.alloc + self.alloc.margin;
         let response = self.context().create_widget(WidgetRect {
             id: self.unique_id,
             rect: bounds,
@@ -409,6 +409,7 @@ impl Ui {
 pub(crate) struct UiBuilder {
     id_salt: Option<Id>,
     max_bounds: Option<Bounds<Canvas>>,
+    margin: Margin,
     update: Option<AllocUpdate>,
     is_view: bool,
 }
@@ -424,6 +425,13 @@ impl UiBuilder {
     #[inline]
     pub fn max_bounds(mut self, bounds: impl Into<Bounds<Canvas>>) -> Self {
         self.max_bounds = Some(bounds.into());
+
+        self
+    }
+
+    #[inline]
+    pub fn margin(mut self, margin: impl Into<Margin>) -> Self {
+        self.margin = margin.into();
 
         self
     }

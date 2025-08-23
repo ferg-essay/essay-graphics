@@ -174,7 +174,9 @@ impl Context {
 
                 return Ok(self.take_output());
             } else {
-                println!("Resize");
+                self.graphics_mut(|layers| {
+                    layers.clear();
+                });
             }
         }
     }

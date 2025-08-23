@@ -320,6 +320,17 @@ impl<M: Coord> Bounds<M> {
     }
 
     //
+    // Update the width
+    //
+    #[must_use]
+    pub fn with_width(self, width: f32) -> Self {
+        Self::new(
+            self.p0,
+            Point(self.x0() + width, self.y1())
+        )
+    }
+
+    //
     // Returns bounds for a sub-area with the specified aspect ratio
     //
     #[must_use]
@@ -628,7 +639,7 @@ impl<M: Coord> From<Bounds<M>> for Tensor {
     }
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Default, Debug)]
 pub struct Margin {
     pub left: f32,
     pub bottom: f32,
@@ -637,6 +648,8 @@ pub struct Margin {
 }
 
 impl Margin {
+    pub const ZERO: Margin = Margin {left: 0., bottom: 0., right: 0., top: 0.};
+
     pub fn new(left: f32, bottom: f32, right: f32, top: f32) -> Self {
         Self {
             left,
@@ -672,6 +685,16 @@ impl Margin {
     #[inline]
     pub fn top(&self) -> f32 {
         self.top
+    }
+    
+    #[inline]
+    pub fn height(&self) -> f32 {
+        self.top + self.bottom
+    }
+    
+    #[inline]
+    pub fn width(&self) -> f32 {
+        self.left + self.right
     }
 }
 

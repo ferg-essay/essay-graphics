@@ -1,4 +1,4 @@
-use essay_graphics_api::{renderer::{Canvas, Pos}, Bounds, Point, Size};
+use essay_graphics_api::{renderer::{Canvas, Pos}, Bounds, Margin, Point, Size};
 
 use crate::{context::CacheAlloc, page::Page};
 
@@ -7,6 +7,7 @@ pub struct Alloc {
     pub update: AllocUpdate,
 
     pub bounds: Bounds<Canvas>, // extent of the canvas managed by the cursor
+    pub margin: Margin,
     pub view_bounds: Bounds<Page>,     
     pub fixed_bounds: Bounds<Canvas>,  // total size of fixed elements managed by the cursor
 
@@ -38,6 +39,7 @@ impl Alloc {
             update,
 
             bounds,
+            margin: Margin::ZERO,
             view_bounds: view_cache,
             fixed_bounds: fixed_cache,
 
@@ -55,7 +57,8 @@ impl Alloc {
 
     pub(super) fn child(
         &self, 
-        bounds: Pos,
+        parent_free: Pos,
+        margin: Margin,
         update: AllocUpdate,
         cache: Option<CacheAlloc>
     ) -> Self {
@@ -73,24 +76,101 @@ impl Alloc {
             }
         };
 
-        let mut view_width = self.view_width;
-        let mut view_height = self.view_height;
-
-        if self.update != update {
-            match update {
-                AllocUpdate::Vertical => {
-                    view_height = ((bounds.height() - fixed_cache.height()) / view_cache.height()).floor();
+        let view_bounds2 = match self.update {
+            AllocUpdate::Vertical => {
+                match update {
+                    AllocUpdate::Vertical => {
+                        let height = view_cache.height() * self.view_height;
+                        ViewBounds {
+                            width: parent_free.width(),
+                            height: height,
+                            view_width: parent_free.width(),
+                            view_height: (height - fixed_cache.height() - margin.height()) / view_cache.height(),
+                        }
+                    },
+                    AllocUpdate::Horizontal => {
+                        ViewBounds {
+                            width: parent_free.width(),
+                            height: self.view_height,
+                            view_width: (parent_free.width() - fixed_cache.width() - margin.width()) / view_cache.width(),
+                            view_height: self.view_height,
+                        }
+                    },
                 }
-                AllocUpdate::Horizontal => {
-                    view_width = ((bounds.width() - fixed_cache.width()) / view_cache.width()).floor();
+            }
+            AllocUpdate::Horizontal => {
+                match update {
+                    AllocUpdate::Vertical => {
+                        ViewBounds {
+                            width: self.view_width,
+                            height: parent_free.height(),
+                            view_width: self.view_width,
+                            view_height: (parent_free.height() - fixed_cache.height() - margin.height()) / view_cache.height(),
+                        }
+                    },
+                    AllocUpdate::Horizontal => {
+                        let width = view_cache.width() * self.view_width;
+                        ViewBounds {
+                            width,
+                            height: parent_free.height(),
+                            view_width: (width - fixed_cache.width() - margin.width()) / view_cache.width(),
+                            view_height: parent_free.height(),
+                        }
+                    },
                 }
             }
         };
+
+        let mut bounds = Bounds::from((
+            parent_free.p0(),
+            Size(view_bounds2.width, view_bounds2.height),
+        ));
+
+        /*
+        let mut bounds = match update {
+            AllocUpdate::Vertical => {
+                Bounds::from((
+                    parent_free.p0(),
+                    Size(
+                        view_cache.width() * self.view_width,
+                        view_cache.height() * self.view_height,
+                    )
+                ))
+            },
+            AllocUpdate::Horizontal => {
+                Bounds::from((
+                    parent_free.p0(),
+                    Size(
+                        view_cache.width() * self.view_width,
+                        view_cache.height() * self.view_height,
+                    )
+                ))
+            },
+        };
+        */
+
+        bounds = bounds - margin;
+        //let view_width = ((bounds.width() - fixed_cache.width()) / view_cache.width()).floor();
+        //let view_height = ((bounds.height() - fixed_cache.height()) / view_cache.height()).floor();
+
+        let view_width = view_bounds2.view_width;
+        let view_height = view_bounds2.view_height;
+
+        // let mut fixed_alloc = Bounds::zero();
+
+        /*
+        println!("  ChildBounds {:?} -> {:?} {:?}", self.update, update, bounds);
+        println!("    View {:?} Fixed {:?}", view_cache, fixed_cache);
+        println!("    f_view {:?}, {:?}", view_width, view_height);
+        */
+        let alloc = Bounds::from(bounds.p0());
+        //fixed_alloc = fixed_alloc + margin;
 
         Self {
             update,
 
             bounds,
+            margin,
             view_bounds, // view_cache,
             fixed_bounds: fixed_cache,
 
@@ -102,7 +182,7 @@ impl Alloc {
             //pos,
             //view_pos: self.view_pos,
 
-            alloc: Bounds::from(bounds.p0()),
+            alloc,
             view_alloc: Bounds::zero(),
             fixed_alloc: Bounds::zero(),
         }
@@ -262,19 +342,20 @@ impl Alloc {
         is_view: bool
     ) {
         if is_view {
-            self.alloc = self.alloc.union(child.bounds);
+            self.alloc = self.alloc.union(child.bounds + child.margin);
         } else if ! is_view {
-            self.alloc = self.alloc.union(child.alloc);
-            self.fixed_alloc = self.fixed_alloc.union(child.fixed_alloc);
+            self.alloc = self.alloc.union(child.alloc + child.margin);
+            
+            self.fixed_alloc = self.fixed_alloc.union(child.fixed_alloc); // + self.margin;
 
             let view = self.view_alloc;
             let child = child.view_alloc;
             self.view_alloc = match self.update {
                 AllocUpdate::Vertical => {
                     Bounds::from((
-                        [view.x0(), view.y0()], 
+                        [view.x0(), view.y0()],
                         [
-                            view.width().max(child.width()),
+                            view.width().max(child.width()).min(1.),
                             view.height() + child.height(), // .min(1.)
                         ]
                     ))
@@ -284,11 +365,11 @@ impl Alloc {
                         [view.x0(), view.y0()], 
                         [
                             view.width() + child.width(), // .min(1.),
-                            view.height().max(child.height())
+                            view.height().max(child.height()).min(1.)
                         ]
                     ))
                 },
-            }
+            };
         }
     }
 }
@@ -300,4 +381,324 @@ pub(crate) enum AllocUpdate {
 }
 
 impl AllocUpdate {
+}
+
+pub(crate) struct ViewBounds {
+    width: f32,
+    height: f32,
+    view_width: f32,
+    view_height: f32,
+}
+
+#[cfg(test)]
+mod test {
+    use essay_graphics_test::{TestGraphicsContext, TestRenderer};
+
+    use crate::{context::Context, ui::{CentralPanel, Frame}};
+
+    #[test]
+    fn vertical_label() {
+        let mut test = TestRenderer::new([1000., 1000.]);
+        let ctx = Context::new(Box::new(TestGraphicsContext::new()));
+
+        ctx.run(&mut test, |ctx| {
+            CentralPanel::new().show(ctx, |ui| {
+                ui.label("Test");
+            });
+        }).unwrap();
+
+        assert_eq!(test.take(), "text (0.0,0.0) 'Test'");
+    }
+
+    #[test]
+    fn vertical_label_two() {
+        let mut test = TestRenderer::new([1000., 1000.]);
+        let ctx = Context::new(Box::new(TestGraphicsContext::new()));
+
+        ctx.run(&mut test, |ctx| {
+            CentralPanel::new().show(ctx, |ui| {
+                ui.label("A");
+                ui.label("B");
+            });
+        }).unwrap();
+
+        assert_eq!(test.take(), "text (0.0,0.0) 'A'
+text (0.0,26.7) 'B'");
+    }
+
+    #[test]
+    fn vertical_view_label() {
+        let mut test = TestRenderer::new([1200., 1200.]);
+        let ctx = Context::new(Box::new(TestGraphicsContext::new()));
+
+        ctx.run(&mut test, |ctx| {
+            CentralPanel::new().show(ctx, |ui| {
+                ui.view(|ui| {
+                    ui.label("A");
+                });
+                ui.view(|ui| {
+                    ui.label("B");
+                });
+            });
+        }).unwrap();
+
+        assert_eq!(test.take(), "text (0.0,0.0) 'A'
+text (0.0,600.0) 'B'");
+    }
+
+    #[test]
+    fn vertical_view_frame_text() {
+        let mut test = TestRenderer::new([1200., 1200.]);
+        let ctx = Context::new(Box::new(TestGraphicsContext::new()));
+
+        ctx.run(&mut test, |ctx| {
+            CentralPanel::new().show(ctx, |ui| {
+                Frame::group(ui).show(ui, |ui| {
+                    ui.view(|ui| {
+                        ui.label("A");
+                    });
+                })
+            });
+        }).unwrap();
+
+        assert_eq!(test.take(), "rect (0.0,0.0) 1200.0x1200.0 #ffffffff
+text (16.0,16.0) 'A'");
+    }
+
+    #[test]
+    fn horizontal_view_frame() {
+        let mut test = TestRenderer::new([1200., 1200.]);
+        let ctx = Context::new(Box::new(TestGraphicsContext::new()));
+
+        ctx.run(&mut test, |ctx| {
+            CentralPanel::new().show(ctx, |ui| {
+                ui.horizontal(|ui| {
+                  Frame::group(ui).show(ui, |ui| {
+                        ui.view(|ui| {
+                        });
+                    })
+                })
+            });
+        }).unwrap();
+
+        assert_eq!(test.take(), "rect (0.0,0.0) 1200.0x1200.0 #ffffffff");
+    }
+
+    #[test]
+    fn vertical_view_frame_inner_frame() {
+        let mut test = TestRenderer::new([1200., 1200.]);
+        let ctx = Context::new(Box::new(TestGraphicsContext::new()));
+
+        ctx.run(&mut test, |ctx| {
+            CentralPanel::new().show(ctx, |ui| {
+                Frame::group(ui).show(ui, |ui| {
+                    ui.view(|ui| {
+                        Frame::group(ui).background(0xff0000).show(ui, |ui| {
+                            ui.view(|_| {});
+                        });
+                    });
+                })
+            });
+        }).unwrap();
+
+        assert_eq!(test.take(), "rect (0.0,0.0) 1200.0x1200.0 #ffffffff
+rect (16.0,16.0) 1168.0x1168.0 #ff0000ff");
+    }
+
+    #[test]
+    fn vertical_view_frames() {
+        let mut test = TestRenderer::new([1200., 1200.]);
+        let ctx = Context::new(Box::new(TestGraphicsContext::new()));
+
+        ctx.run(&mut test, |ctx| {
+            CentralPanel::new().show(ctx, |ui| {
+                ui.view(|ui| {
+                    ui.label("A");
+                });
+                Frame::group(ui).show(ui, |ui| {
+                    ui.view(|ui| {
+                        ui.label("B");
+                    });
+                });
+                ui.view(|ui| {
+                    ui.label("C");
+                });
+            });
+        }).unwrap();
+
+        assert_eq!(test.take(), "text (0.0,0.0) 'A'
+rect (0.0,400.0) 1200.0x400.0 #ffffffff
+text (16.0,416.0) 'B'
+text (0.0,800.0) 'C'");
+    }
+
+    #[test]
+    fn vertical_view_frames_sub_view_vertical() {
+        let mut test = TestRenderer::new([1200., 1200.]);
+        let ctx = Context::new(Box::new(TestGraphicsContext::new()));
+
+        ctx.run(&mut test, |ctx| {
+            CentralPanel::new().show(ctx, |ui| {
+                Frame::group(ui).show(ui, |ui| {
+                    ui.view(|ui| {
+                        ui.label("A");
+                    });
+                });
+                Frame::group(ui).show(ui, |ui| {
+                    ui.view(|ui| {
+                        ui.label("B");
+                    });
+                    ui.view(|ui| {
+                        ui.label("C");
+                    });
+                });
+                Frame::group(ui).show(ui, |ui| {
+                    ui.view(|ui| {
+                        ui.label("D");
+                    });
+                });
+            });
+        }).unwrap();
+
+        assert_eq!(test.take(), "rect (0.0,0.0) 1200.0x300.0 #ffffffff
+text (16.0,16.0) 'A'
+rect (0.0,300.0) 1200.0x600.0 #ffffffff
+text (16.0,316.0) 'B'
+text (16.0,600.0) 'C'
+rect (0.0,900.0) 1200.0x300.0 #ffffffff
+text (16.0,916.0) 'D'");
+    }
+
+    #[test]
+    fn vertical_view_frames_sub_view_horizontal() {
+        let mut test = TestRenderer::new([1200., 1200.]);
+        let ctx = Context::new(Box::new(TestGraphicsContext::new()));
+
+        ctx.run(&mut test, |ctx| {
+            CentralPanel::new().show(ctx, |ui| {
+                Frame::group(ui).show(ui, |ui| {
+                    ui.view(|ui| {
+                        ui.label("A");
+                    });
+                });
+                Frame::group(ui).show(ui, |ui| {
+                    ui.horizontal(|ui| {
+                        ui.view(|ui| {
+                            ui.label("B");
+                        });
+                        ui.view(|ui| {
+                            ui.label("C");
+                        });
+                    });
+                });
+                Frame::group(ui).show(ui, |ui| {
+                    ui.view(|ui| {
+                        ui.label("D");
+                    });
+                });
+            });
+        }).unwrap();
+
+        assert_eq!(test.take(), "rect (0.0,0.0) 1200.0x400.0 #ffffffff
+text (16.0,16.0) 'A'
+rect (0.0,400.0) 1200.0x400.0 #ffffffff
+text (16.0,416.0) 'B'
+text (600.0,416.0) 'C'
+rect (0.0,800.0) 1200.0x400.0 #ffffffff
+text (16.0,816.0) 'D'");
+    }
+
+    #[test]
+    fn horiz_vert1_vert2() {
+        let mut test = TestRenderer::new([1200., 1200.]);
+        let ctx = Context::new(Box::new(TestGraphicsContext::new()));
+
+        ctx.run(&mut test, |ctx| {
+            CentralPanel::new().show(ctx, |ui| {
+                ui.horizontal(|ui| {
+                    ui.vertical(|ui| {
+                        Frame::group(ui).show(ui, |ui| {
+                            ui.view(|_| {});
+                        });
+                    });
+                    ui.vertical(|ui| {
+                        Frame::group(ui).show(ui, |ui| {
+                            ui.view(|_| {});
+                        });
+                        Frame::group(ui).show(ui, |ui| {
+                            ui.view(|_| {});
+                        });
+                    });
+                });
+            });
+        }).unwrap();
+
+        assert_eq!(test.take(), "rect (0.0,0.0) 600.0x1200.0 #ffffffff
+rect (600.0,0.0) 600.0x600.0 #ffffffff
+rect (600.0,600.0) 600.0x600.0 #ffffffff");
+    }
+
+    #[test]
+    fn vert_horiz1_horiz2() {
+        let mut test = TestRenderer::new([1200., 1200.]);
+        let ctx = Context::new(Box::new(TestGraphicsContext::new()));
+
+        ctx.run(&mut test, |ctx| {
+            CentralPanel::new().show(ctx, |ui| {
+                ui.vertical(|ui| {
+                    ui.horizontal(|ui| {
+                        Frame::group(ui).show(ui, |ui| {
+                            ui.view(|_| {});
+                        });
+                    });
+                    ui.horizontal(|ui| {
+                        Frame::group(ui).show(ui, |ui| {
+                            ui.view(|_| {});
+                        });
+                        Frame::group(ui).show(ui, |ui| {
+                            ui.view(|_| {});
+                        });
+                    });
+                });
+            });
+        }).unwrap();
+
+        assert_eq!(test.take(), "rect (0.0,0.0) 1200.0x600.0 #ffffffff
+rect (0.0,600.0) 600.0x600.0 #ffffffff
+rect (600.0,600.0) 600.0x600.0 #ffffffff");
+    }
+
+    #[test]
+    fn horizontal_label() {
+        let mut test = TestRenderer::new([1000., 1000.]);
+        let ctx = Context::new(Box::new(TestGraphicsContext::new()));
+
+        ctx.run(&mut test, |ctx| {
+            CentralPanel::new().show(ctx, |ui| {
+                ui.horizontal(|ui| {
+                    ui.label("Test");
+                });
+            });
+        }).unwrap();
+
+        assert_eq!(test.take(), "text (0.0,0.0) 'Test'");
+    }
+
+    #[test]
+    fn horizontal_label_two() {
+        let mut test = TestRenderer::new([1000., 1000.]);
+        let ctx = Context::new(Box::new(TestGraphicsContext::new()));
+
+        ctx.run(&mut test, |ctx| {
+            CentralPanel::new().show(ctx, |ui| {
+                ui.horizontal(|ui| {
+                    ui.label("A");
+                    ui.label("B");
+                });
+            });
+        }).unwrap();
+
+        assert_eq!(test.take(), "text (0.0,0.0) 'A'
+text (26.7,0.0) 'B'");
+    }
 }

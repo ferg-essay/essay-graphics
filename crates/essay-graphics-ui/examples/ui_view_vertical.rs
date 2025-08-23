@@ -4,6 +4,22 @@ fn main() {
     MainLoop::new().show(move |cxt| {
         CentralPanel::new().show(cxt, |ui| {
             ui.horizontal(|ui| {
+                /*
+                ui.vertical(|ui| {
+                    ui.view(|ui| {
+                        ui.label("A")
+                    });
+                    ui.view(|ui| {
+                        ui.label("B")
+                    });
+                    ui.view(|ui| {
+                        ui.label("C")
+                    });
+                    ui.view(|ui| {
+                        ui.label("D")
+                    });
+                });
+                */
                 ui.vertical(|ui| {
                     ui.view(|ui| {
                         ui.label("A")
@@ -13,7 +29,11 @@ fn main() {
                             ui.label("B")
                         });
                         ui.view(|ui| {
-                            ui.label("C")
+                            Frame::group(ui).show(ui, |ui| {
+                                ui.view(|ui| {
+                                    ui.label("C")
+                                });
+                            });
                         });
                     });
                     ui.view(|ui| {
@@ -33,6 +53,19 @@ fn main() {
                         ui.label("3");
                     });
                 });
+                /*
+                ui.vertical(|ui| {
+                    ui.view(|ui| {
+                        ui.label("1")
+                    });
+                        ui.view(|ui| {
+                            ui.label("2")
+                        });
+                    ui.view(|ui| {
+                        ui.label("3");
+                    });
+                });
+                */
             });
         });
     });
