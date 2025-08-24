@@ -1,4 +1,4 @@
-use essay_graphics_ui::{main_loop::MainLoop, ui::CentralPanel};
+use essay_graphics_ui::{main_loop::MainLoop, ui::{CentralPanel, Frame}};
 
 fn main() { 
     let mut option_a = false;
@@ -6,7 +6,7 @@ fn main() {
 
     MainLoop::new().show(move |cxt| {
         CentralPanel::new().show(cxt, |ui| {
-            ui.menu_button("Menu", |ui| {
+            Frame::group(ui).show(ui, |ui| {
                 if ui.button("Option A", option_a).clicked() { 
                     println!("Click A");
                     option_a = !option_a 

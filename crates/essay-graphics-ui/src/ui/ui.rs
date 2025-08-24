@@ -46,8 +46,6 @@ impl Ui {
 
         let alloc_cache = ctx.last_pass(|pass| pass.alloc_map.get(&id).cloned());
 
-        // println!("TopCache {:?}", alloc_cache);
-
         let alloc = Alloc::new(canvas, AllocUpdate::Vertical, alloc_cache.clone());
         
         let mut ui = Ui {
@@ -55,7 +53,6 @@ impl Ui {
             unique_id: id,
             next_auto_id_salt: id.with("auto").value(),
             alloc,
-            // update: AllocUpdate::Vertical,
             painter: Painter::new(&ctx),
             style: ctx.style(),
     
@@ -92,9 +89,9 @@ impl Ui {
         let UiBuilder {
             id_salt,
             max_bounds,
+            view,
             margin,
             update: alloc_update,
-            is_view,
         } = builder;
         
         let id_salt = id_salt.unwrap_or_else(|| Id::from("child"));
@@ -121,6 +118,7 @@ impl Ui {
 
         let alloc = self.alloc.child(
             max_bounds,
+            view,
             margin,
             update,
             alloc_cache.clone()
@@ -138,7 +136,7 @@ impl Ui {
 
         let result = (add_content)(&mut child);
 
-        self.alloc.merge_child(&child.alloc, is_view);
+        self.alloc.merge_child(&child.alloc);
 
         let response = child.end();
 
@@ -282,7 +280,7 @@ impl Ui {
         let result = self.child(
             UiBuilder::default()
                 .max_bounds(pos)
-                .view(true)
+                .view(Size(1., 1.))
                 .update(AllocUpdate::Vertical),
             add_content
         );
@@ -299,19 +297,21 @@ impl Ui {
     ) -> ResponseValue<R> {
         let mut is_view = false;
 
+        let mut builder = UiBuilder::default();
+
         let bounds = match size {
             UiSize::Canvas(width, height) => {
                 self.alloc.alloc_canvas(Size(width, height))
             }
             UiSize::View(width, height) => {
-                is_view = true;
+                builder = builder.view(Size(width, height));
+
                 self.alloc.alloc_view(Size(width, height))
             }
         };
 
-        let result = self.child(UiBuilder::default()
+        let result = self.child(builder
             .max_bounds(bounds)
-            .view(is_view)
             .update(AllocUpdate::Horizontal),
             add_content
         );
@@ -328,19 +328,20 @@ impl Ui {
     ) -> ResponseValue<R> {
         let mut is_view = false;
 
+        let mut builder = UiBuilder::default();
+
         let bounds = match size {
             UiSize::Canvas(width, height) => {
                 self.alloc.alloc_canvas(Size(width, height))
             }
             UiSize::View(width, height) => {
-                is_view = true;
+                builder = builder.view(Size(width, height));
                 self.alloc.alloc_view(Size(width, height))
             }
         };
 
-        let result = self.child(UiBuilder::default()
+        let result = self.child(builder
             .max_bounds(bounds)
-            .view(is_view)
             .update(AllocUpdate::Vertical),
             add_content
         );
@@ -409,9 +410,9 @@ impl Ui {
 pub(crate) struct UiBuilder {
     id_salt: Option<Id>,
     max_bounds: Option<Bounds<Canvas>>,
+    view: Option<Size>,
     margin: Margin,
     update: Option<AllocUpdate>,
-    is_view: bool,
 }
 
 impl UiBuilder {
@@ -444,8 +445,8 @@ impl UiBuilder {
     }
 
     #[inline]
-    pub fn view(mut self, is_view: bool) -> Self {
-        self.is_view = is_view;
+    pub fn view(mut self, size: Size) -> Self {
+        self.view = Some(size);
 
         self
     }

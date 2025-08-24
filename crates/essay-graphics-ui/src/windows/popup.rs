@@ -62,7 +62,7 @@ impl Popup {
         
             let ResponseValue {
                 value,
-                ..
+                response,
             } = frame.show(ui, add_content);
 
             value
@@ -117,4 +117,51 @@ impl Open {
 
 pub enum OpenMemory {
     Toggle
+}
+
+#[cfg(test)]
+mod test {
+    use essay_graphics_test::{TestGraphicsContext, TestRenderer};
+
+    use crate::{context::Context, ui::{CentralPanel, Frame}, windows::Popup};
+
+    #[test]
+    fn popup() {
+        let mut test = TestRenderer::new([1000., 1000.]);
+        let ctx = Context::new(Box::new(TestGraphicsContext::new()));
+
+        ctx.run(&mut test, |ctx| {
+            CentralPanel::new().show(ctx, |ui| {
+                let response = ui.label("Test");
+
+                Popup::from_response(&response).open(true).show(|ui| {
+                    ui.label("Popup");
+                })
+            });
+        }).unwrap();
+
+        assert_eq!(test.take(), "text (0.0,0.0) 'Test'
+rect (5.0,32.0) 166.0x58.0 #00000020
+rect (0.0,27.0) 166.0x58.0 #ffffffff
+text (16.0,42.7) 'Popup'");
+
+        if true { return; }
+
+        println!("\n  Pass2");
+
+        ctx.run(&mut test, |ctx| {
+            CentralPanel::new().show(ctx, |ui| {
+                let response = ui.label("Test");
+
+                Popup::from_response(&response).open(true).show(|ui| {
+                    ui.label("Popup");
+                })
+            });
+        }).unwrap();
+
+        assert_eq!(test.take(), "text (0.0,0.0) 'Test'
+rect (5.0,32.0) 166.0x58.0 #00000020
+rect (0.0,27.0) 166.0x58.0 #ffffffff
+text (16.0,42.7) 'Popup'");
+    }
 }

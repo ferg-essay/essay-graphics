@@ -196,7 +196,7 @@ impl Renderer for TestRenderer {
             Shapes::None => {},
             Shapes::Rectangle(point, size, _, color) => {
                 self.push(&format!(
-                    "rect ({:.1},{:.1}) {:.1}x{:.1} #{:8x}",
+                    "rect ({:.1},{:.1}) {:.1}x{:.1} #{:08x}",
                     point.0, point.1,
                     size.0, size.1,
                     color.to_rgba()

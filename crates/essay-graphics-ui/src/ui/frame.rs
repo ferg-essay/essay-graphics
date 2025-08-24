@@ -70,10 +70,13 @@ impl Frame {
 
         // rect.rect = rect.rect + corner_margin;
 
+        // TODO: force allocation
+        /*
         let ResponseValue {
             response,
             ..
         } = ui.alloc_response(rect.rect - self.outer_margin - corner_margin);
+        */
 
         // rect.rect = rect.rect + self.total_margin();
 
@@ -108,5 +111,53 @@ impl Frame {
         });
 
         ResponseValue::new(value, response)
+    }
+}
+
+
+#[cfg(test)]
+mod test {
+    use essay_graphics_test::{TestGraphicsContext, TestRenderer};
+
+    use crate::{context::Context, ui::{CentralPanel, Frame}, windows::Popup};
+
+    #[test]
+    fn frame() {
+        let mut test = TestRenderer::new([1000., 1000.]);
+        let ctx = Context::new(Box::new(TestGraphicsContext::new()));
+
+        ctx.run(&mut test, |ctx| {
+            CentralPanel::new().show(ctx, |ui| {
+                ui.label("Ante");
+
+                Frame::group(&ui).background(0x00ff00).show(ui, |ui| {
+                    ui.label("Frame");
+                });
+
+                ui.label("Post");
+            });
+        }).unwrap();
+
+        assert_eq!(test.take(), "text (0.0,0.0) 'Ante'
+rect (0.0,27.0) 166.0x58.0 #00ff00ff
+text (16.0,42.7) 'Frame'
+text (0.0,85.3) 'Post'");
+
+        ctx.run(&mut test, |ctx| {
+            CentralPanel::new().show(ctx, |ui| {
+                ui.label("Ante");
+
+                Frame::group(&ui).background(0x00ff00).show(ui, |ui| {
+                    ui.label("Frame");
+                });
+
+                ui.label("Post");
+            });
+        }).unwrap();
+
+        assert_eq!(test.take(), "text (0.0,0.0) 'Ante'
+rect (0.0,27.0) 166.0x58.0 #00ff00ff
+text (16.0,42.7) 'Frame'
+text (0.0,85.3) 'Post'");
     }
 }

@@ -130,24 +130,6 @@ impl Context {
 }
 
 impl Context {
-    /*
-    pub fn run_ui<R>(
-        &self, 
-        renderer: &mut dyn Renderer, 
-        mut draw: impl FnMut(&mut Ui) -> R + Send
-    ) -> ResponseValue<R> {
-        self.run(renderer, move |cxt| {
-            let id = Id::new("top");
-
-            let builder = UiBuilder::default();
-            
-            Ui::top(cxt, id, builder, |ui2| {
-                (draw)(ui2)
-            })
-        })
-    }
-    */
-
     pub fn run(
         &self, 
         renderer: &mut dyn Renderer, 

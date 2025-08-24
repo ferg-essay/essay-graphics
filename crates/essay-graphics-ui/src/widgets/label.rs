@@ -43,3 +43,50 @@ impl Widget for Label {
         response
     }
 }
+
+#[cfg(test)]
+mod test {
+    use essay_graphics_test::{TestGraphicsContext, TestRenderer};
+
+    use crate::{context::Context, ui::{CentralPanel, Frame}};
+
+    #[test]
+    fn label() {
+        let mut test = TestRenderer::new([1000., 1000.]);
+        let ctx = Context::new(Box::new(TestGraphicsContext::new()));
+
+        ctx.run(&mut test, |ctx| {
+            CentralPanel::new().show(ctx, |ui| {
+                ui.label("Test");
+            });
+        }).unwrap();
+
+        assert_eq!(test.take(), "text (0.0,0.0) 'Test'");
+    }
+
+    #[test]
+    fn vert_label() {
+        let mut test = TestRenderer::new([1000., 1000.]);
+        let ctx = Context::new(Box::new(TestGraphicsContext::new()));
+
+        ctx.run(&mut test, |ctx| {
+            CentralPanel::new().show(ctx, |ui| {
+                ui.label("A");
+                ui.label("B");
+            });
+        }).unwrap();
+
+        assert_eq!(test.take(), "text (0.0,0.0) 'A'
+text (0.0,26.7) 'B'");
+
+        ctx.run(&mut test, |ctx| {
+            CentralPanel::new().show(ctx, |ui| {
+                ui.label("A");
+                ui.label("B");
+            });
+        }).unwrap();
+
+        assert_eq!(test.take(), "text (0.0,0.0) 'A'
+text (0.0,26.7) 'B'");
+    }
+}

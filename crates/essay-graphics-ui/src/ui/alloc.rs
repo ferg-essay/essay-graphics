@@ -9,7 +9,7 @@ pub struct Alloc {
     pub bounds: Bounds<Canvas>, // extent of the canvas managed by the cursor
     pub margin: Margin,
     pub view_bounds: Bounds<Page>,     
-    pub fixed_bounds: Bounds<Canvas>,  // total size of fixed elements managed by the cursor
+    pub _fixed_bounds: Bounds<Canvas>,  // total size of fixed elements managed by the cursor
 
     view_width: f32,
     view_height: f32,
@@ -32,7 +32,7 @@ impl Alloc {
 
         let (view_cache, fixed_cache) = match cache {
             Some(cache) => { (cache.view, cache.fixed) },
-            None => { (Bounds::unit(), Bounds::zero()) }
+            None => { (Bounds::zero(), Bounds::zero()) }
         };
 
         Self {
@@ -41,13 +41,10 @@ impl Alloc {
             bounds,
             margin: Margin::ZERO,
             view_bounds: view_cache,
-            fixed_bounds: fixed_cache,
+            _fixed_bounds: fixed_cache,
 
-            view_width: ((bounds.width() - fixed_cache.width()) / view_cache.width()).floor(),
-            view_height: ((bounds.height() - fixed_cache.height()) / view_cache.height()).floor(),
-
-            //pos: point,
-            //view_pos: Point(0., 0.),
+            view_width: view_width(bounds.width(), fixed_cache, view_cache),
+            view_height: view_height(bounds.height(), fixed_cache, view_cache),
 
             alloc: Bounds::from(point),
             view_alloc: Bounds::zero(),
@@ -58,13 +55,14 @@ impl Alloc {
     pub(super) fn child(
         &self, 
         parent_free: Pos,
+        view: Option<Size>,
         margin: Margin,
         update: AllocUpdate,
         cache: Option<CacheAlloc>
     ) -> Self {
         let (view_cache, fixed_cache) = match cache {
             Some(cache) => { (cache.view, cache.fixed) },
-            None => { (Bounds::unit(), Bounds::zero()) }
+            None => { (Bounds::zero(), Bounds::zero()) }
         };
 
         let view_bounds = match update {
@@ -80,19 +78,27 @@ impl Alloc {
             AllocUpdate::Vertical => {
                 match update {
                     AllocUpdate::Vertical => {
-                        let height = view_cache.height() * self.view_height;
+                        let height = init_height(self.view_height, fixed_cache, view_cache);
                         ViewBounds {
                             width: parent_free.width(),
                             height: height,
                             view_width: parent_free.width(),
-                            view_height: (height - fixed_cache.height() - margin.height()) / view_cache.height(),
+                            view_height: view_height(
+                                height - margin.height(),
+                                fixed_cache,
+                                view_cache
+                            )
                         }
                     },
                     AllocUpdate::Horizontal => {
                         ViewBounds {
                             width: parent_free.width(),
                             height: self.view_height,
-                            view_width: (parent_free.width() - fixed_cache.width() - margin.width()) / view_cache.width(),
+                            view_width: view_width(
+                                parent_free.width() - margin.width(),
+                                fixed_cache, 
+                                view_cache,
+                            ),
                             view_height: self.view_height,
                         }
                     },
@@ -105,15 +111,24 @@ impl Alloc {
                             width: self.view_width,
                             height: parent_free.height(),
                             view_width: self.view_width,
-                            view_height: (parent_free.height() - fixed_cache.height() - margin.height()) / view_cache.height(),
+                            view_height: view_height(
+                                parent_free.height() - margin.height(), 
+                                fixed_cache,
+                                view_cache
+                            ),
                         }
                     },
                     AllocUpdate::Horizontal => {
-                        let width = view_cache.width() * self.view_width;
+                        let width = init_width(self.view_width, fixed_cache, view_cache);
+
                         ViewBounds {
                             width,
                             height: parent_free.height(),
-                            view_width: (width - fixed_cache.width() - margin.width()) / view_cache.width(),
+                            view_width: view_width(
+                                width - margin.width(),
+                                fixed_cache,
+                                view_cache
+                            ),
                             view_height: parent_free.height(),
                         }
                     },
@@ -126,37 +141,10 @@ impl Alloc {
             Size(view_bounds2.width, view_bounds2.height),
         ));
 
-        /*
-        let mut bounds = match update {
-            AllocUpdate::Vertical => {
-                Bounds::from((
-                    parent_free.p0(),
-                    Size(
-                        view_cache.width() * self.view_width,
-                        view_cache.height() * self.view_height,
-                    )
-                ))
-            },
-            AllocUpdate::Horizontal => {
-                Bounds::from((
-                    parent_free.p0(),
-                    Size(
-                        view_cache.width() * self.view_width,
-                        view_cache.height() * self.view_height,
-                    )
-                ))
-            },
-        };
-        */
-
         bounds = bounds - margin;
-        //let view_width = ((bounds.width() - fixed_cache.width()) / view_cache.width()).floor();
-        //let view_height = ((bounds.height() - fixed_cache.height()) / view_cache.height()).floor();
 
         let view_width = view_bounds2.view_width;
         let view_height = view_bounds2.view_height;
-
-        // let mut fixed_alloc = Bounds::zero();
 
         /*
         println!("  ChildBounds {:?} -> {:?} {:?}", self.update, update, bounds);
@@ -164,7 +152,12 @@ impl Alloc {
         println!("    f_view {:?}, {:?}", view_width, view_height);
         */
         let alloc = Bounds::from(bounds.p0());
-        //fixed_alloc = fixed_alloc + margin;
+
+        let view_alloc = if let Some(size) = view {
+            Bounds::from(size)
+        } else {
+            Bounds::zero()
+        };
 
         Self {
             update,
@@ -172,18 +165,13 @@ impl Alloc {
             bounds,
             margin,
             view_bounds, // view_cache,
-            fixed_bounds: fixed_cache,
+            _fixed_bounds: fixed_cache,
 
-            //view_width: (bounds.width() / view_cache.width()).floor(),
-            //view_height: (bounds.height() / view_cache.height()).floor(),
             view_width,
             view_height,
 
-            //pos,
-            //view_pos: self.view_pos,
-
             alloc,
-            view_alloc: Bounds::zero(),
+            view_alloc,
             fixed_alloc: Bounds::zero(),
         }
     }
@@ -224,7 +212,7 @@ impl Alloc {
 
     pub(crate) fn to_cache(self) -> CacheAlloc {
         CacheAlloc {
-            view: self.view_alloc.union(Bounds::unit()),
+            view: self.view_alloc, // .union(Bounds::unit()),
             fixed: self.fixed_alloc,
         }
     }
@@ -263,7 +251,7 @@ impl Alloc {
         
                 //cursor.pos = Point(rect.xmin(), rect.ymax());
 
-                let page_rect = self.view_alloc_view(size);
+                //let _page_rect = self.view_alloc_view(size);
 
                 //cursor.view_pos = Point(page_rect.xmin(), page_rect.ymax());
 
@@ -274,7 +262,7 @@ impl Alloc {
         
                 //cursor.pos = Point(rect.xmax(), rect.ymin());
 
-                let page_rect = self.view_alloc_view(size);
+                //let _page_rect = self.view_alloc_view(size);
 
                 //cursor.view_pos = Point(page_rect.xmax(), page_rect.ymin());
 
@@ -339,38 +327,61 @@ impl Alloc {
     pub(super) fn merge_child(
         &mut self, 
         child: &Self, 
-        is_view: bool
     ) {
-        if is_view {
-            self.alloc = self.alloc.union(child.bounds + child.margin);
-        } else if ! is_view {
+        if child.view_alloc.is_none() {
             self.alloc = self.alloc.union(child.alloc + child.margin);
-            
             self.fixed_alloc = self.fixed_alloc.union(child.fixed_alloc); // + self.margin;
-
-            let view = self.view_alloc;
-            let child = child.view_alloc;
-            self.view_alloc = match self.update {
-                AllocUpdate::Vertical => {
-                    Bounds::from((
-                        [view.x0(), view.y0()],
-                        [
-                            view.width().max(child.width()).min(1.),
-                            view.height() + child.height(), // .min(1.)
-                        ]
-                    ))
-                },
-                AllocUpdate::Horizontal => {
-                    Bounds::from((
-                        [view.x0(), view.y0()], 
-                        [
-                            view.width() + child.width(), // .min(1.),
-                            view.height().max(child.height()).min(1.)
-                        ]
-                    ))
-                },
-            };
+        } else {
+            self.alloc = self.alloc.union(child.bounds + child.margin);
         }
+            
+        let view = self.view_alloc;
+        let child = child.view_alloc;
+
+        self.view_alloc = match self.update {
+            AllocUpdate::Vertical => {
+                Bounds::from((
+                    [view.x0(), view.y0()],
+                    [
+                        view.width().max(child.width()).min(1.),
+                        view.height() + child.height(), // .min(1.)
+                    ]
+                ))
+            },
+            AllocUpdate::Horizontal => {
+                Bounds::from((
+                    [view.x0(), view.y0()], 
+                    [
+                        view.width() + child.width(), // .min(1.),
+                        view.height().max(child.height()).min(1.)
+                    ]
+                ))
+            },
+        };
+    }
+}
+
+fn view_width(width: f32, fixed: Bounds<Canvas>, view: Bounds<Page>) -> f32 {
+    ((width - fixed.width()) / view.width().max(1.)).floor()
+}
+
+fn view_height(height: f32, fixed: Bounds<Canvas>, view: Bounds<Page>) -> f32 {
+    ((height - fixed.height()) / view.height().max(1.)).floor()
+}
+
+fn init_width(factor: f32, fixed: Bounds<Canvas>, view: Bounds<Page>) -> f32 {
+    if view.width() > 0. {
+        factor * view.width()
+    } else {
+        fixed.width()
+    }
+}
+
+fn init_height(factor: f32, fixed: Bounds<Canvas>, view: Bounds<Page>) -> f32 {
+    if view.height() > 0. {
+        factor * view.height()
+    } else {
+        fixed.height()
     }
 }
 
@@ -411,7 +422,7 @@ mod test {
     }
 
     #[test]
-    fn vertical_label_two() {
+    fn vertical_label_three() {
         let mut test = TestRenderer::new([1000., 1000.]);
         let ctx = Context::new(Box::new(TestGraphicsContext::new()));
 
@@ -419,13 +430,68 @@ mod test {
             CentralPanel::new().show(ctx, |ui| {
                 ui.label("A");
                 ui.label("B");
+                ui.label("C");
             });
         }).unwrap();
 
         assert_eq!(test.take(), "text (0.0,0.0) 'A'
-text (0.0,26.7) 'B'");
+text (0.0,26.7) 'B'
+text (0.0,53.3) 'C'");
+        let mut test = TestRenderer::new([1000., 1000.]);
+        let ctx = Context::new(Box::new(TestGraphicsContext::new()));
+
+        ctx.run(&mut test, |ctx| {
+            CentralPanel::new().show(ctx, |ui| {
+                ui.label("A");
+                ui.label("B");
+                ui.label("C");
+            });
+        }).unwrap();
+
+        assert_eq!(test.take(), "text (0.0,0.0) 'A'
+text (0.0,26.7) 'B'
+text (0.0,53.3) 'C'");
     }
 
+    #[test]
+    fn vert_vert() {
+        let mut test = TestRenderer::new([1000., 1000.]);
+        let ctx = Context::new(Box::new(TestGraphicsContext::new()));
+
+        ctx.run(&mut test, |ctx| {
+            CentralPanel::new().show(ctx, |ui| {
+                ui.label("A");
+                ui.vertical(|ui| {
+                    ui.label("B");
+                });
+                ui.label("C");
+            });
+        }).unwrap();
+
+        assert_eq!(test.take(), "text (0.0,0.0) 'A'
+text (0.0,26.7) 'B'
+text (0.0,53.3) 'C'");
+        let mut test = TestRenderer::new([1000., 1000.]);
+        let ctx = Context::new(Box::new(TestGraphicsContext::new()));
+
+        ctx.run(&mut test, |ctx| {
+            CentralPanel::new().show(ctx, |ui| {
+                ui.label("A");
+                ui.vertical(|ui| {
+                    ui.label("B");
+                });
+                ui.label("C");
+            });
+        }).unwrap();
+
+        assert_eq!(test.take(), "text (0.0,0.0) 'A'
+text (0.0,26.7) 'B'
+text (0.0,53.3) 'C'");
+    }
+
+    //
+    // Two views stacked vertically that contain labels
+    //
     #[test]
     fn vertical_view_label() {
         let mut test = TestRenderer::new([1200., 1200.]);
@@ -473,9 +539,8 @@ text (16.0,16.0) 'A'");
         ctx.run(&mut test, |ctx| {
             CentralPanel::new().show(ctx, |ui| {
                 ui.horizontal(|ui| {
-                  Frame::group(ui).show(ui, |ui| {
-                        ui.view(|ui| {
-                        });
+                    Frame::group(ui).show(ui, |ui| {
+                        ui.view(|_| {});
                     })
                 })
             });
@@ -506,7 +571,7 @@ rect (16.0,16.0) 1168.0x1168.0 #ff0000ff");
     }
 
     #[test]
-    fn vertical_view_frames() {
+    fn vertical_view_frame() {
         let mut test = TestRenderer::new([1200., 1200.]);
         let ctx = Context::new(Box::new(TestGraphicsContext::new()));
 
