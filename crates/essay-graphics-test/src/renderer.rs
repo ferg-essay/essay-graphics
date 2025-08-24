@@ -95,7 +95,7 @@ impl Renderer for TestRenderer {
         style: &dyn PathOpt, 
         text_style: &TextStyle,
     ) -> Result<(), RenderErr> {
-        self.push(&format!("text ({:.1},{:.1}) '{}'", xy.0, xy.1, text));
+        self.push(&format!("text ({:.1},{:.1}) '{}'", xy.x, xy.y, text));
 
         Ok(())
     }
@@ -197,7 +197,7 @@ impl Renderer for TestRenderer {
             Shapes::Rectangle(point, size, _, color) => {
                 self.push(&format!(
                     "rect ({:.1},{:.1}) {:.1}x{:.1} #{:08x}",
-                    point.0, point.1,
+                    point.x, point.y,
                     size.width, size.height,
                     color.to_rgba()
                 ));

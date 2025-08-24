@@ -28,12 +28,12 @@ impl<M: Coord> Path<M> {
 
         let mut codes = Vec::<PathCode>::new();
 
-        codes.push(PathCode::MoveTo(Point(points[0], points[1])));
+        codes.push(PathCode::MoveTo(Point::new(points[0], points[1])));
 
         let len = points.rows();
 
         for i in 1..len {
-            codes.push(PathCode::LineTo(Point(points[(i, 0)], points[(i, 1)])));
+            codes.push(PathCode::LineTo(Point::new(points[(i, 0)], points[(i, 1)])));
         }
 
         Self::new(codes)
@@ -47,15 +47,15 @@ impl<M: Coord> Path<M> {
 
         let mut codes = Vec::<PathCode>::new();
 
-        codes.push(PathCode::MoveTo(Point(points[0], points[1])));
+        codes.push(PathCode::move_to([points[0], points[1]]));
 
         let len = points.rows() - 1;
 
         for i in 1..len {
-            codes.push(PathCode::LineTo(Point(points[(i, 0)], points[(i, 1)])));
+            codes.push(PathCode::line_to([points[(i, 0)], points[(i, 1)]]));
         }
 
-        codes.push(PathCode::ClosePoly(Point(points[(len, 0)], points[(len, 1)])));
+        codes.push(PathCode::ClosePoly(Point::new(points[(len, 0)], points[(len, 1)])));
 
         assert!(codes.len() == points.rows());
 
@@ -93,13 +93,13 @@ impl<M: Coord> Path<M> {
                 PathCode::ClosePoly(p1) => p1,
             };
 
-            bounds[0] = f32::min(bounds[0], point.x());
-            bounds[1] = f32::min(bounds[1], point.y());
-            bounds[2] = f32::max(bounds[2], point.x());
-            bounds[3] = f32::max(bounds[3], point.y());
+            bounds[0] = f32::min(bounds[0], point.x);
+            bounds[1] = f32::min(bounds[1], point.y);
+            bounds[2] = f32::max(bounds[2], point.x);
+            bounds[3] = f32::max(bounds[3], point.y);
         }
 
-        Bounds::<M>::new(Point(bounds[0], bounds[1]), Point(bounds[2], bounds[3]))
+        Bounds::<M>::new(Point::new(bounds[0], bounds[1]), Point::new(bounds[2], bounds[3]))
     }
 
     pub fn transform<C: Coord>(&self, affine: &Affine2d) -> Path<C> {
@@ -313,6 +313,30 @@ pub enum PathCode {
 }
 
 impl PathCode {
+    #[inline]
+    pub fn move_to(point: impl Into<Point>) -> Self {
+        Self::MoveTo(point.into())
+    }
+
+    #[inline]
+    pub fn line_to(point: impl Into<Point>) -> Self {
+        Self::LineTo(point.into())
+    }
+
+    #[inline]
+    pub fn bezier(p1: impl Into<Point>, p2: impl Into<Point>) -> Self {
+        Self::Bezier2(p1.into(), p2.into())
+    }
+
+    #[inline]
+    pub fn bezier3(
+        p1: impl Into<Point>, 
+        p2: impl Into<Point>,
+        p3: impl Into<Point>
+    ) -> Self {
+        Self::Bezier3(p1.into(), p2.into(), p3.into())
+    }
+
     pub fn tail(&self) -> Point {
         match self {
             PathCode::MoveTo(p0) => *p0,
@@ -338,13 +362,13 @@ impl<M: Coord> PathBuilder<M> {
     }
 
     pub fn move_to(mut self, x: f32, y: f32) -> Self {
-        self.codes.push(PathCode::MoveTo(Point(x, y)));
+        self.codes.push(PathCode::MoveTo(Point::new(x, y)));
 
         self
     }
 
     pub fn line_to(mut self, x: f32, y: f32) -> Self {
-        self.codes.push(PathCode::LineTo(Point(x, y)));
+        self.codes.push(PathCode::LineTo(Point::new(x, y)));
 
         self
     }
@@ -356,7 +380,7 @@ impl<M: Coord> PathBuilder<M> {
     }
 
     pub fn close_poly(mut self, x: f32, y: f32) -> Self {
-        self.codes.push(PathCode::ClosePoly(Point(x, y)));
+        self.codes.push(PathCode::ClosePoly(Point::new(x, y)));
 
         self
     }
@@ -377,14 +401,14 @@ impl<M: Coord> From<PathBuilder<M>> for Path<M> {
 
 impl<M: Coord> From<Bounds<M>> for Path<M> {
     fn from(value: Bounds<M>) -> Self {
-        let Point(x0, y0) = value.p0();
-        let Point(x1, y1) = value.p1();
+        let Point { x: x0, y: y0 } = value.p0();
+        let Point { x: x1, y:  y1 } = value.p1();
 
         Path::new(vec![
-            PathCode::MoveTo(Point(x0, y0)),
-            PathCode::LineTo(Point(x1, y0)),
-            PathCode::LineTo(Point(x1, y1)),
-            PathCode::ClosePoly(Point(x0, y1)),
+            PathCode::MoveTo(Point::new(x0, y0)),
+            PathCode::LineTo(Point::new(x1, y0)),
+            PathCode::LineTo(Point::new(x1, y1)),
+            PathCode::ClosePoly(Point::new(x0, y1)),
         ])
     }
 }

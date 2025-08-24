@@ -17,7 +17,7 @@ fn main() {
 }
 
 fn arch(point: impl Into<Point>) -> Path<Canvas> {
-    let Point(x, y) = point.into();
+    let Point { x, y } = point.into();
 
     let h1 = -50.;
     let h2 = -100.;

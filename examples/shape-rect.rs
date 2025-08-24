@@ -8,7 +8,7 @@ fn main() {
 
         let size = Size::new(500., 500.);
         ui.draw_shape(
-            &Shapes::Rectangle(Point(50., 50.), size, 60., Color::from("azure")),
+            &Shapes::Rectangle(Point::new(50., 50.), size, 60., Color::from("azure")),
         )?;
 
         let size = Size::new(60., 60.);

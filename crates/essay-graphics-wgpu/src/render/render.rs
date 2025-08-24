@@ -102,8 +102,8 @@ impl<'a, 'b> PlotRenderer<'a, 'b> {
         halign: HorizAlign,
         valign: VertAlign,
     ) {
-        let x0 = pos.x();
-        let y0 = pos.y();
+        let x0 = pos.x;
+        let y0 = pos.y;
 
         let mut mesh = Mesh2d::new();
 
@@ -702,7 +702,7 @@ impl Drop for PlotRenderer<'_, '_> {
 fn transform_solid_path(path: &Path<Canvas>) -> Path<Canvas> {
     let mut codes = Vec::<PathCode>::new();
 
-    let mut p0 = Point(0.0f32, 0.0f32);
+    let mut p0 = Point::ZERO;
 
     // TODO: clip and compress
     for code in path.codes() {
@@ -734,21 +734,21 @@ fn transform_solid_path(path: &Path<Canvas>) -> Path<Canvas> {
                 // split into two cubics before converting to quadratics
 
                 // q0_1 = b0 + 0.75 (b1 - b0)
-                let q0_1 = Point(
-                    p0.x() + 0.75 * (p1.x() - p0.x()),
-                    p0.y() + 0.75 * (p1.y() - p0.y()),
+                let q0_1 = Point::new(
+                    p0.x + 0.75 * (p1.x - p0.x),
+                    p0.y + 0.75 * (p1.y - p0.y),
                 );
 
                 // q1_1 = b3 + 0.75 (b2 - b3)
-                let q1_1 = Point(
-                    p3.x() + 0.75 * (p2.x() - p3.x()),
-                    p3.y() + 0.75 * (p2.y() - p3.y()),
+                let q1_1 = Point::new(
+                    p3.x + 0.75 * (p2.x - p3.x),
+                    p3.y + 0.75 * (p2.y - p3.y),
                 );
 
                 // q0_2 = q1_0 = 0.5 * (q0_1 + q1_1)
-                let q0_2 = Point(
-                    0.5 * (q0_1.x() + q1_1.x()),
-                    0.5 * (q0_1.y() + q1_1.y()),
+                let q0_2 = Point::new(
+                    0.5 * (q0_1.x + q1_1.x),
+                    0.5 * (q0_1.y + q1_1.y),
                 );
 
                 codes.push(PathCode::Bezier2(q0_1, q0_2));
@@ -770,7 +770,7 @@ fn transform_solid_path(path: &Path<Canvas>) -> Path<Canvas> {
 fn transform_dashed_path(path: &Path<Canvas>, pattern: Vec<f32>) -> Path<Canvas> {
     let mut codes = Vec::<PathCode>::new();
 
-    let mut p0 = Point(0.0f32, 0.0f32);
+    let mut p0 = Point::ZERO;
     let mut moveto = p0;
 
     let mut cursor = Cursor::new(pattern);
@@ -811,8 +811,8 @@ fn add_dash_line(
     p0: Point,
     p1: Point,
 ) -> Point {
-    let dx = p1.x() - p0.x();
-    let dy = p1.y() - p0.y();
+    let dx = p1.x - p0.x;
+    let dy = p1.y - p0.y;
 
     let len = dx.hypot(dy);
 
@@ -840,9 +840,9 @@ fn add_dash_line(
         } else {
             offset += sublen;
 
-            let p = Point(
-                p0.x() + dx * offset * len_r,
-                p0.y() + dy * offset * len_r,
+            let p = Point::new(
+                p0.x + dx * offset * len_r,
+                p0.y + dy * offset * len_r,
             );
 
             if cursor.is_visible() {

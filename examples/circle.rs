@@ -29,48 +29,48 @@ fn circle() -> Path<Data> {
     let magic_45 = sqrt_half * magic;
 
     Path::from([
-        PathCode::MoveTo(Point(0., -1.)),
+        PathCode::MoveTo(Point::new(0., -1.)),
         PathCode::Bezier3(
-            Point(magic, -1.),
-            Point(sqrt_half - magic_45, -sqrt_half - magic_45),
-            Point(sqrt_half, -sqrt_half),
+            Point::new(magic, -1.),
+            Point::new(sqrt_half - magic_45, -sqrt_half - magic_45),
+            Point::new(sqrt_half, -sqrt_half),
         ),
         PathCode::Bezier3(
-            Point(sqrt_half + magic_45, -sqrt_half + magic_45),
-            Point(1., -magic),
-            Point(1., 0.),
+            Point::new(sqrt_half + magic_45, -sqrt_half + magic_45),
+            Point::new(1., -magic),
+            Point::new(1., 0.),
         ),
         PathCode::Bezier3(
-            Point(1.0, magic),
-            Point(sqrt_half + magic_45, sqrt_half - magic_45),
-            Point(sqrt_half, sqrt_half),
+            Point::new(1.0, magic),
+            Point::new(sqrt_half + magic_45, sqrt_half - magic_45),
+            Point::new(sqrt_half, sqrt_half),
         ),
         PathCode::Bezier3(
-            Point(sqrt_half - magic_45, sqrt_half + magic_45),
-            Point(magic, 1.),
-            Point(0., 1.),
+            Point::new(sqrt_half - magic_45, sqrt_half + magic_45),
+            Point::new(magic, 1.),
+            Point::new(0., 1.),
         ),
         PathCode::Bezier3(
-            Point(-magic, 1.0),
-            Point(-sqrt_half + magic_45, sqrt_half + magic_45),
-            Point(-sqrt_half, sqrt_half),
+            Point::new(-magic, 1.0),
+            Point::new(-sqrt_half + magic_45, sqrt_half + magic_45),
+            Point::new(-sqrt_half, sqrt_half),
         ),
         PathCode::Bezier3(
-            Point(-sqrt_half - magic_45, sqrt_half - magic_45),
-            Point(-1.0, magic),
-            Point(-1., 0.),
+            Point::new(-sqrt_half - magic_45, sqrt_half - magic_45),
+            Point::new(-1.0, magic),
+            Point::new(-1., 0.),
         ),
         PathCode::Bezier3(
-            Point(-1., -magic),
-            Point(-sqrt_half - magic_45, -sqrt_half + magic_45),
-            Point(-sqrt_half, -sqrt_half),
+            Point::new(-1., -magic),
+            Point::new(-sqrt_half - magic_45, -sqrt_half + magic_45),
+            Point::new(-sqrt_half, -sqrt_half),
         ),
         PathCode::Bezier3(
-            Point(-sqrt_half + magic_45, -sqrt_half - magic_45),
-            Point(-magic, -1.0),
-            Point(0., -1.),
+            Point::new(-sqrt_half + magic_45, -sqrt_half - magic_45),
+            Point::new(-magic, -1.0),
+            Point::new(0., -1.),
         ),
-        PathCode::ClosePoly(Point(0., -1.)),
+        PathCode::ClosePoly(Point::new(0., -1.)),
     ])
 }
 

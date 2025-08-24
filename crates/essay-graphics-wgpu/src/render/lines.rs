@@ -16,7 +16,7 @@ pub fn lines(
     let mut mesh = Mesh2d::new();
     let mut bezier = BezierMesh2d::new();
 
-    let mut p0 = Point(0.0f32, 0.0f32);
+    let mut p0 = Point::ZERO;
     let mut p_move = p0;
     let mut p_first = p0;
     let mut p_last = p0;
@@ -89,15 +89,15 @@ fn draw_line(
     let (nx, ny) = line_normal(b0, b1, lw2);
 
     mesh.triangle(
-        [b0.x() - nx, b0.y() + ny],
-        [b0.x() + nx, b0.y() - ny],
-        [b1.x() + nx, b1.y() - ny],
+        [b0.x - nx, b0.y + ny],
+        [b0.x + nx, b0.y - ny],
+        [b1.x + nx, b1.y - ny],
     );
 
     mesh.triangle(
-        [b1.x() + nx, b1.y() - ny],
-        [b1.x() - nx, b1.y() + ny],
-        [b0.x() - nx, b0.y() + ny],
+        [b1.x + nx, b1.y - ny],
+        [b1.x - nx, b1.y + ny],
+        [b0.x - nx, b0.y + ny],
     );
 }
 
@@ -136,15 +136,15 @@ fn join_lines_sign(
     let (nx, ny) = (sign * nx, sign * ny);
 
     // outside edge
-    let p0 = Point(b0.x() + nx, b0.y() - ny);
-    let p1 = Point(b1.x() + nx, b1.y() - ny);
+    let p0 = Point::new(b0.x + nx, b0.y - ny);
+    let p1 = Point::new(b1.x + nx, b1.y - ny);
 
     let (nx, ny) = line_normal(b1, b2, lw2);
     let (nx, ny) = (sign * nx, sign * ny);
 
     // outside edge
-    let q1 = Point(b1.x() + nx, b1.y() - ny);
-    let q2 = Point(b2.x() + nx, b2.y() - ny);
+    let q1 = Point::new(b1.x + nx, b1.y - ny);
+    let q2 = Point::new(b2.x + nx, b2.y - ny);
 
     // add bevel triangle
     mesh.triangle(p1, q1, b1);
@@ -206,10 +206,10 @@ fn draw_bezier_line(
     //    (nx, ny) = (-nx, -ny);
     //}
     let len0 = b0.hypot(b1);
-    let (dx0, dy0) = ((b1.x() - b0.x()) / len0, (b1.y() - b0.y()) / len0);
+    let (dx0, dy0) = ((b1.x - b0.x) / len0, (b1.y - b0.y) / len0);
 
     let len2 = b2.hypot(b1);
-    let (dx2, dy2) = ((b2.x() - b1.x()) / len2, (b2.y() - b1.y()) / len2);
+    let (dx2, dy2) = ((b2.x - b1.x) / len2, (b2.y - b1.y) / len2);
 
     let (mut nx0, mut ny0) = (dy0 * lw2, dx0 * lw2);
     let (mut nx2, mut ny2) = (dy2 * lw2, dx2 * lw2);
@@ -221,15 +221,15 @@ fn draw_bezier_line(
     let (nx1, ny1) = (0.5 * (nx0 + nx2), 0.5 * (ny0 + ny2));
 
     // outer bezier's points
-    let p0 = Point(b0.x() + nx0, b0.y() - ny0);
+    let p0 = Point::new(b0.x + nx0, b0.y - ny0);
     // p1 slightly incorrect
-    let p1 = Point(b1.x() + nx1, b1.y() - ny1);
-    let p2 = Point(b2.x() + nx2, b2.y() - ny2);
+    let p1 = Point::new(b1.x + nx1, b1.y - ny1);
+    let p2 = Point::new(b2.x + nx2, b2.y - ny2);
     
     // inner bezier's points
-    let q0 = Point(b0.x() - nx0, b0.y() + ny0);
+    let q0 = Point::new(b0.x - nx0, b0.y + ny0);
     // let q1 = Point(b1.x() - nx1, b1.y() + ny1);
-    let q2 = Point(b2.x() - nx2, b2.y() + ny2);
+    let q2 = Point::new(b2.x - nx2, b2.y + ny2);
 
     // height of p1 from p0 to p2 line 
     let p1_height = 0.5 * vertex_height(p0, p1, p2);
@@ -266,7 +266,7 @@ fn draw_bezier_line(
         q2, q2 + (b1 - b2),
         p0, p2,
     );
-    let q1 = Point(0.5 * (qa.x() + qb.x()), 0.5 * (qa.y() + qb.y()));
+    let q1 = Point::new(0.5 * (qa.x + qb.x), 0.5 * (qa.y + qb.y));
     
     let q1_height = vertex_height(q0, q1, q2);
 
@@ -306,16 +306,16 @@ fn cap_line(
     let (dx, dy) = (ny, nx);
 
     // outside edge
-    let p0 = Point(b1.x() + nx, b1.y() - ny);
+    let p0 = Point::new(b1.x + nx, b1.y - ny);
     // extended edge
-    let p1 = Point(b1.x() + nx + dx, b1.y() - ny + dy);
+    let p1 = Point::new(b1.x + nx + dx, b1.y - ny + dy);
 
     // inside edge
-    let q0 = Point(b1.x() - nx, b1.y() + ny);
+    let q0 = Point::new(b1.x - nx, b1.y + ny);
     // extended edge
-    let q1 = Point(b1.x() - nx + dx, b1.y() + ny + dy);
+    let q1 = Point::new(b1.x - nx + dx, b1.y + ny + dy);
 
-    let mp = Point(b1.x() + dx, b1.y() + dy);
+    let mp = Point::new(b1.x + dx, b1.y + dy);
 
     match cap_style {
         CapStyle::Round => {
@@ -338,8 +338,8 @@ pub(crate) fn line_normal(
     p1: Point, 
     lw2: f32, 
 ) -> (f32, f32) {
-    let dx = p1.x() - p0.x();
-    let dy = p1.y() - p0.y();
+    let dx = p1.x - p0.x;
+    let dy = p1.y - p0.y;
 
     let len = dx.hypot(dy).max(f32::EPSILON);
 
@@ -354,20 +354,20 @@ pub(crate) fn line_normal(
 }
 
 pub(crate) fn intersection(p0: Point, p1: Point, q0: Point, q1: Point) -> Point {
-    let det = (p0.x() - p1.x()) * (q0.y() - q1.y())
-        - (p0.y() - p1.y()) * (q0.x() - q1.x());
+    let det = (p0.x - p1.x) * (q0.y - q1.y)
+        - (p0.y - p1.y) * (q0.x - q1.x);
 
     if det.abs() <= f32::EPSILON {
         return p0; // p0 is marker for coincident or parallel lines
     }
 
-    let p_xy = p0.x() * p1.y() - p0.y() * p1.x();
-    let q_xy = q0.x() * q1.y() - q0.y() * q1.x();
+    let p_xy = p0.x * p1.y - p0.y * p1.x;
+    let q_xy = q0.x * q1.y - q0.y * q1.x;
 
-    let x = (p_xy * (q0.x() - q1.x()) - (p0.x() - p1.x()) * q_xy) / det;
-    let y = (p_xy * (q0.y() - q1.y()) - (p0.y() - p1.y()) * q_xy) / det;
+    let x = (p_xy * (q0.x - q1.x) - (p0.x - p1.x) * q_xy) / det;
+    let y = (p_xy * (q0.y - q1.y) - (p0.y - p1.y) * q_xy) / det;
 
-    Point(x, y)
+    Point::new(x, y)
 }
 
 pub(crate) fn line_intersection(
@@ -376,8 +376,8 @@ pub(crate) fn line_intersection(
     q0: Point, 
     q1: Point
 ) -> Point {
-    let mut det = (p0.x() - p1.x()) * (q0.y() - q1.y())
-        - (p0.y() - p1.y()) * (q0.x() - q1.x());
+    let mut det = (p0.x - p1.x) * (q0.y - q1.y)
+        - (p0.y - p1.y) * (q0.x - q1.x);
 
     if det.abs() <= f32::EPSILON {
         return p0; // p0 is marker for coincident or parallel lines
@@ -387,18 +387,18 @@ pub(crate) fn line_intersection(
     }
 
 
-    let p_xy = p0.x() * p1.y() - p0.y() * p1.x();
-    let q_xy = q0.x() * q1.y() - q0.y() * q1.x();
+    let p_xy = p0.x * p1.y - p0.y * p1.x;
+    let q_xy = q0.x * q1.y - q0.y * q1.x;
 
-    let x = (p_xy * (q0.x() - q1.x()) - (p0.x() - p1.x()) * q_xy) / det;
-    let y = (p_xy * (q0.y() - q1.y()) - (p0.y() - p1.y()) * q_xy) / det;
+    let x = (p_xy * (q0.x - q1.x) - (p0.x - p1.x) * q_xy) / det;
+    let y = (p_xy * (q0.y - q1.y) - (p0.y - p1.y) * q_xy) / det;
 
-    Point(x, y)
+    Point::new(x, y)
 }
 
 pub(super) fn ccw(b0: Point, b1: Point, b2: Point) -> f32 {
-    (b1.x() - b0.x()) * (b2.y() - b0.y())
-    - (b2.x() - b0.x()) * (b1.y() - b0.y())
+    (b1.x - b0.x) * (b2.y - b0.y)
+    - (b2.x - b0.x) * (b1.y - b0.y)
 }
 
 fn vertex_height(p0: Point, p1: Point, p2: Point) -> f32 {
@@ -413,15 +413,15 @@ fn vertex_height(p0: Point, p1: Point, p2: Point) -> f32 {
 }
 
 fn interpolate(p: f32, p0: Point, p1: Point) -> Point {
-    Point(
-        (1. - p) * p0.x() + p * p1.x(),
-        (1. - p) * p0.y() + p * p1.y(),
+    Point::new(
+        (1. - p) * p0.x + p * p1.x,
+        (1. - p) * p0.y + p * p1.y,
     )
 }
 
 fn clamp_miter(center: Point, miter: Point, lim: f32) -> Point {
-    Point(
-        miter.0.clamp(center.0 - lim, center.0 + lim),
-        miter.1.clamp(center.1 - lim, center.1 + lim),
+    Point::new(
+        miter.x.clamp(center.x - lim, center.x + lim),
+        miter.y.clamp(center.y - lim, center.y + lim),
     )
 }

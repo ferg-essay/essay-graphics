@@ -2,32 +2,27 @@ use std::{f32::consts::{FRAC_PI_2, TAU}, ops};
 
 
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub struct Point(pub f32, pub f32);
+pub struct Point<T = f32> {
+    pub x: T, 
+    pub y: T,
+}
+
+impl<T> Point<T> {
+    pub const fn new(x: T, y: T) -> Self {
+        Self { x, y }
+    }
+}
 
 impl Point {
-    pub const X: Point = Point(1., 0.);
-    pub const Y: Point = Point(0., 1.);
-
-    #[inline]
-    pub fn x(&self) -> f32 {
-        self.0
-    }
-
-    #[inline]
-    pub fn y(&self) -> f32 {
-        self.1
-    }
-
-    #[inline]
-    pub fn zero(&self) -> Self {
-        Point(0., 0.)
-    }
+    pub const ZERO: Point = Point::new(0., 0.);
+    pub const X: Point = Point::new(1., 0.);
+    pub const Y: Point = Point::new(0., 1.);
 
     #[inline]
     pub fn is_below(self, p0: Point, p1: Point) -> bool {
-        let Point(x, y) = self;
-        let Point(x0, y0) = p0;
-        let Point(x1, y1) = p1;
+        let [x, y] = self.into();
+        let [x0, y0] = p0.into();
+        let [x1, y1] = p1.into();
 
         if x0 == x1 {
             false
@@ -47,42 +42,48 @@ impl Point {
 
     #[inline]
     pub fn hypot(self, p: Point) -> f32 {
-        let dx = self.0 - p.0;
-        let dy = self.1 - p.1;
+        let dx = self.x - p.x;
+        let dy = self.y - p.y;
 
         dx.hypot(dy)
     }
 
     #[inline]
     pub fn interpolate(self, p: f32, point: Point) -> Point {
-        Self(
-            (1. - p) * self.0 + p * point.0,
-            (1. - p) * self.1 + p * point.1,
+        Self::new(
+            (1. - p) * self.x + p * point.x,
+            (1. - p) * self.y + p * point.y,
         )
     }
 }
 
 impl Default for Point {
     fn default() -> Self {
-        Self(0., 0.)
+        Self::ZERO
     }
 }
 
-impl ops::Add for Point {
-    type Output = Point;
+impl<T> ops::Add for Point<T>
+where
+    T: ops::Add<Output = T>
+{
+    type Output = Self;
 
     #[inline]
     fn add(self, rhs: Self) -> Self::Output {
-        Point(self.0 + rhs.0, self.1 + rhs.1)
+        Self::new(self.x + rhs.x, self.y + rhs.y)
     }
 }
 
-impl ops::Sub for Point {
-    type Output = Point;
+impl<T> ops::Sub for Point<T>
+where
+    T: ops::Sub<Output = T>
+{
+    type Output = Self;
 
     #[inline]
     fn sub(self, rhs: Self) -> Self::Output {
-        Point(self.0 - rhs.0, self.1 - rhs.1)
+        Self::new(self.x - rhs.x, self.y - rhs.y)
     }
 }
 
@@ -93,26 +94,26 @@ impl From<&Point> for Point {
     }
 }
 
-impl From<[f32; 2]> for Point {
+impl<T> From<[T; 2]> for Point<T> {
     #[inline]
-    fn from(value: [f32; 2]) -> Self {
-        Point(value[0], value[1])
+    fn from([x, y]: [T; 2]) -> Self {
+        Point::new(x, y)
     }
 }
 
-impl From<Point> for [f32; 2] {
+impl<T> From<Point<T>> for [T; 2] {
     #[inline]
-    fn from(value: Point) -> Self {
-        let Point(x, y) = value;
+    fn from(value: Point<T>) -> Self {
+        let Point { x, y } = value;
 
         [x, y]
     }
 }
 
-impl From<&[f32; 2]> for Point {
+impl<T: Clone> From<&[T; 2]> for Point<T> {
     #[inline]
-    fn from(value: &[f32; 2]) -> Self {
-        Point(value[0], value[1])
+    fn from([x, y]: &[T; 2]) -> Self {
+        Point::new(x.clone(), y.clone())
     }
 }
 

@@ -9,8 +9,8 @@ pub enum Clip {
 impl From<&Bounds<Canvas>> for Clip {
     fn from(value: &Bounds<Canvas>) -> Self {
         Clip::Bounds(
-            Point(value.xmin(), value.ymin()),
-            Point(value.xmax(), value.ymax()),
+            Point::new(value.xmin(), value.ymin()),
+            Point::new(value.xmax(), value.ymax()),
         )
     }
 }

@@ -96,7 +96,7 @@ impl Frame {
                 let px = 5.;
 
                 ui.draw_shape(&Shapes::Rectangle(
-                    pos.p0() + Point(px, px), pos.size(), corner, shadow,
+                    pos.p0() + Point::new(px, px), pos.size(), corner, shadow,
                 ))?;
             }
             /*

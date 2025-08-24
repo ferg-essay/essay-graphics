@@ -28,7 +28,7 @@ impl Alloc {
         update: AllocUpdate,
         cache: Option<CacheAlloc>,
     ) -> Self {
-        let point = Point(bounds.xmin(), bounds.ymin());
+        let point = Point::new(bounds.xmin(), bounds.ymin());
 
         let (view_cache, fixed_cache) = match cache {
             Some(cache) => { (cache.view, cache.fixed) },
@@ -223,7 +223,7 @@ impl Alloc {
         match self.update {
             AllocUpdate::Vertical => {
                 let rect = Bounds::<Canvas>::from((
-                    Point(self.bounds.xmin(), self.alloc.ymax()),
+                    Point::new(self.bounds.xmin(), self.alloc.ymax()),
                     size,
                 ));
 
@@ -234,7 +234,7 @@ impl Alloc {
             },
             AllocUpdate::Horizontal => {
                 let rect = Bounds::<Canvas>::from((
-                    Point(self.alloc.xmax(), self.bounds.ymin()),
+                    Point::new(self.alloc.xmax(), self.bounds.ymin()),
                     size,
                 ));
 
@@ -275,7 +275,7 @@ impl Alloc {
 
     fn view_alloc_canvas(&mut self, size: impl Into<Size>) -> Bounds<Canvas> {
         let size = size.into();
-        
+
         let canvas_size = Size::new(
             size.width * self.view_width,
             size.height * self.view_height,
@@ -311,13 +311,13 @@ impl Alloc {
         let alloc = match self.update {
             AllocUpdate::Vertical => {
                 Bounds::from((
-                    Point(self.view_bounds.xmin(), self.view_alloc.ymax()),
+                    Point::new(self.view_bounds.xmin(), self.view_alloc.ymax()),
                     size,
                 ))
             }
             AllocUpdate::Horizontal => {
                 Bounds::from((
-                    Point(self.view_alloc.xmax(), self.view_bounds.ymin()),
+                    Point::new(self.view_alloc.xmax(), self.view_bounds.ymin()),
                     size,
                 ))
             }

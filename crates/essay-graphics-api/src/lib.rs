@@ -1,3 +1,4 @@
+mod rectangle;
 pub mod output;
 pub mod input;
 pub mod affine2d;
@@ -31,6 +32,8 @@ pub use mesh2d::{Mesh2d, Mesh2dColor, BezierMesh2d};
 pub use path::{
     Path, PathBuilder, PathCode,
 };
+
+pub use rectangle::Rectangle;
 
 pub use size::Size;
 

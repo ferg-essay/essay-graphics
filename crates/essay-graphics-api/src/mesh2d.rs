@@ -19,9 +19,9 @@ impl Mesh2d {
         p1: impl Into<Point>, 
         p2: impl Into<Point>
     ) {
-        let Point(x0, y0) = p0.into();
-        let Point(x1, y1) = p1.into();
-        let Point(x2, y2) = p2.into();
+        let Point { x: x0, y: y0 } = p0.into();
+        let Point { x: x1, y: y1 } = p1.into();
+        let Point { x: x2, y: y2 } = p2.into();
 
         // default UV assumes 64x64 hatch-like texture
         let f = 1. / 64.;
@@ -42,9 +42,9 @@ impl Mesh2d {
         let (p1, uv1) = (p1.into(), uv1.into());
         let (p2, uv2) = (p2.into(), uv2.into());
 
-        self.vertices.push([p0.0, p0.1, uv0.0, uv0.1]);
-        self.vertices.push([p1.0, p1.1, uv1.0, uv1.1]);
-        self.vertices.push([p2.0, p2.1, uv2.0, uv2.1]);
+        self.vertices.push([p0.x, p0.y, uv0.x, uv0.y]);
+        self.vertices.push([p1.x, p1.y, uv1.x, uv1.y]);
+        self.vertices.push([p2.x, p2.y, uv2.x, uv2.y]);
     }
 
     #[inline]
@@ -56,13 +56,13 @@ impl Mesh2d {
         let (p0, uv0) = (p0.into(), uv0.into());
         let (p1, uv1) = (p1.into(), uv1.into());
 
-        self.vertices.push([p0.0, p0.1, uv0.0, uv0.1]);
-        self.vertices.push([p1.0, p0.1, uv1.0, uv0.1]);
-        self.vertices.push([p1.0, p1.1, uv1.0, uv1.1]);
+        self.vertices.push([p0.x, p0.y, uv0.x, uv0.y]);
+        self.vertices.push([p1.x, p0.y, uv1.x, uv0.y]);
+        self.vertices.push([p1.x, p1.y, uv1.x, uv1.y]);
 
-        self.vertices.push([p0.0, p0.1, uv0.0, uv0.1]);
-        self.vertices.push([p1.0, p1.1, uv1.0, uv1.1]);
-        self.vertices.push([p0.0, p1.1, uv0.0, uv1.1]);
+        self.vertices.push([p0.x, p0.y, uv0.x, uv0.y]);
+        self.vertices.push([p1.x, p1.y, uv1.x, uv1.y]);
+        self.vertices.push([p0.x, p1.y, uv0.x, uv1.y]);
     }
 
     #[inline]
@@ -90,9 +90,9 @@ impl Mesh2dColor {
         p1: (impl Into<Point>, impl Into<Color>), 
         p2: (impl Into<Point>, impl Into<Color>),
     ) {
-        let (Point(x0, y0), color0) = (p0.0.into(), p0.1.into());
-        let (Point(x1, y1), color1) = (p1.0.into(), p1.1.into());
-        let (Point(x2, y2), color2) = (p2.0.into(), p2.1.into());
+        let (Point { x: x0, y: y0 }, color0) = (p0.0.into(), p0.1.into());
+        let (Point { x: x1, y: y1 }, color1) = (p1.0.into(), p1.1.into());
+        let (Point { x: x2, y: y2 }, color2) = (p2.0.into(), p2.1.into());
 
         self.vertices.push(([x0, y0], color0));
         self.vertices.push(([x1, y1], color1));
@@ -129,9 +129,9 @@ impl BezierMesh2d {
         let (p1, uv1) = (p1.into(), uv1.into());
         let (p2, uv2) = (p2.into(), uv2.into());
 
-        self.vertices.push([p0.0, p0.1, uv0.0, uv0.1, 1., -1., width_above, width_below]);
-        self.vertices.push([p1.0, p1.1, uv1.0, uv1.1, 0., 1., width_above, width_below]);
-        self.vertices.push([p2.0, p2.1, uv2.0, uv2.1, -1., -1., width_above, width_below]);
+        self.vertices.push([p0.x, p0.y, uv0.x, uv0.y, 1., -1., width_above, width_below]);
+        self.vertices.push([p1.x, p1.y, uv1.x, uv1.y, 0., 1., width_above, width_below]);
+        self.vertices.push([p2.x, p2.y, uv2.x, uv2.y, -1., -1., width_above, width_below]);
     }
 
     #[inline]
@@ -143,9 +143,9 @@ impl BezierMesh2d {
         width_above: f32,
         width_below: f32,
     ) {
-        let Point(x0, y0) = p0.into();
-        let Point(x1, y1) = p1.into();
-        let Point(x2, y2) = p2.into();
+        let Point { x: x0, y: y0 } = p0.into();
+        let Point { x: x1, y: y1 } = p1.into();
+        let Point { x: x2, y: y2 } = p2.into();
 
         self.vertices.push([x0, y0, 0., 0., 1., -1., width_above, width_below]);
         self.vertices.push([x1, y1, 0., 0., 0., 1., width_above, width_below]);

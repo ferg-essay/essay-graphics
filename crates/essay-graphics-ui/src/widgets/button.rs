@@ -42,7 +42,7 @@ impl Widget for Button {
 
         //let bounds = bounds.round_ui();
 
-        let pos = Point(bounds.xmin() + margin, bounds.ymin() + margin);
+        let pos = Point::new(bounds.xmin() + margin, bounds.ymin() + margin);
 
         let inner = bounds - Margin::from_pair(corner, corner);
         // println!("Size {:?} Bounds {:?} {:?}", size, bounds, inner);
@@ -85,7 +85,7 @@ impl Widget for Button {
             let r = corner;
             if sz > 0. { // border
                 ui.draw_shape(&Shapes::Rectangle(
-                    inner.p0() - Point(sz, sz), inner.size() + Size::new(2. * sz, 2. * sz), r + 1., 
+                    inner.p0() - Point::new(sz, sz), inner.size() + Size::new(2. * sz, 2. * sz), r + 1., 
                     border,
                 ))?;
             }

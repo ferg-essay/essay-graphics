@@ -139,9 +139,9 @@ impl Affine2d {
     pub fn transform_point(&self, point: Point) -> Point {
         let mat = self.mat;
 
-        let Point(x, y) = point;
+        let Point { x, y } = point;
 
-        Point(
+        Point::new(
             x * mat[0] + y * mat[1] + mat[2],
             x * mat[3] + y * mat[4] + mat[5],
         )
@@ -150,8 +150,8 @@ impl Affine2d {
     pub fn transform_path<T: Coord>(&self, path: &Path<T>) -> Path<Canvas> {
         let mat = self.mat;
 
-        path.map(|Point(x, y)| {
-            Point(
+        path.map(|Point { x, y }| {
+            Point::new(
                 x * mat[0] + y * mat[1] + mat[2],
                 x * mat[3] + y * mat[4] + mat[5]
             )

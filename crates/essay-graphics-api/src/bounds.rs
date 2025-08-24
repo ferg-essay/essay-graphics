@@ -3,7 +3,7 @@ use std::{any::type_name, marker::PhantomData, ops};
 
 use essay_tensor::{ten, tensor::Tensor};
 
-use crate::Size;
+use crate::{Rectangle, Size};
 
 use super::{Point, Affine2d};
 
@@ -11,33 +11,73 @@ use super::{Point, Affine2d};
 /// Boundary box consisting of two unordered points
 /// 
 pub struct Bounds<M: Coord> {
-    p0: Point,
-    p1: Point,
+    rect: Rectangle,
 
     marker: PhantomData<fn(M)>,
 }
 
 impl<M: Coord> Bounds<M> {
+    pub const ZERO: Bounds<M> = Self::new0(0., 0., 0., 0.);
+    pub const UNIT: Bounds<M> = Self::new0(0., 0., 1., 1.);
+
+    pub const NONE: Bounds<M> = Self::new0(f32::MAX, f32::MAX, f32::MIN, f32::MIN);
+    pub const INFINITY: Bounds<M> = Self::new0(f32::MIN, f32::MIN, f32::MAX, f32::MAX);
+
+    // TODO: renaming
+    #[must_use]
+    pub const fn new0(x: f32, y: f32, width: f32, height: f32) -> Self {
+        Self {
+            rect: Rectangle::new(x, y, width, height),
+
+            marker: PhantomData::<fn(M)>,
+        }
+    }
+
     #[must_use]
     pub fn new(p0: impl Into<Point>, p1: impl Into<Point>) -> Self {
-        let Point(x0, y0) = p0.into();
-        let Point(x1, y1) = p1.into();
+        let Point { x: x0, y: y0 } = p0.into();
+        let Point { x: x1, y: y1 } = p1.into();
+
+        let xmin = x0.min(x1);
+        let xmax = x0.max(x1);
+
+        let ymin = y0.min(y1);
+        let ymax = y0.max(y1);
 
         Self {
-            p0: Point(x0.min(x1), y0.min(y1)),
-            p1: Point(x0.max(x1), y0.max(y1)),
+            rect: Rectangle::new(xmin, ymin, xmax - xmin, ymax - ymin),
+
             marker: PhantomData::<fn(M)>,
         }
     }
 
     #[must_use]
     pub fn new_flat(p0: impl Into<Point>, p1: impl Into<Point>) -> Self {
-        let Point(x0, y0) = p0.into();
-        let Point(x1, y1) = p1.into();
+        let Point { x: x0, y: y0 } = p0.into();
+        let Point { x: x1, y: y1 } = p1.into();
 
         Self {
-            p0: Point(x0, y0),
-            p1: Point(x1, y1),
+            rect: Rectangle::new(x0, y0, x1 - x0, y1 - y0),
+            marker: PhantomData::<fn(M)>,
+        }
+    }
+
+    #[must_use]
+    pub fn from_point(p0: impl Into<Point>) -> Self {
+        let Point { x, y } = p0.into();
+
+        Self {
+            rect: Rectangle::new(x, y, 0., 0.),
+            marker: PhantomData::<fn(M)>,
+        }
+    }
+
+    #[must_use]
+    pub fn from_size(size: impl Into<Size>) -> Self {
+        let Size { width, height } = size.into();
+
+        Self {
+            rect: Rectangle::new(0., 0., width, height),
             marker: PhantomData::<fn(M)>,
         }
     }
@@ -45,7 +85,7 @@ impl<M: Coord> Bounds<M> {
     #[inline]
     #[must_use]
     pub fn extent(width: f32, height: f32) -> Self {
-        Self::new(Point(0., 0.), Point(width, height))
+        Self::from_size(Size::new(width, height))
     }
 
     #[inline]
@@ -55,49 +95,38 @@ impl<M: Coord> Bounds<M> {
         width: f32, 
         height: f32
     ) -> Bounds<M> {
-        Bounds {
-            p0: Point(x0, y0),
-            p1: Point(x0 + width, x0 + height),
+        Self {
+            rect: Rectangle::new(x0, y0, width, height),
             marker: PhantomData,
         }
     }
 
     #[inline]
     pub fn none() -> Bounds<M> {
-        Bounds {
-            p0: Point(f32::MAX, f32::MAX),
-            p1: Point(f32::MIN, f32::MIN),
-            marker: PhantomData,
-        }
+        Self::NONE
     }
 
     #[inline]
     pub fn infinity() -> Bounds<M> {
-        Bounds {
-            p0: Point(f32::MAX, f32::MAX),
-            p1: Point(f32::MIN, f32::MIN),
-            marker: PhantomData,
-        }
+        Self::INFINITY
     }
 
     #[inline]
     pub fn zero() -> Bounds<M> {
-        Bounds {
-            p0: Point(0., 0.),
-            p1: Point(0., 0.),
-            marker: PhantomData,
-        }
+        Self::ZERO
     }
 
     #[inline]
     pub fn unit() -> Self {
-        Self::new(Point(0., 0.), Point(1., 1.))
+        Self::UNIT
     }
 
     #[inline]
     pub fn is_none(self) -> bool {
-        self.p0 == Point(f32::MAX, f32::MAX)
-        && self.p1 == Point(f32::MIN, f32::MIN)
+        self.rect.x == f32::MAX
+        && self.rect.y == f32::MAX
+        && self.rect.width == f32::MIN
+        && self.rect.height == f32::MIN
     }
 
     #[inline]
@@ -111,87 +140,87 @@ impl<M: Coord> Bounds<M> {
 
     #[inline]
     pub fn is_zero(self) -> bool {
-        self.p0 == Point(0., 0.) && self.p1 == Point(0., 0.)
+        self.rect.x == 0. && self.rect.y == 0. && self.rect.width == 0. && self.rect.height == 0.
     }
 
     #[inline]
     pub fn p0(self) -> Point {
-        self.p0
+        Point::new(self.rect.x, self.rect.y)
     }
 
     #[inline]
     pub fn p1(self) -> Point {
-        self.p1
+        Point::new(self.rect.x + self.rect.width, self.rect.y + self.rect.height)
     }
 
     #[inline]
     pub fn pos(self) -> Point {
-        self.p0
+        self.p0()
     }
 
     #[inline]
     pub fn size(self) -> Size {
-        Size::new(self.p1.x() - self.p0.x(), self.p1.y() - self.p0.y())
+        Size::new(self.rect.width, self.rect.height)
     }
 
     #[inline]
     pub fn x0(self) -> f32 {
-        self.p0.x()
+        self.rect.x
     }
 
     #[inline]
     pub fn y0(self) -> f32 {
-        self.p0.y()
+        self.rect.y
     }
 
     #[inline]
     pub fn x1(self) -> f32 {
-        self.p1.x()
+        self.rect.x + self.rect.width
     }
 
     #[inline]
     pub fn y1(self) -> f32 {
-        self.p1.y()
+        self.rect.y + self.rect.height
     }
 
     #[inline]
     pub fn xmin(self) -> f32 {
-        self.p0.x()
+        self.rect.x
     }
 
     #[inline]
     pub fn ymin(self) -> f32 {
-        self.p0.y()
+        self.rect.y
     }
 
     #[inline]
     pub fn min(self) -> (f32, f32) {
-        (self.xmin(), self.ymin())
+        (self.rect.x, self.rect.y)
     }
 
     #[inline]
     pub fn xmax(self) -> f32 {
-        self.p1.x()
+        self.x1()
     }
 
     #[inline]
     pub fn ymax(self) -> f32 {
-        self.p1.y()
+        self.y1()
     }
 
     #[inline]
     pub fn max(self) -> (f32, f32) {
-        (self.xmax(), self.ymax())
+        (self.x1(), self.y1())
     }
 
     #[inline]
     pub fn xmid(self) -> f32 {
-        0.5 * (self.p0.x() + self.p1.x())
+        self.rect.x + 0.5 * self.rect.width
     }
 
     #[inline]
     pub fn ymid(self) -> f32 {
-        0.5 * (self.p0.y() + self.p1.y())
+        self.rect.y + 0.5 * self.rect.height
     }
 
     #[inline]
@@ -201,56 +230,55 @@ impl<M: Coord> Bounds<M> {
 
     #[inline]
     pub fn width(self) -> f32 {
-        self.x1() - self.x0()
+        self.rect.width
     }
 
     #[inline]
     pub fn height(self) -> f32 {
-        self.y1() - self.y0()
+        self.rect.height
     }
 
     #[inline]
+    #[deprecated]
     pub fn width_abs(self) -> f32 {
-        self.xmax() - self.xmin()
+        self.width().abs()
     }
 
     #[inline]
+    #[deprecated]
     pub fn height_abs(self) -> f32 {
-        self.ymax() - self.ymin()
+        self.height().abs()
     }
 
     #[inline]
     pub fn contains(self, point: impl Into<Point>) -> bool {
         let point = point.into();
-        self.contains_x(point.x()) && self.contains_y(point.y())
+        self.contains_x(point.x) && self.contains_y(point.y)
     }
 
     #[inline]
     pub fn contains_x(self, x: f32) -> bool {
-        self.x0() <= x && x <= self.x1()
+        self.rect.x <= x && x <= self.rect.x + self.rect.width
     }
 
     #[inline]
     pub fn contains_y(self, y: f32) -> bool {
-        self.y0() <= y && y <= self.y1()
+        self.rect.y <= y && y <= self.rect.y + self.rect.height
     }
 
     pub fn corners(self) -> Tensor {
         ten![
-            [self.p0.x(), self.p0.y()],
-            [self.p0.x(), self.p1.y()],
-            [self.p1.x(), self.p1.y()],
-            [self.p1.x(), self.p0.y()],
+            [self.x0(), self.y0()],
+            [self.x0(), self.y1()],
+            [self.x1(), self.y1()],
+            [self.x1(), self.y0()],
         ]
     }
 
     #[must_use]
+    #[deprecated]
     pub fn abs(&mut self) -> Self {
-        Self {
-            p0: Point(self.xmin(), self.ymin()),
-            p1: Point(self.xmax(), self.ymax()),
-            marker: Default::default(),
-        }        
+        self.clone()
     }
 
     pub fn affine_to<N>(self, box_to: impl Into<Bounds<N>>) -> Affine2d
@@ -306,17 +334,10 @@ impl<M: Coord> Bounds<M> {
     pub fn union(self, b: impl Into<Bounds<M>>) -> Self {
         let b = b.into();
 
-        Self {
-            p0: Point(
-                self.xmin().min(b.xmin()),
-                self.ymin().min(b.ymin()),
-            ),
-            p1: Point(
-                self.xmax().max(b.xmax()),
-                self.ymax().max(b.ymax()),
-            ),
-            marker: PhantomData,
-        }
+        Self::new(
+            [self.x0().min(b.x0()), self.y0().min(b.y0())],
+                [self.x1().max(b.x1()), self.y1().max(b.y1())],
+        )
     }
 
     //
@@ -324,10 +345,7 @@ impl<M: Coord> Bounds<M> {
     //
     #[must_use]
     pub fn with_width(self, width: f32) -> Self {
-        Self::new(
-            self.p0,
-            Point(self.x0() + width, self.y1())
-        )
+        Self::new0(self.rect.x, self.rect.y, width, self.rect.height)
     }
 
     //
@@ -341,20 +359,18 @@ impl<M: Coord> Bounds<M> {
             let width = self.height() * aspect;
             let margin = 0.5 * (self.width() - width);
 
-            Self {
-                p0: Point(self.xmin() + margin, self.ymin()),
-                p1: Point(self.xmax() - margin, self.ymax()),
-                marker: Default::default(),
-            }
+            Self::new(
+                Point::new(self.xmin() + margin, self.ymin()),
+                Point::new(self.xmax() - margin, self.ymax()),
+            )
         } else {
             let height = self.width() / aspect;
             let margin = 0.5 * (self.height() - height);
 
-            Self {
-                p0: Point(self.xmin(), self.ymin() + margin),
-                p1: Point(self.xmax(), self.ymax() - margin),
-                marker: Default::default(),
-            }
+            Self::new(
+                Point::new(self.xmin(), self.ymin() + margin),
+                Point::new(self.xmax(), self.ymax() - margin),
+            )
         }
     }
 
@@ -363,12 +379,11 @@ impl<M: Coord> Bounds<M> {
     //
     #[must_use]
     pub fn with_margin(self, margin: f32) -> Self {
-        let Point(x0, y0) = self.p0;
-        let Point(x1, y1) = self.p1;
-
-        Self::new(
-            Point(x0 + margin, y0 + margin),
-            Point(x1 - margin, y1 - margin),
+        Self::new0(
+            self.rect.x + margin, 
+            self.rect.y + margin,
+            self.rect.width - 2. * margin,
+            self.rect.height - 2. * margin,
         )
     }
 
@@ -377,23 +392,21 @@ impl<M: Coord> Bounds<M> {
     //
     #[must_use]
     pub fn with_margins(self, top: f32, right: f32, bottom: f32, left: f32) -> Self {
-        let Point(x0, y0) = self.p0;
-        let Point(x1, y1) = self.p1;
-
-        Self::new(
-            Point(x0 + left, y0 + bottom),
-            Point(x1 - right, y1 - top),
+        Self::new0(
+            self.rect.x + left, 
+            self.rect.y + bottom,
+            self.rect.width - (left + right),
+            self.rect.height - (top + bottom),
         )
     }
 
     #[must_use]
     pub fn round_ui(self) -> Self {
-        let Point(x0, y0) = self.p0;
-        let Point(x1, y1) = self.p1;
-
-        Self::new(
-            Point(x0.floor(), y0.ceil()),
-            Point(x1.ceil(), y1.floor()),
+        Self::new0(
+            self.rect.x.round(),
+            self.rect.y.round(),
+            self.rect.width.round(),
+            self.rect.height.round(),
         )
     }
 }
@@ -406,11 +419,7 @@ impl<M: Coord> Default for Bounds<M> {
 
 impl<M: Coord> Clone for Bounds<M> {
     fn clone(&self) -> Self {
-        Self { 
-            p0: self.p0.clone(), 
-            p1: self.p1.clone(), 
-            marker: self.marker.clone() 
-        }
+        Self::new0(self.rect.x, self.rect.y, self.rect.width, self.rect.height)
     }
 }
 
@@ -419,7 +428,7 @@ impl<M: Coord> Copy for Bounds<M> {
 
 impl<M: Coord> PartialEq for Bounds<M> {
     fn eq(&self, other: &Self) -> bool {
-        self.p0 == other.p0 && self.p1 == other.p1
+        self.rect == other.rect
     }
 }
 
@@ -455,11 +464,8 @@ impl<M: Coord> From<&Bounds<M>> for Bounds<M> {
 
 impl<M: Coord> From<(Point, Size)> for Bounds<M> {
     #[inline]
-    fn from((Point(x, y), size): (Point, Size)) -> Self {
-        Bounds::new(
-            Point(x, y),
-            Point(x + size.width, y + size.height),
-        )
+    fn from((point, size): (Point, Size)) -> Self {
+        Bounds::new0(point.x, point.y, size.width, size.height)
     }
 }
 
@@ -476,10 +482,7 @@ impl<M: Coord> From<Bounds<M>> for (Point, Size) {
 impl<M: Coord> From<Size> for Bounds<M> {
     #[inline]
     fn from(value: Size) -> Self {
-        Bounds::new(
-            Point(0., 0.),
-            Point(value.width, value.width),
-        )
+        Bounds::from_size(value)
     }
 }
 
@@ -507,10 +510,7 @@ impl<M: Coord> From<Option<Size>> for Bounds<M> {
 impl<M: Coord> From<[f32; 2]> for Bounds<M> {
     #[inline]
     fn from(value: [f32; 2]) -> Self {
-        Bounds::new(
-            Point(0., 0.),
-            Point(value[0], value[1]),
-        )
+        Bounds::from_size(value)
     }
 }
 
@@ -525,10 +525,7 @@ impl<M: Coord> From<Bounds<M>> for [f32; 2] {
 impl<M: Coord> From<Point> for Bounds<M> {
     #[inline]
     fn from(value: Point) -> Self {
-        Bounds::new(
-            value,
-            value,
-        )
+        Bounds::from_point(value)
     }
 }
 
@@ -540,12 +537,12 @@ impl<M: Coord> From<([f32; 2], Option<Size>)> for Bounds<M> {
 
         match value.1 {
             Some(size) => Bounds::new(
-                Point(x, y),
-                Point(x + size.width, y + size.height),
+                Point::new(x, y),
+                Point::new(x + size.width, y + size.height),
             ),
             None => Bounds::new(
-                Point(x, y),
-                Point(x, y),
+                Point::new(x, y),
+                Point::new(x, y),
             )
         }
     }
@@ -556,8 +553,8 @@ impl<M: Coord> From<([f32; 2], [f32; 2])> for Bounds<M> {
     #[inline]
     fn from(([x, y], [w, h]): ([f32; 2], [f32; 2])) -> Self {
         Bounds::new(
-            Point(x, y),
-            Point(x + w, y + h),
+            Point::new(x, y),
+            Point::new(x + w, y + h),
         )
     }
 }
@@ -600,8 +597,8 @@ impl<M: Coord> From<[[f32; 2]; 2]> for Bounds<M> {
     #[inline]
     fn from([p0, p1]: [[f32; 2]; 2]) -> Self {
         Bounds::new(
-            Point(p0[0], p0[1]),
-            Point(p1[0], p1[1]),
+            Point::new(p0[0], p0[1]),
+            Point::new(p1[0], p1[1]),
         )
     }
 }
@@ -625,11 +622,7 @@ impl<M: Coord> From<&Tensor> for Bounds<M> {
             y1 = y1.max(point[1]);
         }
 
-        Bounds {
-            p0: Point(x0, y0),
-            p1: Point(x1, y1),
-            marker: PhantomData,
-        }
+        Bounds::new0(x0, y0, x1 - x0, y1 - y0)
     }
 }
 
@@ -715,9 +708,11 @@ impl<T: Coord> ops::Add<Margin> for Bounds<T> {
     type Output = Bounds<T>;
 
     fn add(self, rhs: Margin) -> Self::Output {
-        Bounds::new(
-            Point(self.x0() - rhs.left, self.y0() - rhs.bottom),
-            Point(self.x1() + rhs.right, self.y1() + rhs.top),
+        Bounds::new0(
+            self.rect.x - rhs.left, 
+            self.rect.y - rhs.bottom,
+            self.rect.width + (rhs.left + rhs.right),
+            self.rect.height + (rhs.top + rhs.bottom),
         )
     }
 }
@@ -726,9 +721,11 @@ impl<T: Coord> ops::Sub<Margin> for Bounds<T> {
     type Output = Bounds<T>;
 
     fn sub(self, rhs: Margin) -> Self::Output {
-        Bounds::new(
-            Point(self.x0() + rhs.left, self.y0() + rhs.bottom),
-            Point(self.x1() - rhs.right, self.y1() - rhs.top),
+        Bounds::new0(
+            self.rect.x + rhs.left, 
+            self.rect.y + rhs.bottom,
+            self.rect.width - (rhs.left + rhs.right),
+            self.rect.height - (rhs.top + rhs.bottom),
         )
     }
 }
@@ -790,7 +787,7 @@ mod test {
 
     #[test]
     fn bounds_new() {
-        let bounds = Bounds::<Test>::new(Point(1., 2.), Point(3., 4.));
+        let bounds = Bounds::<Test>::new(Point::new(1., 2.), Point::new(3., 4.));
 
         assert_eq!(bounds.is_zero(), false);
         assert_eq!(bounds.is_none(), false);
@@ -801,32 +798,32 @@ mod test {
         assert_eq!(bounds.x1(), 3.);
         assert_eq!(bounds.y1(), 4.);
 
-        let b2 = Bounds::<Test>::new(Point(1., 2.), Point(3., 4.));
+        let b2 = Bounds::<Test>::new(Point::new(1., 2.), Point::new(3., 4.));
 
         assert_eq!(bounds == b2, true);
         assert_eq!(b2 == bounds, true);
 
-        let b2 = Bounds::<Test>::new(Point(3., 4.), Point(1., 2.));
+        let b2 = Bounds::<Test>::new(Point::new(3., 4.), Point::new(1., 2.));
 
         assert_eq!(bounds == b2, false);
         assert_eq!(b2 == bounds, false);
 
-        let b2 = Bounds::<Test>::new(Point(0., 2.), Point(3., 4.));
+        let b2 = Bounds::<Test>::new(Point::new(0., 2.), Point::new(3., 4.));
 
         assert_eq!(bounds == b2, false);
         assert_eq!(b2 == bounds, false);
 
-        let b2 = Bounds::<Test>::new(Point(1., 0.), Point(3., 4.));
+        let b2 = Bounds::<Test>::new(Point::new(1., 0.), Point::new(3., 4.));
 
         assert_eq!(bounds == b2, false);
         assert_eq!(b2 == bounds, false);
 
-        let b2 = Bounds::<Test>::new(Point(1., 2.), Point(0., 4.));
+        let b2 = Bounds::<Test>::new(Point::new(1., 2.), Point::new(0., 4.));
 
         assert_eq!(bounds == b2, false);
         assert_eq!(b2 == bounds, false);
 
-        let b2 = Bounds::<Test>::new(Point(1., 2.), Point(3., 0.));
+        let b2 = Bounds::<Test>::new(Point::new(1., 2.), Point::new(3., 0.));
 
         assert_eq!(bounds == b2, false);
         assert_eq!(b2 == bounds, false);
@@ -834,7 +831,7 @@ mod test {
 
     #[test]
     fn bounds_from() {
-        let bounds = Bounds::<Test>::new(Point(1., 2.), Point(3., 4.));
+        let bounds = Bounds::<Test>::new(Point::new(1., 2.), Point::new(3., 4.));
 
         assert_eq!(bounds, Bounds::<Test>::from([[1., 2.], [3., 4.]]));
         assert_ne!(bounds, Bounds::<Test>::from([[3., 4.], [1., 2.]]));
@@ -859,14 +856,14 @@ mod test {
 
     #[test]
     fn bounds_methods() {
-        let b1 = Bounds::<Test>::new(Point(1., 20.), Point(3., 40.));
-        let b2 = Bounds::<Test>::new(Point(3., 40.), Point(1., 20.));
+        let b1 = Bounds::<Test>::new(Point::new(1., 20.), Point::new(3., 40.));
+        let b2 = Bounds::<Test>::new(Point::new(3., 40.), Point::new(1., 20.));
 
-        assert_eq!(b1.p0(), Point(1., 20.));
-        assert_eq!(b1.p1(), Point(3., 40.));
+        assert_eq!(b1.p0(), Point::new(1., 20.));
+        assert_eq!(b1.p1(), Point::new(3., 40.));
 
-        assert_eq!(b2.p0(), Point(3., 40.));
-        assert_eq!(b2.p1(), Point(1., 20.));
+        assert_eq!(b2.p0(), Point::new(3., 40.));
+        assert_eq!(b2.p1(), Point::new(1., 20.));
 
         assert_eq!(b1.xmin(), 1.);
         assert_eq!(b2.xmin(), 1.);

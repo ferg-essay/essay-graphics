@@ -36,7 +36,7 @@ fn main() {
 }
 
 fn right_angle(point: impl Into<Point>) -> Path<Canvas> {
-    let Point(x, y) = point.into();
+    let Point { x, y } = point.into();
 
     Path::move_to(x, y)
         .line_to(x + 100., y)
@@ -45,7 +45,7 @@ fn right_angle(point: impl Into<Point>) -> Path<Canvas> {
 }
 
 fn bezier_one_side(point: impl Into<Point>) -> Path<Canvas> {
-    let Point(x, y) = point.into();
+    let Point { x, y } = point.into();
 
     Path::move_to(x - 50., y + 50.)
         .line_to(x, y)
@@ -55,7 +55,7 @@ fn bezier_one_side(point: impl Into<Point>) -> Path<Canvas> {
 }
 
 fn bezier_corner(point: impl Into<Point>) -> Path<Canvas> {
-    let Point(x, y) = point.into();
+    let Point { x, y } = point.into();
 
     Path::move_to(x, y)
         .bezier2_to([x + 50., y - 50.], [x + 100., y])
@@ -64,7 +64,7 @@ fn bezier_corner(point: impl Into<Point>) -> Path<Canvas> {
 }
 
 fn bezier_zig_zag(point: impl Into<Point>) -> Path<Canvas> {
-    let Point(x, y) = point.into();
+    let Point { x, y } = point.into();
 
     Path::move_to(x, y)
         .bezier2_to([x + 50., y - 50.], [x + 100., y])

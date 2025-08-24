@@ -124,7 +124,7 @@ impl<T: PartialEq + Clone + Into<String>> Tabs<'_, T> {
                     
                     ui.painter_mut().add(move |ui: &mut dyn Renderer| {
                         ui.draw_text(
-                            Point(pos.xmid(), pos.ymin()),
+                            Point::new(pos.xmid(), pos.ymin()),
                             &label, 
                             0., 
                             &style,

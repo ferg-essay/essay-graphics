@@ -31,7 +31,7 @@ pub fn input_event(input: &mut Input, event: &event::Event<()>) -> bool {
             event: WindowEvent::CursorMoved { position, .. },
             ..
         } => {
-            let pos = Point(position.x as f32, position.y as f32);
+            let pos = Point::new(position.x as f32, position.y as f32);
 
             input.cursor = Some(pos);
         }

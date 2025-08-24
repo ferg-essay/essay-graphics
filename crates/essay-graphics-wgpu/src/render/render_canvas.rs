@@ -82,8 +82,8 @@ impl RenderCanvas {
         self.bounds = Bounds::from(pos);
 
         let pos_gpu = Bounds::<Canvas>::new_flat(
-            Point(-1., 1.),
-            Point(1., -1.)
+            Point::new(-1., 1.),
+            Point::new(1., -1.)
         );
 
         self.to_gpu = self.bounds.affine_to(&pos_gpu);

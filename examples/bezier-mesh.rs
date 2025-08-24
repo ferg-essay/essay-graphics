@@ -26,14 +26,14 @@ fn draw_mesh(
     color: impl Into<Color>,
 ) -> renderer::Result<()> {
     let xy = xy.into();
-    let p0 = Point(200., 0.) + xy;
-    let p1 = Point(100., -100.) + xy;
-    let p2 = Point(0., 0.) + xy;
+    let p0 = Point::new(200., 0.) + xy;
+    let p1 = Point::new(100., -100.) + xy;
+    let p2 = Point::new(0., 0.) + xy;
 
-    let path = Path::move_to(p0.0, p0.1)
-        .line_to(p1.0, p1.1)
-        .line_to(p2.0, p2.1)
-        .line_to(p0.0, p0.1)
+    let path = Path::move_to(p0.x, p0.y)
+        .line_to(p1.x, p1.y)
+        .line_to(p2.x, p2.y)
+        .line_to(p0.x, p0.y)
         .to_path();
     let style = PathStyle::new();
 

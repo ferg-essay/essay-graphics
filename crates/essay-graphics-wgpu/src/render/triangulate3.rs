@@ -11,7 +11,7 @@ pub fn fill_shape(
 ) -> (Mesh2d, BezierMesh2d) {
     let mut bezier = BezierMesh2d::new();
 
-    let mut last = Point(0., 0.);
+    let mut last = Point::ZERO;
     for code in path.codes() {
         if let PathCode::Bezier2(p1, p2) = code {
             if ccw(last, *p1, *p2) < 0. {
@@ -56,7 +56,7 @@ impl Tri {
         let codes = path.codes();
         assert!(matches!(codes[0], PathCode::MoveTo(_)));
 
-        let mut prev = Point(f32::MAX, f32::MAX);
+        let mut prev = Point::new(f32::MAX, f32::MAX);
         let mut first = prev;
 
         for code in codes {
@@ -103,12 +103,12 @@ impl Tri {
 
         self.edges.push(edge);
 
-        let mut trap_id = if p0.x() < p1.x() {
-            self.add_point(p0.x());
-            self.add_point(p1.x())
+        let mut trap_id = if p0.x < p1.x {
+            self.add_point(p0.x);
+            self.add_point(p1.x)
         } else {
-            self.add_point(p1.x());
-            self.add_point(p0.x())
+            self.add_point(p1.x);
+            self.add_point(p0.x)
         };
 
         while let Some(next_id) = self.add_edge_to_trap(trap_id, edge_id, p0, p1) {
@@ -187,7 +187,7 @@ impl Tri {
         p0: Point, 
         p1: Point
     ) -> Option<TrapId> {
-        if p0.x() == p1.x() {
+        if p0.x == p1.x {
             return None;
         }
 
@@ -195,7 +195,7 @@ impl Tri {
             x, l0, top, bot, .. 
         } = self[id];
 
-        let x_min = p0.x().min(p1.x());
+        let x_min = p0.x.min(p1.x);
 
         let result = if x[0] <= x_min {
             None
@@ -273,7 +273,7 @@ impl Tri {
             } else {
                 let mp = intersection(p0, p1, q0, q1);
 
-                assert!(x[0] < mp.x() && mp.x() < x[1]);
+                assert!(x[0] < mp.x && mp.x < x[1]);
 
                 self[id].bot = EdgeId::none();
                 
@@ -342,12 +342,12 @@ impl Tri {
         let qy1 = interpolate(x[1], q0, q1);
 
         if py0 == qy0 {
-            mesh.triangle(Point(x[0], py0), Point(x[1], qy1), Point(x[1], py1));
+            mesh.triangle(Point::new(x[0], py0), Point::new(x[1], qy1), Point::new(x[1], py1));
         } else if py1 == qy1 {
-            mesh.triangle(Point(x[0], py0), Point(x[0], qy0), Point(x[1], qy1));
+            mesh.triangle([x[0], py0], [x[0], qy0], [x[1], qy1]);
         } else {
-            mesh.triangle(Point(x[0], py0), Point(x[0], qy0), Point(x[1], qy1));
-            mesh.triangle(Point(x[1], qy1), Point(x[1], py1), Point(x[0], py0));
+            mesh.triangle([x[0], py0], [x[0], qy0], [x[1], qy1]);
+            mesh.triangle([x[1], qy1], [x[1], py1], [x[0], py0]);
         }
 
         trap.u0
@@ -381,13 +381,13 @@ impl Index<EdgeId> for Tri {
 
 #[inline]
 fn interpolate(x: f32, p0: Point, p1: Point) -> f32 {
-    if p0.x() == p1.x() {
-        p0.y()
+    if p0.x == p1.x {
+        p0.y
     } else {
-        let width = p1.x() - p0.x();
-        let t = (x - p0.x()) / width;
+        let width = p1.x - p0.x;
+        let t = (x - p0.x) / width;
 
-        (1. - t) * p0.y() + t * p1.y()
+        (1. - t) * p0.y + t * p1.y
     }
 }
 
@@ -482,7 +482,7 @@ impl Triangle {
         let b = b.into();
         let c = c.into();
 
-        (b.x() - a.x()) * (c.y() - a.y()) - (c.x() - a.x()) * (b.y() - a.y()) > 0.
+        (b.x - a.x) * (c.y - a.y) - (c.x - a.x) * (b.y - a.y) > 0.
     }
 }
 
@@ -508,9 +508,9 @@ mod test {
     #[test]
     fn test_tri() {
         let path = Path::<Canvas>::new(vec![
-            PathCode::MoveTo(Point(0., 0.)),
-            PathCode::LineTo(Point(1., 0.)),
-            PathCode::ClosePoly(Point(1., 1.)),
+            PathCode::MoveTo(Point::new(0., 0.)),
+            PathCode::LineTo(Point::new(1., 0.)),
+            PathCode::ClosePoly(Point::new(1., 1.)),
         ]);
  
         assert_eq!(
@@ -521,9 +521,9 @@ mod test {
         );
 
         let path = Path::<Canvas>::new(vec![
-            PathCode::MoveTo(Point(0., 0.)),
-            PathCode::LineTo(Point(0., 1.)),
-            PathCode::ClosePoly(Point(1., 1.)),
+            PathCode::MoveTo(Point::new(0., 0.)),
+            PathCode::LineTo(Point::new(0., 1.)),
+            PathCode::ClosePoly(Point::new(1., 1.)),
         ]);
     
         assert_eq!(
@@ -537,10 +537,10 @@ mod test {
     #[test]
     fn test_4_square() {
         let path = Path::<Canvas>::new(vec![
-            PathCode::MoveTo(Point(0., 0.)),
-            PathCode::LineTo(Point(1., 0.)),
-            PathCode::LineTo(Point(1., 1.)),
-            PathCode::ClosePoly(Point(0., 1.)),
+            PathCode::MoveTo(Point::new(0., 0.)),
+            PathCode::LineTo(Point::new(1., 0.)),
+            PathCode::LineTo(Point::new(1., 1.)),
+            PathCode::ClosePoly(Point::new(0., 1.)),
         ]);
 
         assert_eq!(
@@ -555,12 +555,12 @@ mod test {
     #[test]
     fn test_6_square() {
         let path = Path::<Canvas>::new(vec![
-            PathCode::MoveTo(Point(0., 0.)),
-            PathCode::LineTo(Point(1., 0.)),
-            PathCode::LineTo(Point(2., 0.)),
-            PathCode::LineTo(Point(2., 1.)),
-            PathCode::LineTo(Point(1., 1.)),
-            PathCode::ClosePoly(Point(0., 1.)),
+            PathCode::MoveTo(Point::new(0., 0.)),
+            PathCode::LineTo(Point::new(1., 0.)),
+            PathCode::LineTo(Point::new(2., 0.)),
+            PathCode::LineTo(Point::new(2., 1.)),
+            PathCode::LineTo(Point::new(1., 1.)),
+            PathCode::ClosePoly(Point::new(0., 1.)),
         ]);
 
         assert_eq!(
@@ -577,10 +577,10 @@ mod test {
     #[test]
     fn test_4_cross() {
         let path = Path::<Canvas>::new(vec![
-            PathCode::MoveTo(Point(0., 0.)),
-            PathCode::LineTo(Point(1., 1.)),
-            PathCode::LineTo(Point(1., 0.)),
-            PathCode::ClosePoly(Point(0., 1.)),
+            PathCode::MoveTo(Point::new(0., 0.)),
+            PathCode::LineTo(Point::new(1., 1.)),
+            PathCode::LineTo(Point::new(1., 0.)),
+            PathCode::ClosePoly(Point::new(0., 1.)),
         ]);
 
         assert_eq!(
@@ -595,10 +595,10 @@ mod test {
     #[test]
     fn test_wedge_right() {
         let path = Path::<Canvas>::new(vec![
-            PathCode::MoveTo(Point(0., 0.)),
-            PathCode::LineTo(Point(10., 10.)),
-            PathCode::LineTo(Point(1., 20.)),
-            PathCode::ClosePoly(Point(2., 5.)),
+            PathCode::MoveTo(Point::new(0., 0.)),
+            PathCode::LineTo(Point::new(10., 10.)),
+            PathCode::LineTo(Point::new(1., 20.)),
+            PathCode::ClosePoly(Point::new(2., 5.)),
         ]);
 
         assert_eq!(
@@ -616,10 +616,10 @@ mod test {
     #[test]
     fn test_wedge_left() {
         let path = Path::<Canvas>::new(vec![
-            PathCode::MoveTo(Point(10., 0.)),
-            PathCode::LineTo(Point(0., 10.)),
-            PathCode::LineTo(Point(9., 20.)),
-            PathCode::ClosePoly(Point(8., 5.)),
+            PathCode::MoveTo(Point::new(10., 0.)),
+            PathCode::LineTo(Point::new(0., 10.)),
+            PathCode::LineTo(Point::new(9., 20.)),
+            PathCode::ClosePoly(Point::new(8., 5.)),
         ]);
 
         assert_eq!(
@@ -637,12 +637,12 @@ mod test {
     #[test]
     fn test_inner_tri() {
         let path = Path::<Canvas>::new(vec![
-            PathCode::MoveTo(Point(0., 0.)),
-            PathCode::LineTo(Point(10., 0.)),
-            PathCode::ClosePoly(Point(10., 10.)),
-            PathCode::MoveTo(Point(5., 1.)),
-            PathCode::LineTo(Point(6., 1.)),
-            PathCode::ClosePoly(Point(6., 2.)),
+            PathCode::MoveTo(Point::new(0., 0.)),
+            PathCode::LineTo(Point::new(10., 0.)),
+            PathCode::ClosePoly(Point::new(10., 10.)),
+            PathCode::MoveTo(Point::new(5., 1.)),
+            PathCode::LineTo(Point::new(6., 1.)),
+            PathCode::ClosePoly(Point::new(6., 2.)),
         ]);
 
         assert_eq!(
@@ -662,11 +662,11 @@ mod test {
     #[test]
     fn test_arrow() {
         let path = Path::<Canvas>::new(vec![
-            PathCode::MoveTo(Point(1., 1.)),
-            PathCode::LineTo(Point(11., 11.)),
-            PathCode::LineTo(Point(6., 11.)),
-            PathCode::LineTo(Point(7.7, 10.)),
-            PathCode::ClosePoly(Point(0., 2.)),
+            PathCode::MoveTo(Point::new(1., 1.)),
+            PathCode::LineTo(Point::new(11., 11.)),
+            PathCode::LineTo(Point::new(6., 11.)),
+            PathCode::LineTo(Point::new(7.7, 10.)),
+            PathCode::ClosePoly(Point::new(0., 2.)),
         ]);
 
         assert_eq!(
