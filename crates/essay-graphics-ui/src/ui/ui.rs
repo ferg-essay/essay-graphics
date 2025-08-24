@@ -2,10 +2,15 @@ use core::hash;
 use std::{ops, sync::Arc};
 
 use essay_graphics_api::{
-    input::Input, renderer::{self, Canvas, Drawable, Renderer}, Bounds, Margin, Point, Size, TextStyle
+    input::Input, renderer::{self, Canvas, Drawable, Renderer}, Bounds, Margin, Size, TextStyle
 };
 
-use crate::{context::{Context, WidgetRect}, painter::Painter, style::UiStyle, ui::Response, util::Id, widgets::{Button, Label, SelectableLabel}, windows::{menu_button, MenuButton}};
+use crate::{
+    context::{Context, WidgetRect}, 
+    painter::Painter, style::UiStyle, ui::Response, util::Id, 
+    widgets::{Button, Label, Radio, SelectableLabel}, 
+    windows::{MenuButton}
+};
 
 use super::alloc::{Alloc, AllocUpdate};
 
@@ -262,6 +267,27 @@ impl Ui {
         response
     }
 
+    #[must_use="Check for input with ui.radio(...).clicked()"]
+    pub fn radio(&mut self, is_checked: bool, text: &str) -> Response {
+        Radio::new(text, is_checked).ui(self)
+    }
+
+    pub fn radio_value<V: PartialEq>(
+        &mut self, 
+        var: &mut V,
+        value: V,
+        text: &str, 
+    ) -> Response {
+        let response = Radio::new(text, *var == value).ui(self);
+
+        if response.clicked() && *var != value {
+            *var = value;
+            // response.mark_changed();
+        }
+
+        response
+    }
+
     pub fn draw(&mut self, draw: impl Drawable + 'static) -> Response {
         self.draw_size(Size(1., 1.), draw)
     }
@@ -316,8 +342,6 @@ impl Ui {
         size: UiSize, 
         add_content: impl FnOnce(&mut Ui) -> R
     ) -> ResponseValue<R> {
-        let mut is_view = false;
-
         let mut builder = UiBuilder::default();
 
         let bounds = match size {
@@ -347,8 +371,6 @@ impl Ui {
         size: UiSize, 
         add_content: impl FnOnce(&mut Ui) -> R
     ) -> ResponseValue<R> {
-        let mut is_view = false;
-
         let mut builder = UiBuilder::default();
 
         let bounds = match size {

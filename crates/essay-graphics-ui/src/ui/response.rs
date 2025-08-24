@@ -1,4 +1,4 @@
-use essay_graphics_api::input::Input;
+use essay_graphics_api::{input::Input, renderer::Pos};
 
 use crate::{context::{Context, WidgetRect}, ui::Ui, util::Id, windows::Tooltip};
 
@@ -54,6 +54,9 @@ impl Response {
     pub fn is_hover(&self) -> bool {
         self.is_hover
     }
+    pub(crate) fn rect(&self) -> Pos {
+        self.ctx.pass(|pass| pass.widgets.get(self.id).unwrap().rect)
+    }
 
     pub fn on_hover_ui(&self, add_contents: impl FnOnce(&mut Ui)) -> &Self {
         if self.is_hover() {
@@ -67,6 +70,7 @@ impl Response {
     pub fn clicked(&self) -> bool {
         self.flags.contains(Flags::CLICKED)
     }
+    
 }
 
 #[doc(hidden)]

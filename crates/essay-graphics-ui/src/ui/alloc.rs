@@ -303,7 +303,7 @@ impl Alloc {
         alloc
     }
 
-    fn view_alloc_view(&mut self, size: Size) -> Bounds<Page> {
+    fn _view_alloc_view(&mut self, size: Size) -> Bounds<Page> {
         let alloc = match self.update {
             AllocUpdate::Vertical => {
                 Bounds::from((

@@ -1,0 +1,119 @@
+use essay_graphics_api::{color::Grey, renderer::{Canvas, Renderer}, Bounds, Margin, Shapes, Size};
+
+use crate::{ui::{ui::Widget, Response, ResponseValue, Ui}};
+
+pub struct Radio {
+    label: String,
+    is_selected: bool,
+}
+
+impl Radio {
+    pub fn new(label: &str, is_selected: bool) -> Self {
+        Self {
+            label: String::from(label),
+            is_selected,
+        }
+    }
+
+    pub fn is_selected(&self) -> bool {
+        self.is_selected
+    }
+
+    pub fn select(&mut self, is_press: bool) {
+        self.is_selected = is_press
+    }
+}
+
+impl Widget for Radio {
+    fn ui(self, ui: &mut Ui) -> Response {
+        let text_style = ui.style().button_text.clone();
+        let size = ui.text_size(&self.label, &text_style);
+
+        let height = size.height();
+        let pad = 10.;
+
+        let size = Size(size.0 + pad + height, size.1);
+
+        let ResponseValue {
+            value: _bounds,
+            response
+        } = ui.allocate_rect(size);
+
+        let pos = response.rect();
+
+        //let bounds = bounds.round_ui();
+
+        // let pos = Point(bounds.xmin() + margin, bounds.ymin() + margin);
+
+        // let inner = bounds - Margin::from_pair(corner, corner);
+        // println!("Size {:?} Bounds {:?} {:?}", size, bounds, inner);
+
+        let ui_style = ui.style();
+
+        let (background, foreground) = {
+            let is_active = self.is_selected;
+
+            if is_active {
+                (ui_style.button2_on.background, ui_style.button2_on.foreground)
+            } else {
+                (Grey(0.90).into(), Grey(0.90).into())
+            }
+        };
+        
+        //style.edge_color(ui.style()[state].edge);
+
+        let label = self.label.clone();
+        let style = ui.style().button.clone();
+
+        let is_active = self.is_selected;
+
+        let radio_pos = Bounds::<Canvas>::from([
+            [pos.xmax() - height, pos.ymin()],
+            [pos.xmax(), pos.ymax()],
+        ]);
+
+        // style.color(foreground);
+        ui.painter_mut().add(move |ui: &mut dyn Renderer| {
+            ui.draw_text(pos.p0(), &label, 0., &style, &text_style)?;
+
+            let pos_center = radio_pos - Margin::from_all(6.);
+
+            ui.draw_shape(&Shapes::Rectangle(
+                radio_pos.p0(),
+                radio_pos.size(),
+                radio_pos.height() * 0.5,
+                background,
+            ))?;
+
+            if is_active {
+                ui.draw_shape(&Shapes::Rectangle(
+                    pos_center.p0(),
+                    pos_center.size(),
+                    pos_center.height() * 0.5,
+                    foreground,
+                ))?;
+            }
+
+            Ok(())
+        });
+
+        /*
+        if self.press ^ press_one { 
+            style.edge_color(ui.style()[State::Active].foreground);
+            style.face_color(ui.style()[State::Active].foreground);
+        } else {
+            style.edge_color(ui.style()[State::Inactive].foreground);
+            style.face_color(ui.style()[State::Inactive].foreground);
+        }
+        */
+
+        //ui.painter_mut().add(|ui: &mut dyn Renderer| {
+        //    ui.draw_text(pos, &self.label, 0., &style, &button_text)
+        //});
+
+        //ui.renderer().draw_text(pos, &self.label, 0., &style, &button_text).unwrap();
+
+        //Response::default().with_onclick(press_one)
+        response
+    }
+}
