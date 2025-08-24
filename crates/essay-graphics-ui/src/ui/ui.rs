@@ -5,7 +5,7 @@ use essay_graphics_api::{
     input::Input, renderer::{self, Canvas, Drawable, Renderer}, Bounds, Margin, Point, Size, TextStyle
 };
 
-use crate::{context::{Context, WidgetRect}, painter::Painter, style::UiStyle, ui::Response, util::Id, widgets::{Button, Label}, windows::{menu_button, MenuButton}};
+use crate::{context::{Context, WidgetRect}, painter::Painter, style::UiStyle, ui::Response, util::Id, widgets::{Button, Label, SelectableLabel}, windows::{menu_button, MenuButton}};
 
 use super::alloc::{Alloc, AllocUpdate};
 
@@ -234,11 +234,32 @@ impl Ui {
         label: &str, 
         add_content: impl FnOnce(&mut Ui) -> R
     ) -> ResponseValue<Option<R>> {
-        let (button, popup) = {
+        let (button, _popup) = {
             MenuButton::new(label).ui(self, add_content)
         };
 
         ResponseValue::new(None, button)
+    }
+
+    #[must_use="Check for input with ui.selectable_label(...).clicked()"]
+    pub fn selectable_label(&mut self, is_checked: bool, text: &str) -> Response {
+        SelectableLabel::new(text, is_checked).ui(self)
+    }
+
+    pub fn selectable_value<V: PartialEq>(
+        &mut self, 
+        var: &mut V,
+        value: V,
+        text: &str, 
+    ) -> Response {
+        let response = SelectableLabel::new(text, *var == value).ui(self);
+
+        if response.clicked() && *var != value {
+            *var = value;
+            // response.mark_changed();
+        }
+
+        response
     }
 
     pub fn draw(&mut self, draw: impl Drawable + 'static) -> Response {

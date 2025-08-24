@@ -1,21 +1,23 @@
 use essay_graphics_ui::{main_loop::MainLoop, ui::CentralPanel};
 
 fn main() { 
-    let mut option_a = false;
-    let mut option_b = false;
+    let mut var = Values::None;
 
     MainLoop::new().show(move |cxt| {
         CentralPanel::new().show(cxt, |ui| {
             ui.menu_button("Menu", |ui| {
-                if ui.button("Option A", option_a).clicked() { 
-                    println!("Click A");
-                    option_a = !option_a 
-                };
-                if ui.button("Option B", option_b).clicked() {
-                    println!("Click B");
-                    option_b = !option_b
-                };
+                ui.selectable_value(&mut var, Values::A, "Option A");
+                ui.selectable_value(&mut var, Values::B, "Option B");
+                ui.selectable_value(&mut var, Values::C, "Option C");
             });
         });
     });
+}
+
+#[derive(Debug, PartialEq)]
+enum Values {
+    None,
+    A,
+    B,
+    C,
 }
