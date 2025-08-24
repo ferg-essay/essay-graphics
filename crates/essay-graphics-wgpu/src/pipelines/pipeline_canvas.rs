@@ -66,7 +66,7 @@ impl PipelineCanvas {
 
             shape_rect_render: ShapeRectRender::new(device, format),
 
-            pos: Bounds::from(Size(width as f32, height as f32)),
+            pos: Bounds::from(Size::new(width as f32, height as f32)),
 
             flush_items: Vec::new(),
 

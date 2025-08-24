@@ -12,7 +12,7 @@ pub fn input_event(input: &mut Input, event: &event::Event<()>) -> bool {
             event: WindowEvent::Resized(new_size),
             ..
         } => {
-            input.size = Size(new_size.width as f32, new_size.height as f32);
+            input.size = Size::new(new_size.width as f32, new_size.height as f32);
             input.event(Event::Resized);
         }
         event::Event::WindowEvent {

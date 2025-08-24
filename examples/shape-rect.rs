@@ -6,18 +6,18 @@ fn main() {
         let mut path_style = PathStyle::new();
         path_style.color("azure");
 
-        let size = Size(500., 500.);
+        let size = Size::new(500., 500.);
         ui.draw_shape(
             &Shapes::Rectangle(Point(50., 50.), size, 60., Color::from("azure")),
         )?;
 
-        let size = Size(60., 60.);
+        let size = Size::new(60., 60.);
 
         ui.draw_path(
             &Path::move_to(600., 50.)
-                .line_to(600. + size.0, 50.)
-                .line_to(600. + size.0, 50. + size.1)
-                .close_poly(600., 50. + size.1).to_path(),
+                .line_to(600. + size.width, 50.)
+                .line_to(600. + size.width, 50. + size.height)
+                .close_poly(600., 50. + size.height).to_path(),
             &path_style,
         )
     }));

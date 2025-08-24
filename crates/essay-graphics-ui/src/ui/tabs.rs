@@ -36,9 +36,9 @@ impl<T: PartialEq + Clone + Into<String>> Tabs<'_, T> {
             ui.horizontal(|ui| {
                 let remaining_size = ui.remaining_size();
                 let text_size = ui.text_size("M", &style_text);
-                let text_size = Size(text_size.0 + 2. * margin, text_size.1 + 2. * margin);
+                let text_size = Size::new(text_size.width + 2. * margin, text_size.width + 2. * margin);
 
-                let size = Size(remaining_size.width(), text_size.height());
+                let size = Size::new(remaining_size.width, text_size.height);
                 let ResponseValue {
                     value: pos,
                     response

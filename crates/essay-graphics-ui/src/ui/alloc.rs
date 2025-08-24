@@ -67,10 +67,10 @@ impl Alloc {
 
         let view_bounds = match update {
             AllocUpdate::Vertical => {
-                Bounds::from(Size(view_cache.width(), self.view_bounds.height()))
+                Bounds::from(Size::new(view_cache.width(), self.view_bounds.height()))
             }
             AllocUpdate::Horizontal => {
-                Bounds::from(Size(self.view_bounds.width(), view_cache.height()))
+                Bounds::from(Size::new(self.view_bounds.width(), view_cache.height()))
             }
         };
 
@@ -138,7 +138,7 @@ impl Alloc {
 
         let mut bounds = Bounds::from((
             parent_free.p0(),
-            Size(view_bounds2.width, view_bounds2.height),
+            Size::new(view_bounds2.width, view_bounds2.height),
         ));
 
         bounds = bounds - margin;
@@ -179,13 +179,13 @@ impl Alloc {
     pub(crate) fn canvas_free(&self) -> Size {
         match self.update {
             AllocUpdate::Vertical => {
-                Size(
+                Size::new(
                     self.bounds.width(),
                     self.bounds.ymax() - self.alloc.ymax(),
                 )
             },
             AllocUpdate::Horizontal => {
-                Size(
+                Size::new(
                     self.bounds.xmax() - self.alloc.xmax(),
                     self.bounds.height(),
                 )
@@ -217,7 +217,9 @@ impl Alloc {
         }
     }
 
-    pub(super) fn alloc_canvas(&mut self, size: Size) -> Bounds<Canvas> {
+    pub(super) fn alloc_canvas(&mut self, size: impl Into<Size>) -> Bounds<Canvas> {
+        let size = size.into();
+
         match self.update {
             AllocUpdate::Vertical => {
                 let rect = Bounds::<Canvas>::from((
@@ -244,7 +246,7 @@ impl Alloc {
         }
     }
 
-    pub fn alloc_view(&mut self, size: Size) -> Bounds<Canvas> {
+    pub fn alloc_view(&mut self, size: impl Into<Size>) -> Bounds<Canvas> {
         match self.update {
             AllocUpdate::Vertical => {
                 let rect = self.view_alloc_canvas(size);
@@ -271,10 +273,12 @@ impl Alloc {
         }
     }
 
-    fn view_alloc_canvas(&mut self, size: Size) -> Bounds<Canvas> {
-        let canvas_size = Size(
-            size.width() * self.view_width,
-            size.height() * self.view_height,
+    fn view_alloc_canvas(&mut self, size: impl Into<Size>) -> Bounds<Canvas> {
+        let size = size.into();
+        
+        let canvas_size = Size::new(
+            size.width * self.view_width,
+            size.height * self.view_height,
         );
 
         let alloc = match self.update {
@@ -282,8 +286,8 @@ impl Alloc {
                 Bounds::from([
                     [self.bounds.xmin(), self.alloc.ymax()],
                     [
-                        (self.bounds.xmin() + canvas_size.width()).min(self.bounds.xmax()),
-                        (self.alloc.ymax() + canvas_size.height()).min(self.bounds.ymax()),
+                        (self.bounds.xmin() + canvas_size.width).min(self.bounds.xmax()),
+                        (self.alloc.ymax() + canvas_size.height).min(self.bounds.ymax()),
                     ]
                 ])
             }
@@ -291,8 +295,8 @@ impl Alloc {
                 Bounds::from([
                     [self.alloc.xmax(), self.bounds.ymin()],
                     [
-                        (self.alloc.xmax() + canvas_size.width()).min(self.bounds.xmax()),
-                        (self.bounds.ymin() + canvas_size.height()).min(self.bounds.ymax()),
+                        (self.alloc.xmax() + canvas_size.width).min(self.bounds.xmax()),
+                        (self.bounds.ymin() + canvas_size.height).min(self.bounds.ymax()),
                     ]
                 ])
             }
@@ -399,6 +403,11 @@ pub(crate) struct ViewBounds {
     height: f32,
     view_width: f32,
     view_height: f32,
+}
+
+pub struct Length {
+    fixed: f32,
+    view: f32,
 }
 
 #[cfg(test)]

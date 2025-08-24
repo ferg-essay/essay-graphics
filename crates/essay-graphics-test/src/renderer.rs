@@ -198,7 +198,7 @@ impl Renderer for TestRenderer {
                 self.push(&format!(
                     "rect ({:.1},{:.1}) {:.1}x{:.1} #{:08x}",
                     point.0, point.1,
-                    size.0, size.1,
+                    size.width, size.height,
                     color.to_rgba()
                 ));
             }

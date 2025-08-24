@@ -74,7 +74,7 @@ pub struct PageBuilder {
 impl PageBuilder {
     pub fn new() -> Self {
         Self {
-            size: Size(1., 1.),
+            size: Size::UNIT,
             view: None,
             children: Vec::new(),
             update: CursorUpdate::Vertical,
@@ -83,7 +83,7 @@ impl PageBuilder {
     }
 
     pub fn view(&mut self, view: impl Drawable + Send + 'static) -> ViewId {
-        self.view_size(Size(1., 1.), view)
+        self.view_size(Size::UNIT, view)
     }
 
     pub fn view_size(
@@ -114,7 +114,7 @@ impl PageBuilder {
 
     pub fn horizontal_size<R>(&mut self, size: f32, f: impl FnOnce(&mut PageBuilder) -> R) -> R {
         let mut sub = Self {
-            size: Size(size, size),
+            size: Size::new(size, size),
             view: None,
             children: Vec::new(),
             update: CursorUpdate::Horizontal,
@@ -140,7 +140,7 @@ impl PageBuilder {
         f: impl FnOnce(&mut PageBuilder) -> R
     ) -> R {
         let mut sub = Self {
-            size: Size(size, size),
+            size: Size::new(size, size),
             view: None,
             children: Vec::new(),
             update: CursorUpdate::Vertical,
@@ -232,7 +232,7 @@ impl PageBuilder2 {
     }
 
     pub fn view(&mut self, view: impl Drawable + Send + 'static) {
-        self.view_size(Size(1., 1.), view)
+        self.view_size(Size::UNIT, view)
     }
 
     pub fn view_size(
@@ -352,7 +352,7 @@ impl CursorUpdate {
                 let mut height = 0.;
 
                 for item in &build.children {
-                    height += item.size.height();
+                    height += item.size.height;
                 }
 
                 let factor = pos.height() / height.max(1e-6);
@@ -360,7 +360,7 @@ impl CursorUpdate {
                 let mut ymax = pos.ymax();
 
                 for child in &mut build.children {
-                    let height = factor * child.size.height();
+                    let height = factor * child.size.height;
                     let ymin = ymax - height;
 
                     let pos = Bounds::from([
@@ -378,7 +378,7 @@ impl CursorUpdate {
                 let mut width = 0.;
 
                 for item in &build.children {
-                    width += item.size.width();
+                    width += item.size.width;
                 }
 
                 let factor = pos.width() / width.max(1e-6);
@@ -386,7 +386,7 @@ impl CursorUpdate {
                 let mut x = pos.xmin();
 
                 for child in &mut build.children {
-                    let xmax = x + factor * child.size.width();
+                    let xmax = x + factor * child.size.width;
 
                     let pos = Bounds::from([
                         [x, pos.ymin()],

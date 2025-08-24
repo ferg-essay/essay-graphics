@@ -33,7 +33,7 @@ impl Widget for Button {
         let pad = 10.;
         let margin = pad + corner;
 
-        let size = Size(size.0 + 2. * margin, size.1 + 2. * margin);
+        let size = Size::new(size.width + 2. * margin, size.height + 2. * margin);
 
         let ResponseValue {
             value: bounds,
@@ -85,7 +85,7 @@ impl Widget for Button {
             let r = corner;
             if sz > 0. { // border
                 ui.draw_shape(&Shapes::Rectangle(
-                    inner.p0() - Point(sz, sz), inner.size() + Size(2. * sz, 2. * sz), r + 1., 
+                    inner.p0() - Point(sz, sz), inner.size() + Size::new(2. * sz, 2. * sz), r + 1., 
                     border,
                 ))?;
             }

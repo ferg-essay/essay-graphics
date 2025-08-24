@@ -118,8 +118,8 @@ impl<'window> WgpuViewport<'window> {
         }
 
         if pos != self.canvas.pos() {
-            self.config.width = self.input.size.width() as u32;
-            self.config.height = self.input.size.height() as u32;
+            self.config.width = self.input.size.width as u32;
+            self.config.height = self.input.size.height as u32;
 
             self.surface.configure(&self.device, &self.config);
         }

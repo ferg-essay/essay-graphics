@@ -1,44 +1,61 @@
 use std::ops;
 
 #[derive(Clone, Copy, Debug, Default)]
-pub struct Size(pub f32, pub f32);
+pub struct Size<T = f32> {
+    pub width: T,
+    pub height: T
+}
+
+impl<T> Size<T> {
+    pub const fn new(width: T, height: T) -> Self {
+        Self { width, height }
+    }
+}
 
 impl Size {
-    #[inline]
-    pub fn width(&self) -> f32 {
-        self.0
-    }
-
-    #[inline]
-    pub fn height(&self) -> f32 {
-        self.1
-    }
+    pub const ZERO: Size = Size::new(0., 0.);
+    pub const UNIT: Size = Size::new(1., 0.);
+    pub const INFINITE: Size = Size::new(f32::INFINITY, f32::INFINITY);
 }
 
 impl PartialEq for Size {
     fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0 && self.1 == other.1
+        self.width == other.width && self.height == other.height
     }
 }
 
-impl From<[f32; 2]> for Size {
+impl<T> From<[T; 2]> for Size<T> {
     #[inline]
-    fn from(value: [f32; 2]) -> Self {
-        Size(value[0], value[1])
+    fn from([width, height]: [T; 2]) -> Self {
+        Self::new(width, height)
     }
 }
 
-impl From<Size> for [f32; 2] {
+impl<T> From<Size<T>> for [T; 2] {
     #[inline]
-    fn from(value: Size) -> Self {
-        [value.width(), value.height()]
+    fn from(value: Size<T>) -> Self {
+        [value.width, value.height]
     }
 }
 
-impl ops::Add<Size> for Size {
+impl<T> ops::Add<Size<T>> for Size<T>
+    where
+        T: ops::Add<Output = T>
+{
     type Output = Self;
 
-    fn add(self, rhs: Size) -> Self::Output {
-        Size(self.0 + rhs.0, self.1 + rhs.1)
+    fn add(self, rhs: Self) -> Self::Output {
+        Self::new(self.width + rhs.width, self.height + rhs.height)
+    }
+}
+
+impl<T> ops::Sub<Size<T>> for Size<T>
+    where
+        T: ops::Sub<Output = T>
+{
+    type Output = Self;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        Self::new(self.width - rhs.width, self.height - rhs.height)
     }
 }

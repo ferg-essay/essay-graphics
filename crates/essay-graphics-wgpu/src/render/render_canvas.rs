@@ -59,7 +59,7 @@ impl RenderCanvas {
             is_request_redraw: false,
         };
 
-        canvas.input.size = Size(width as f32, height as f32);
+        canvas.input.size = Size::new(width as f32, height as f32);
 
         canvas
     }

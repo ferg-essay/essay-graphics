@@ -447,7 +447,7 @@ impl<'a, 'b> Renderer for PlotRenderer<'a, 'b> {
             is_first = false;
         }
 
-        Size(width, height)
+        Size::new(width, height)
     }
 
     fn create_form(

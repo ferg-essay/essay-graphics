@@ -131,7 +131,7 @@ impl<M: Coord> Bounds<M> {
 
     #[inline]
     pub fn size(self) -> Size {
-        Size(self.p1.x() - self.p0.x(), self.p1.y() - self.p0.y())
+        Size::new(self.p1.x() - self.p0.x(), self.p1.y() - self.p0.y())
     }
 
     #[inline]
@@ -455,10 +455,10 @@ impl<M: Coord> From<&Bounds<M>> for Bounds<M> {
 
 impl<M: Coord> From<(Point, Size)> for Bounds<M> {
     #[inline]
-    fn from((Point(x, y), Size(w, h)): (Point, Size)) -> Self {
+    fn from((Point(x, y), size): (Point, Size)) -> Self {
         Bounds::new(
             Point(x, y),
-            Point(x + w, y + h),
+            Point(x + size.width, y + size.height),
         )
     }
 }
@@ -478,7 +478,7 @@ impl<M: Coord> From<Size> for Bounds<M> {
     fn from(value: Size) -> Self {
         Bounds::new(
             Point(0., 0.),
-            Point(value.0, value.1),
+            Point(value.width, value.width),
         )
     }
 }
@@ -486,7 +486,7 @@ impl<M: Coord> From<Size> for Bounds<M> {
 impl<M: Coord> From<Bounds<M>> for Size {
     #[inline]
     fn from(value: Bounds<M>) -> Self {
-        Size(
+        Size::new(
             value.width(),
             value.height(),
         )
@@ -541,7 +541,7 @@ impl<M: Coord> From<([f32; 2], Option<Size>)> for Bounds<M> {
         match value.1 {
             Some(size) => Bounds::new(
                 Point(x, y),
-                Point(x + size.width(), y + size.height()),
+                Point(x + size.width, y + size.height),
             ),
             None => Bounds::new(
                 Point(x, y),

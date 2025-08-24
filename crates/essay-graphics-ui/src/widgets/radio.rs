@@ -29,10 +29,10 @@ impl Widget for Radio {
         let text_style = ui.style().button_text.clone();
         let size = ui.text_size(&self.label, &text_style);
 
-        let height = size.height();
+        let height = size.height;
         let pad = 10.;
 
-        let size = Size(size.0 + pad + height, size.1);
+        let size = Size::new(size.width + pad + height, size.height);
 
         let ResponseValue {
             value: _bounds,

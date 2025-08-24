@@ -289,7 +289,7 @@ impl Ui {
     }
 
     pub fn draw(&mut self, draw: impl Drawable + 'static) -> Response {
-        self.draw_size(Size(1., 1.), draw)
+        self.draw_size(Size::UNIT, draw)
     }
 
     pub fn draw_size(&mut self, size: Size, draw: impl Drawable + 'static) -> Response {
@@ -322,12 +322,12 @@ impl Ui {
         &mut self, 
         add_content: impl FnOnce(&mut Ui) -> R
     ) -> ResponseValue<R> {
-        let pos = self.alloc.alloc_view(Size(1., 1.));
+        let pos = self.alloc.alloc_view(Size::UNIT);
 
         let result = self.child(
             UiBuilder::default()
                 .max_bounds(pos)
-                .view(Size(1., 1.))
+                .view(Size::UNIT)
                 .update(AllocUpdate::Vertical),
             add_content
         );
@@ -346,12 +346,12 @@ impl Ui {
 
         let bounds = match size {
             UiSize::Canvas(width, height) => {
-                self.alloc.alloc_canvas(Size(width, height))
+                self.alloc.alloc_canvas([width, height])
             }
             UiSize::View(width, height) => {
-                builder = builder.view(Size(width, height));
+                builder = builder.view([width, height]);
 
-                self.alloc.alloc_view(Size(width, height))
+                self.alloc.alloc_view([width, height])
             }
         };
 
@@ -375,11 +375,11 @@ impl Ui {
 
         let bounds = match size {
             UiSize::Canvas(width, height) => {
-                self.alloc.alloc_canvas(Size(width, height))
+                self.alloc.alloc_canvas([width, height])
             }
             UiSize::View(width, height) => {
-                builder = builder.view(Size(width, height));
-                self.alloc.alloc_view(Size(width, height))
+                builder = builder.view([width, height]);
+                self.alloc.alloc_view([width, height])
             }
         };
 
@@ -427,7 +427,7 @@ impl Ui {
                 height = (rect.ascent + rect.descent).max(height);
             }
 
-            Size(width, height)
+            Size::new(width, height)
         })
         // let len = label.len();
         // let pt = style_text.get_size().unwrap_or(10.);
@@ -488,8 +488,8 @@ impl UiBuilder {
     }
 
     #[inline]
-    pub fn view(mut self, size: Size) -> Self {
-        self.view = Some(size);
+    pub fn view(mut self, size: impl Into<Size>) -> Self {
+        self.view = Some(size.into());
 
         self
     }

@@ -85,7 +85,7 @@ impl ShapeRectRender {
     ) -> FlushItem {
         let styles = [Style {
             pos: [pos.x(), pos.y()],
-            size: [size.width(), size.height()],
+            size: [size.width, size.height],
             r: r1,
             color: color.to_lrgb_u32(),
         }];
