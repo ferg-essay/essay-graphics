@@ -12,6 +12,10 @@ pub mod winit {
 
 pub mod ui {
     pub use essay_graphics_ui::ui::*;
+
+    pub mod main_loop {
+        pub use essay_graphics_ui::main_loop::*;
+    }
 }
 
 pub mod layout {

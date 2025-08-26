@@ -1,6 +1,6 @@
-use std::time::{Duration, Instant};
+use std::{sync::Arc, time::{Duration, Instant}};
 
-use essay_graphics_api::{input::Input, output::Output, renderer::{self, App, Pos}};
+use essay_graphics_api::{input::Input, output::Output, renderer::{self, App, Pos, Renderer}, Size};
 use essay_graphics_winit::{run_event_loop, MainLoopHandle};
 use wgpu::util::StagingBelt;
 use winit::{event_loop::EventLoop, window::{CursorIcon, Window}};
@@ -39,11 +39,22 @@ impl WgpuMainLoop {
 
         window.set_cursor_icon(CursorIcon::Default);
 
-        let wgpu_device = pollster::block_on(init_wgpu_device(&window));
+        let window = Arc::new(window);
+
+        let viewport = WgpuViewport::from_window(window);
+
+        /*
+        let wgpu_device = pollster::block_on(init_wgpu_device(window.clone()));
 
         let mut handle = WgpuViewport::new(wgpu_device, app);
 
         handle.canvas.set_scale_factor(window.scale_factor() as f32);
+        */
+
+        let handle = WgpuHandle {
+            viewport,
+            app,
+        };
 
         run_event_loop(event_loop, handle)
     }
@@ -58,35 +69,74 @@ impl Default for WgpuMainLoop {
     }
 }
 
+/*
 struct MainLoopDevice<'window> {
-    // instance: wgpu::Instance,
-    // adapter: wgpu::Adapter,
     device: wgpu::Device,
     queue: wgpu::Queue,
     config: wgpu::SurfaceConfiguration,
     surface: wgpu::Surface<'window>,
     window: &'window Window,
+
+}
+    */
+struct MainLoopDevice {
+    device: wgpu::Device,
+    queue: wgpu::Queue,
+    config: wgpu::SurfaceConfiguration,
+    surface: wgpu::Surface<'static>,
+    window: Arc<Window>,
 }
 
-struct WgpuViewport<'window> {
-    // instance: wgpu::Instance,
-    // adapter: wgpu::Adapter,
+struct WgpuHandle {
+    viewport: WgpuViewport,
+    app: Box<dyn App>,
+}
+
+impl MainLoopHandle for WgpuHandle {
+    fn request_redraw(&mut self) {
+        self.viewport.window.request_redraw();
+    }
+
+    fn input(&mut self, input: &Input) -> Option<Instant> {
+        self.viewport.input = input.clone();
+
+        None
+    }
+
+    fn redraw(&mut self) -> renderer::Result<Output> {
+        let result = self.viewport.render(
+            |ui| self.app.render(ui)
+        )?;
+        
+        Ok(result.unwrap_or_else(|| Output::default()))
+    }
+}
+
+pub struct WgpuViewport {
     device: wgpu::Device,
     queue: wgpu::Queue,
     config: wgpu::SurfaceConfiguration,
-    surface: wgpu::Surface<'window>,
-    window: &'window Window,
+    surface: wgpu::Surface<'static>,
+    window: Arc<Window>,
 
     canvas: RenderCanvas,
-    app: Box<dyn App>,
-
     input: Input,
 }
 
-impl<'window> WgpuViewport<'window> {
+impl WgpuViewport {
+    pub fn from_window(window: Arc<Window>) -> Self {
+        let wgpu_device = pollster::block_on(init_wgpu_device(window.clone()));
+
+        let mut viewport = WgpuViewport::new(wgpu_device);
+
+        viewport.canvas.set_scale_factor(window.scale_factor() as f32);
+
+        viewport
+    }
+
     fn new(
-        device: MainLoopDevice<'window>, 
-        app: Box<dyn App>
+        device: MainLoopDevice, 
+        // app: Box<dyn App>
     ) -> Self {
         let canvas = RenderCanvas::new(
             &device.device,
@@ -97,6 +147,9 @@ impl<'window> WgpuViewport<'window> {
             device.window.scale_factor() as f32,
         );
 
+        let mut input = Input::default();
+        input.size = Size::new(device.config.width as f32, device.config.height as f32);
+
         Self {
             device: device.device,
             queue: device.queue,
@@ -105,16 +158,24 @@ impl<'window> WgpuViewport<'window> {
             window: device.window,
 
             canvas,
-            app,
-            input: Default::default(),
+            // app,
+            input,
         }
     }
 
-    fn main_render(&mut self) -> renderer::Result<Output> {
+    pub fn window_clone(&self) -> Arc<Window> {
+        self.window.clone()
+    }
+
+    pub fn render<R>(
+        &mut self, 
+        draw: impl FnOnce(&mut dyn Renderer) -> renderer::Result<R>
+    ) -> renderer::Result<Option<R>> {
         let pos = Pos::from(self.input.size);
+        // let pos = self.canvas.pos();
 
         if pos.width() == 0. {
-            return Ok(Output::default());
+            return Ok(None); // Output::default());
         }
 
         if pos != self.canvas.pos() {
@@ -177,39 +238,28 @@ impl<'window> WgpuViewport<'window> {
             &mut wgpu,
             &mut self.canvas,
             &self.input,
+            /*
             |ui| {
-                self.app.render(ui)
+                //self.app.render(ui)
+                app.render(ui)
             }
+            */
+            draw
         ).unwrap();
 
         frame.present();
 
-        Ok(result)
+        Ok(Some(result))
     }
 }
 
-impl MainLoopHandle for WgpuViewport<'_> {
-    fn request_redraw(&mut self) {
-        self.window.request_redraw();
-    }
-
-    fn input(&mut self, input: &Input) -> Option<Instant> {
-        self.input = input.clone();
-
-        None
-    }
-
-    fn redraw(&mut self) -> renderer::Result<Output> {
-        self.main_render()
-    }
-}
-
-async fn init_wgpu_device<'window>(window: &'window Window) -> MainLoopDevice<'window> {
+//async fn init_wgpu_device<'window>(window: &'window Window) -> MainLoopDevice<'window> {
+async fn init_wgpu_device(window: Arc<Window>) -> MainLoopDevice {
     let size = window.inner_size();
 
     let instance = wgpu::Instance::default();
 
-    let surface: wgpu::Surface<'window> = instance.create_surface(window).unwrap();
+    let surface: wgpu::Surface = instance.create_surface(window.clone()).unwrap();
 
     let adapter = instance
         .request_adapter(&wgpu::RequestAdapterOptions {
@@ -253,8 +303,6 @@ async fn init_wgpu_device<'window>(window: &'window Window) -> MainLoopDevice<'w
     MainLoopDevice {
         device,
         queue,
-        // instance,
-        // adapter,
         surface,
         window,
         config,

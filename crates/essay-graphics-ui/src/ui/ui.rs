@@ -6,10 +6,7 @@ use essay_graphics_api::{
 };
 
 use crate::{
-    context::{Context, WidgetRect}, 
-    painter::Painter, style::UiStyle, ui::Response, util::Id, 
-    widgets::{Button, Label, Radio, SelectableLabel}, 
-    windows::{MenuButton}
+    context::{Context, WidgetRect}, painter::Painter, style::UiStyle, ui::Response, util::Id, widget2::{AppState, Update, View}, widgets::{Button, Label, Radio, SelectableLabel}, windows::MenuButton
 };
 
 use super::alloc::{Alloc, AllocUpdate};
@@ -408,8 +405,16 @@ impl Ui {
         }
     }
     */
+
+    pub fn app<'a, State, Message, Theme, Renderer>(
+        &mut self, 
+        state: &'a mut State, 
+        update: impl Update<State, Message>,
+        view: impl for<'b> View<'b, State, Message, Theme, Renderer>,
+    ) -> Response {
+        self.add(AppState::new(state, update, view))
+    }
     
-    #[inline]
     pub fn text_size(&mut self, label: &str, style_text: &TextStyle) -> Size {
         self.context().fonts_mut(|fonts| {
             let fonts = &mut fonts.default_font_set;

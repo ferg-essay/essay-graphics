@@ -7,7 +7,7 @@ mod button;
 mod shell;
 mod widget;
 
-pub use application::{application, View, Update};
+pub use application::{application, View, Update, AppState};
 pub use button::Button;
 pub use shell::Shell;
 pub use task::Task;

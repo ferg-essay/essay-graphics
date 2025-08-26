@@ -337,6 +337,11 @@ impl PathCode {
         Self::Bezier3(p1.into(), p2.into(), p3.into())
     }
 
+    #[inline]
+    pub fn close_poly(point: impl Into<Point>) -> Self {
+        Self::ClosePoly(point.into())
+    }
+
     pub fn tail(&self) -> Point {
         match self {
             PathCode::MoveTo(p0) => *p0,

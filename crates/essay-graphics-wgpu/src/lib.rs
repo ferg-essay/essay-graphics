@@ -13,5 +13,5 @@ pub use crate::main_loop::{
 };
 
 pub use crate::render::{
-    PlotRenderer,
+    PlotRenderer, RenderCanvas,
 };

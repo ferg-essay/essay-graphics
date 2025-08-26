@@ -125,7 +125,7 @@ impl Context {
         let duration = Duration::from_millis((time * 1000.).ceil() as u64);
         
         let time = Instant::now().checked_add(duration).unwrap();
-        self.output_mut(|output| output.command(Command::RedrawAfterDelay(time)));
+        self.output_mut(|output| { output.command(Command::RedrawAfterDelay(time)); });
     }
 }
 

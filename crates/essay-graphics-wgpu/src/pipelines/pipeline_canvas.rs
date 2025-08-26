@@ -221,7 +221,9 @@ impl PipelineCanvas {
             for item in self.flush_items.drain(..) {
                 match item {
                     FlushItem::None => {},
-                    FlushItem::Redraw => panic!("Redraw should not allow flush()"),
+                    FlushItem::Redraw => {
+                        println!("PipelineCanvas:: flush with redraw");
+                    }, // panic!("Redraw should not allow flush()"),
                     FlushItem::Mesh2d(item) => {
                         self.mesh2d_render.flush_item(
                             rpass, 

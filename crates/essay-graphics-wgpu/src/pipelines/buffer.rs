@@ -22,10 +22,21 @@ impl<T: Pod> VertexBuffer<T> {
         }
     }
 
-    pub fn expand(&mut self, _wgpu: &mut RenderWgpu, len: usize) -> bool {
-        assert!(self.offset + len < self.len, "expand not implemented");
+    pub fn expand(&mut self, wgpu: &mut RenderWgpu, len: usize) -> bool {
+        if self.offset + len < self.len {
+            return false;
+        }
 
-        false
+        let mut new_len = self.len;
+        while new_len < self.offset + len {
+            new_len += 1024;
+        }
+
+        self.buffer = create_vertex_buffer::<T>(wgpu.device, new_len);
+        self.len = new_len;
+        self.offset = 0;
+
+        true
     }
 
     pub fn write(&mut self, wgpu: &RenderWgpu, data: &[T]) -> (usize, usize) {
