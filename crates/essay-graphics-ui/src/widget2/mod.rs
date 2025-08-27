@@ -1,4 +1,6 @@
-mod renderer;
+mod checkbox;
+mod text;
+mod quad;
 mod theme;
 mod task;
 mod application;
@@ -9,14 +11,9 @@ mod widget;
 
 pub use application::{application, View, Update, AppState};
 pub use button::Button;
+pub use element::Element;
 pub use shell::Shell;
 pub use task::Task;
 pub use theme::Theme;
 pub use widget::Widget;
 
-pub type Element<
-    'a, 
-    Message, 
-    Theme = theme::Theme,
-    Renderer = renderer::Renderer,
-> = element::Element<'a, Message, Theme, Renderer>;

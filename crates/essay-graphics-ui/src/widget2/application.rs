@@ -2,9 +2,9 @@ use std::marker::PhantomData;
 
 use crate::{context, ui::ui, widget2::{element::Element, Shell, Task}};
 
-pub fn application<State, Message, Theme, Renderer>(
+pub fn application<State, Message>(
     update: impl Update<State, Message>,
-    view: impl for<'a> View<'a, State, Message, Theme, Renderer>,
+    view: impl for<'a> View<'a, State, Message>,
 ) {
 }
 
@@ -27,37 +27,35 @@ where
     }
 }
 
-pub trait View<'a, State, Message, Theme, Renderer> {
-    fn view(&self, state: &'a State) -> Element<'a, Message, Theme, Renderer>;
+pub trait View<'a, State, Message> {
+    fn view(&self, state: &'a State) -> Element<'a, Message>;
 }
 
-impl<'a, T, State, Message, Theme, Renderer, Widget>
-    View<'a, State, Message, Theme, Renderer> for T
+impl<'a, T, State, Message, Widget>
+    View<'a, State, Message> for T
 where
     T: Fn(&'a State) -> Widget,
     State: 'static,
-    Widget: Into<Element<'a, Message, Theme, Renderer>>,
+    Widget: Into<Element<'a, Message>>,
 {
-    fn view(&self, state: &'a State) -> Element<'a, Message, Theme, Renderer> {
+    fn view(&self, state: &'a State) -> Element<'a, Message> {
         self(state).into()
     }
 }
 
-pub struct AppState<'a, State, Message, Theme, Renderer, View>
+pub struct AppState<'a, State, Message, View>
 where
-    View: for<'b> self::View<'b, State, Message, Theme, Renderer>
+    View: for<'b> self::View<'b, State, Message>
 {
     state: &'a mut State,
     update: Box<dyn Update<State, Message> + 'a>,
     view: Box<View>,
-    _theme: PhantomData<Theme>,
-    _renderer: PhantomData<Renderer>,
 }
 
-impl<'a, State, Message, Theme, Renderer, View>
-    AppState<'a, State, Message, Theme, Renderer, View>
+impl<'a, State, Message, View>
+    AppState<'a, State, Message, View>
 where
-    View: for<'b> self::View<'b, State, Message, Theme, Renderer>
+    View: for<'b> self::View<'b, State, Message>
 {
     pub fn new(
         state: &'a mut State, 
@@ -69,8 +67,6 @@ where
             state,
             update: Box::new(update),
             view: Box::new(view),
-            _theme: Default::default(),
-            _renderer: Default::default(),
         }
     } 
 
@@ -83,10 +79,10 @@ where
     }
 }
 
-impl<'a, State, Message, Theme, Renderer, View> ui::Widget
-    for AppState<'a, State, Message, Theme, Renderer, View>
+impl<'a, State, Message, View> ui::Widget
+    for AppState<'a, State, Message, View>
 where
-    View: for<'b> self::View<'b, State, Message, Theme, Renderer>
+    View: for<'b> self::View<'b, State, Message>
 {
     fn ui(
         self, 

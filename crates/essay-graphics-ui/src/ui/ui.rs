@@ -406,11 +406,11 @@ impl Ui {
     }
     */
 
-    pub fn app<'a, State, Message, Theme, Renderer>(
+    pub fn app<'a, State, Message>(
         &mut self, 
         state: &'a mut State, 
         update: impl Update<State, Message>,
-        view: impl for<'b> View<'b, State, Message, Theme, Renderer>,
+        view: impl for<'b> View<'b, State, Message>,
     ) -> Response {
         self.add(AppState::new(state, update, view))
     }
