@@ -1,6 +1,8 @@
 use std::marker::PhantomData;
 
-use crate::{context, ui::ui, widget2::{element::Element, Shell, Task}};
+use essay_graphics_api::{Rectangle, Size};
+
+use crate::{context, ui::{ui, Response, Ui}, widget2::{Element, Shell, Task, Widget}};
 
 pub fn application<State, Message>(
     update: impl Update<State, Message>,
@@ -70,8 +72,13 @@ where
         }
     } 
 
-    fn view(&self) {
-        self.view.view(self.state);
+    fn view(&self, ui: &mut Ui) -> Response {
+        let mut element = self.view.view(self.state);
+
+        let rect = Rectangle::new(0., 0., 1., 1.);
+        element.draw(ui, &rect);
+
+        ui.allocate_view(Size::new(1., 1.)).response
     }
 
     fn update(&mut self, message: Message) {
@@ -92,12 +99,12 @@ where
 
         let shell = Shell::new(&mut messages);
 
-        self.view();
+        let response = self.view(ui);
 
         for message in messages {
             let _ = self.update.update(self.state, message);
         }
 
-        todo!()
+        response
     }
 }

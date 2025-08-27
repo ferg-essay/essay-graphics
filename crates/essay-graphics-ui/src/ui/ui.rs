@@ -1,5 +1,5 @@
 use core::hash;
-use std::{ops, sync::Arc};
+use std::{marker::PhantomData, ops, sync::Arc};
 
 use essay_graphics_api::{
     input::Input, renderer::{self, Canvas, Drawable, Renderer}, Bounds, Margin, Size, TextStyle
@@ -22,7 +22,12 @@ pub struct Ui {
     painter: Painter,
     style: Arc<UiStyle>,
 
+    //state: &'a mut S,
+    //shell: &'a Shell<'a, M>,
+
     cache_index: usize,
+
+    // _message: PhantomData<M>,
 }
 
 impl Ui {
@@ -49,7 +54,8 @@ impl Ui {
         let alloc_cache = ctx.last_pass(|pass| pass.alloc_map.get(&id).cloned());
 
         let alloc = Alloc::new(canvas, AllocUpdate::Vertical, alloc_cache.clone());
-        
+
+
         let mut ui = Ui {
             id,
             unique_id: id,
@@ -57,6 +63,9 @@ impl Ui {
             alloc,
             painter: Painter::new(&ctx),
             style: ctx.style(),
+
+            //state: &mut state,
+            //shell: &mut shell,
     
             cache_index: 0,
         };
@@ -133,6 +142,7 @@ impl Ui {
             alloc,
             painter: Painter::new(self.painter.context()),
             style: self.style.clone(),
+
             cache_index: self.cache_index,
         };
 
@@ -406,11 +416,11 @@ impl Ui {
     }
     */
 
-    pub fn app<'a, State, Message>(
+    pub fn app<'b, State, Message>(
         &mut self, 
-        state: &'a mut State, 
+        state: &'b mut State, 
         update: impl Update<State, Message>,
-        view: impl for<'b> View<'b, State, Message>,
+        view: impl for<'c> View<'c, State, Message>,
     ) -> Response {
         self.add(AppState::new(state, update, view))
     }
@@ -454,6 +464,20 @@ impl Ui {
     }
 }
 
+pub struct StateBase {}
+pub enum MessageBase {}
+
+pub struct Shell<'a, M> {
+    messages: &'a Vec<M>,
+}
+
+impl<'a, M> Shell<'a, M> {
+    pub fn new(vec: &'a Vec<M>) -> Self {
+        Self {
+            messages: vec,
+        }
+    }
+}
 #[derive(Default)]
 pub(crate) struct UiBuilder {
     id_salt: Option<Id>,

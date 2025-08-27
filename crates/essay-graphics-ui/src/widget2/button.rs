@@ -1,4 +1,15 @@
-use crate::widget2::{Element, Widget};
+use essay_graphics_api::Rectangle;
+
+use crate::{ui::Ui, widget2::{Element, Widget}};
+
+pub fn button<'a, Message>(
+    content: impl Into<Element<'a, Message>>
+) -> Button<'a, Message> {
+    Button {
+        content: content.into(),
+        on_press: None,
+    }
+}
 
 pub struct Button<'a, Message> {
     content: Element<'a, Message>,   
@@ -43,7 +54,13 @@ impl<'a, Message> Button<'a, Message>
 impl<'a, Message> Widget<Message>
     for Button<'a, Message>
 {
-    
+    fn draw(
+        &mut self,
+        ui: &mut Ui,
+        bounds: &Rectangle
+    ) {
+        println!("Draw!");
+    }
 }
 
 impl<'a, Message> From<Button<'a, Message>>

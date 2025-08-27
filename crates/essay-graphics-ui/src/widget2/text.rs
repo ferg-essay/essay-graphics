@@ -2,13 +2,37 @@ use std::borrow::Cow;
 
 use essay_graphics_api::{Color, Point, Size};
 
-use crate::widget2::{self};
+use crate::widget2::{self, Element, Widget};
 
 pub struct Text<Content = String> {
     pub content: Content,
     // pub font: Font,
 
-    pub bounds: Size,
+    // pub bounds: Size,
+}
+
+impl<'a, M, C: 'static> Widget<M> for Text<C> {
+    
+}
+
+impl From<&str> for Text {
+    fn from(value: &str) -> Self {
+        Self {
+            content: String::from(value),
+        }
+    }
+}
+
+impl<'a, M> From<&str> for Element<'a, M> {
+    fn from(value: &str) -> Self {
+        Text::from(value).into()
+    }
+}
+
+impl<'a, C: 'static, M> From<Text<C>> for Element<'a, M> {
+    fn from(value: Text<C>) -> Self {
+        Element::new(value)
+    }
 }
 
 pub type Fragment<'a> = Cow<'a, str>;

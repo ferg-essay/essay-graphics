@@ -1,4 +1,4 @@
-use essay_graphics_ui::{main_loop::MainLoop, ui::CentralPanel, widget2::Element};
+use essay_graphics_ui::{main_loop::MainLoop, ui::CentralPanel, widget2::{button, Element}};
 
 fn main() { 
     let mut state = State::default();
@@ -19,8 +19,9 @@ impl State {
         println!("Update {:?}", message);
     }
 
-    fn view(&self) -> Element<'_, Message> {
-        todo!();
+    fn view(&self) -> impl Into<Element<'_, Message>> {
+        println!("View");
+        button("test")
     }
 }
 
