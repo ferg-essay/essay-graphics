@@ -1,6 +1,6 @@
 use essay_graphics_api::Rectangle;
 
-use crate::{ui::Ui, widget2::widget::Widget};
+use crate::{ui::{Response, Ui}, widget2::{widget::Widget, Shell}};
 
 
 pub struct Element<'a, Message> {
@@ -23,11 +23,11 @@ impl<'a, Message> Element<'a, Message> {
     }
 }
 
-impl<'a, M> Widget<M> for Element<'a, M> {
+impl<'a, Message> Widget<Message> for Element<'a, Message> {
     fn update(
         &mut self,
         input: &essay_graphics_api::input::Input,
-        shell: &mut super::Shell<'_, M>,
+        shell: &mut super::Shell<'_, Message>,
     ) {
         self.widget.update(input, shell)
     }
@@ -35,8 +35,9 @@ impl<'a, M> Widget<M> for Element<'a, M> {
     fn draw(
         &mut self,
         ui: &mut Ui,
-        bounds: &Rectangle
-    ) {
-        self.widget.draw(ui, bounds)
+        bounds: &Rectangle,
+        shell: &mut Shell<Message>,
+    ) -> Response {
+        self.widget.draw(ui, bounds, shell)
     }
 }

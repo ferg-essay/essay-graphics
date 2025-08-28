@@ -16,16 +16,19 @@ struct State {
 
 impl State {
     fn update(&mut self, message: Message) {
-        println!("Update {:?}", message);
+        match message {
+            Message::A => {
+                self.value = !self.value;
+            }
+        }
     }
 
     fn view(&self) -> impl Into<Element<'_, Message>> {
-        println!("View");
-        button("test")
+        button("test").press(self.value).on_press(Message::A)
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 enum Message {
     A
 }

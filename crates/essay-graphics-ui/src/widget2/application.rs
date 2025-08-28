@@ -72,13 +72,25 @@ where
         }
     } 
 
-    fn view(&self, ui: &mut Ui) -> Response {
+    fn view(&mut self, ui: &mut Ui) -> Response {
+        let mut messages: Vec<Message> = Vec::new();
+        let mut shell = Shell::new(&mut messages);
+
+        self.draw(ui, &mut shell);
+        // let response = (self.view)(ui);
+
+        for message in messages {
+            let _ = self.update(message);
+        }
+
+        ui.allocate_view(Size::new(1., 1.)).response
+    }
+
+    fn draw(&self, ui: &mut Ui, shell: &mut Shell<Message>) -> Response {
         let mut element = self.view.view(self.state);
 
         let rect = Rectangle::new(0., 0., 1., 1.);
-        element.draw(ui, &rect);
-
-        ui.allocate_view(Size::new(1., 1.)).response
+        element.draw(ui, &rect, shell)
     }
 
     fn update(&mut self, message: Message) {
@@ -97,9 +109,9 @@ where
     ) -> crate::ui::Response {
         let mut messages: Vec<Message> = Vec::new();
 
-        let shell = Shell::new(&mut messages);
+        let mut shell = Shell::new(&mut messages);
 
-        let response = self.view(ui);
+        let response = self.draw(ui, &mut shell);
 
         for message in messages {
             let _ = self.update.update(self.state, message);

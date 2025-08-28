@@ -1,6 +1,6 @@
 use essay_graphics_api::{input::Input, Rectangle};
 
-use crate::{painter::Painter, ui::Ui, widget2::Shell};
+use crate::{painter::Painter, ui::{Response, Ui}, widget2::Shell};
 
 pub trait Widget<Message> {
     #[allow(unused_variables)]
@@ -24,13 +24,12 @@ pub trait Widget<Message> {
         viewport: &Rectangle,
      */
 
-    #[allow(unused_variables)]
     fn draw(
         &mut self,
         ui: &mut Ui,
-        bounds: &Rectangle
-    ) {
-    }
+        bounds: &Rectangle,
+        shell: &mut Shell<'_, Message>,
+    ) -> Response;
 
     /*
   fn draw(

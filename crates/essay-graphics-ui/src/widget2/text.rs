@@ -2,7 +2,7 @@ use std::borrow::Cow;
 
 use essay_graphics_api::{Color, Point, Size};
 
-use crate::widget2::{self, Element, Widget};
+use crate::widget2::{self, Element, Shell, Widget};
 
 pub struct Text<Content = String> {
     pub content: Content,
@@ -11,8 +11,15 @@ pub struct Text<Content = String> {
     // pub bounds: Size,
 }
 
-impl<'a, M, C: 'static> Widget<M> for Text<C> {
-    
+impl<'a, Message, C: 'static> Widget<Message> for Text<C> {
+    fn draw(
+        &mut self,
+        ui: &mut crate::ui::Ui,
+        bounds: &essay_graphics_api::Rectangle,
+        shell: &mut Shell<Message>,
+    ) -> crate::ui::Response {
+        todo!()
+    }
 }
 
 impl From<&str> for Text {
