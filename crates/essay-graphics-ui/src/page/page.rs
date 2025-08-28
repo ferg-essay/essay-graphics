@@ -357,11 +357,13 @@ impl CursorUpdate {
 
                 let factor = pos.height() / height.max(1e-6);
 
-                let mut ymax = pos.ymax();
+                // let mut ymax = pos.ymax();
+                let mut ymin = pos.ymin();
 
                 for child in &mut build.children {
                     let height = factor * child.size.height;
-                    let ymin = ymax - height;
+                    // let ymin = ymax - height;
+                    let ymax = ymin + height;
 
                     let pos = Bounds::from([
                         [pos.xmin(), ymin],
@@ -371,7 +373,8 @@ impl CursorUpdate {
                     let update = child.update.clone();
                     update.build(vec, pos, child);
 
-                    ymax = ymin;
+                    // ymax = ymin;
+                    ymin = ymax;
                 }
             },
             CursorUpdate::Horizontal => {
