@@ -39,7 +39,7 @@ impl<T: Pod> VertexBuffer<T> {
         true
     }
 
-    pub fn write(&mut self, wgpu: &RenderWgpu, data: &[T]) -> (usize, usize) {
+    pub fn write(&mut self, wgpu: &mut RenderWgpu, data: &[T]) -> (usize, usize) {
         assert!(self.offset + data.len() < self.len, "expand not implemented");
 
         let offset = self.offset;
@@ -47,6 +47,7 @@ impl<T: Pod> VertexBuffer<T> {
 
         let stride = mem::size_of::<T>();
 
+        /*
         if let Some(mut view) = wgpu.queue.write_buffer_with(
             &mut self.buffer,
             (offset * stride) as u64,
@@ -56,6 +57,13 @@ impl<T: Pod> VertexBuffer<T> {
                 bytemuck::cast_slice(data)
             );
         }
+        */
+        wgpu.write(
+            &self.buffer, 
+            bytemuck::cast_slice(data),
+            (offset * stride) as u64,
+            NonZero::new((data.len() * stride) as u64).expect("write with zero len"),
+        );
 
         (offset, offset + data.len())
     }

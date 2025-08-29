@@ -614,6 +614,22 @@ impl<'a> RenderWgpu<'a> {
         }
     }
 
+    pub fn write(&mut self, target: &wgpu::Buffer, data: &[u8], offset: u64, len: NonZero<u64>) {
+        // let len = NonZero::new(data.len() as u64).unwrap();
+
+        self.init_encoder();
+
+        if let Some(encoder) = &mut self.encoder {
+            self.staging.write_buffer(
+                encoder,
+                target,
+                offset,
+                len,
+                self.device,
+            ).copy_from_slice(data)
+        }
+    }
+
     pub fn render_pass<'b>(
         &'b mut self,
         draw: impl FnOnce(&mut wgpu::RenderPass<'b>) + 'b
