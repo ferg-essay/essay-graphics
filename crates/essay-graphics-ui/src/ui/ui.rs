@@ -1,5 +1,5 @@
 use core::hash;
-use std::{ops, sync::Arc};
+use std::{marker::PhantomData, ops, sync::Arc};
 
 use essay_graphics_api::{
     input::Input, output::Output, renderer::{self, Canvas, Drawable, Renderer}, Bounds, Margin, Size, TextStyle
@@ -11,7 +11,7 @@ use crate::{
 
 use super::alloc::{Alloc, AllocDirection};
 
-pub struct Ui<'a> {
+pub struct Ui<'a, Message=MessageBase> {
     id: Id,
     unique_id: Id,
     next_auto_id_salt: u64,
@@ -23,17 +23,19 @@ pub struct Ui<'a> {
     style: Arc<UiStyle>,
 
     cache_index: usize,
+
+    marker: PhantomData<Message>,
 }
 
 impl<'a> Ui<'a> {
     #[inline]
     pub fn style(&self) -> &UiStyle {
-        &self.style
-    }
+        &self.render.theme
+     }
 
     #[inline]
     pub fn context(&self) -> &Context {
-        self.painter.context()
+        &self.render.context
     }
 
     #[inline]
@@ -88,6 +90,7 @@ impl<'a> Ui<'a> {
             render,
     
             cache_index: 0,
+            marker: Default::default(),
         };
 
         let start_rect = Bounds::none();
@@ -165,6 +168,7 @@ impl<'a> Ui<'a> {
             render: self.render,
 
             cache_index: self.cache_index,
+            marker: Default::default(),
         };
 
         let result = (add_content)(&mut child);

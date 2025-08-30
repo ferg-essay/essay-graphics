@@ -1,8 +1,7 @@
 use essay_graphics_ui::{main_loop::MainLoop, ui::{CentralPanel, Frame, Ui}};
 
 fn main() { 
-    MainLoop::new().show(move |cxt| {
-        CentralPanel::new().show(cxt, |ui| {
+    MainLoop::new().show(move |ui| {
             ui.row(|ui| {
                 ui.view(|ui| {
                     ui.label("A")
@@ -32,6 +31,5 @@ fn main() {
                     ui.label("3")
                 });
             });
-        });
     });
 }

@@ -8,21 +8,19 @@ fn main() {
     let mut hello = false;
     let mut there = false;
 
-    MainLoop::new().show(move |ctx| {
-        CentralPanel::new().show(ctx, |ui: &mut Ui| {
-            if ui.button("hello-g", hello).clicked() { hello=!hello; }
-            if ui.button("there", there).clicked() { there=!there; }
-            ui.row(|ui| {
-                ui.label("gab");
+    MainLoop::new().show(move |ui| {
+        if ui.button("hello-g", hello).clicked() { hello=!hello; }
+        if ui.button("there", there).clicked() { there=!there; }
+        ui.row(|ui| {
+            ui.label("gab");
 
-                ui.column(|ui| {
-                    ui.label("bag");
-                    ui.label("gaba");
-                });
-
-                ui.label("c");
+            ui.column(|ui| {
+                ui.label("bag");
+                ui.label("gaba");
             });
-            ui.label("tail");
+
+            ui.label("c");
         });
+        ui.label("tail");
     });
 }

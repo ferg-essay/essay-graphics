@@ -7,8 +7,8 @@ fn main() {
     let mut button_b = false;
     let mut selected = String::from("a");
 
-    MainLoop::new().show(move |ctx| { // let view = UiView::new(move |ui| {
-        CentralPanel::new().show(ctx, |ui| {
+    MainLoop::new().show(move |ui| { // let view = UiView::new(move |ui| {
+
             let mut tabs = Tabs::<String>::new(selected.clone());
             tabs.item(String::from("a"), |ui| {
                 ui.horizontal_size(UiSize::View(1., 1.), |ui| {
@@ -45,7 +45,6 @@ fn main() {
                 });
             });
             selected = tabs.show(ui).unwrap();
-        });
     });
 
     //MainLoop::new().show(view);
