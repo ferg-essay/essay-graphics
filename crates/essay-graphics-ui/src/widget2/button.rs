@@ -1,6 +1,6 @@
 use essay_graphics_api::{renderer::Renderer, Margin, Point, Rectangle, Shapes, Size};
 
-use crate::{ui::{Response, ResponseValue, Ui}, widget2::{text::Text, Element, Shell, Widget}};
+use crate::{ui::{Response, ResponseValue, Ui}, widget2::{text::Text, Element, Shell, Widget, WidgetFrame}};
 
 pub fn button<'a, Message>(
     content: impl Into<Text>
@@ -203,3 +203,5 @@ impl<Message: Clone> OnPress<'_, Message> {
 struct State {
     is_pressed: bool,
 }
+
+impl<'a, Message: Clone + 'a> WidgetFrame<'a, Message> for Button<'a, Message> {}

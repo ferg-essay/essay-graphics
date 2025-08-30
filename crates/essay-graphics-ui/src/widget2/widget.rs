@@ -1,6 +1,6 @@
 use essay_graphics_api::{input::Input, Rectangle};
 
-use crate::{painter::Painter, ui::{Response, Ui}, widget2::Shell};
+use crate::{painter::Painter, ui::{Response, Ui}, widget2::{tooltip::Tooltip, Element, Frame, Shell}};
 
 pub trait Widget<Message> {
     #[allow(unused_variables)]
@@ -42,4 +42,14 @@ pub trait Widget<Message> {
         cursor: mouse::Cursor,
         viewport: &Rectangle,
     */
+}
+
+pub trait WidgetFrame<'a, Message>: Widget<Message> + Sized + 'a {
+    fn frame(self) -> Frame<'a, Message> {
+        Frame::new(Element::new(self))
+    }
+
+    fn tooltip(self, tooltip: impl Into<Element<'a, Message>>) -> Tooltip<'a, Message> {
+        Tooltip::new(Element::new(self), tooltip.into())
+    }
 }

@@ -1,6 +1,6 @@
 use essay_graphics_api::Rectangle;
 
-use crate::{ui::{Response, Ui}, widget2::{widget::Widget, Shell}};
+use crate::{ui::{Response, Ui}, widget2::{widget::Widget, Frame, Shell}};
 
 
 pub struct Element<'a, Message> {

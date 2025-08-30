@@ -1,36 +1,47 @@
-use essay_graphics_api::{renderer::Renderer, Color, Margin, Point, Shapes, Size};
+use essay_graphics_api::{renderer::Renderer, Color, Margin, Point, Rectangle, Shapes, Size};
 
-use crate::{ui::ui::{ResponseValue, Ui, UiBuilder}, widget2::Widget};
+use crate::{ui::{ui::UiBuilder, Response, ResponseValue, Ui}, widget2::{Element, Shell, Widget}};
 
-pub struct Frame {
+pub fn frame<'a, Message>(
+    content: impl Into<Element<'a, Message>>
+) -> Frame<'a, Message> {
+    Frame::new(content)
+}
+
+pub struct Frame<'a, Message> {
+    content: Element<'a, Message>,   
+
     pub inner_margin: Margin,
     pub outer_margin: Margin,
 
-    pub background: Color,
+    pub background: Option<Color>,
     pub is_shadow: bool,
 }
 
-impl Frame {
-    pub fn group(ui: &Ui) -> Self {
-
+impl<'a, Message> Frame<'a, Message> {
+    pub fn new(
+        content: impl Into<Element<'a, Message>>,
+    ) -> Self {
         Self {
+            content: content.into(),
+
             inner_margin: Margin::from_all(6.),
             outer_margin: Margin::from_all(0.),
-            background: ui.style().background,
+            background: None,
             is_shadow: false,
         }
     }
 
-    #[inline]
-    pub fn shadow(mut self, is_shadow: bool) -> Self {
-        self.is_shadow = is_shadow;
+    #[must_use]
+    pub fn background(mut self, color: impl Into<Color>) -> Self {
+        self.background = Some(color.into());
 
         self
     }
 
-    #[inline]
-    pub fn background(mut self, background: impl Into<Color>) -> Self {
-        self.background = background.into();
+    #[must_use]
+    pub fn padding(mut self, padding: impl Into<Margin>) -> Self {
+        self.inner_margin = padding.into();
 
         self
     }
@@ -39,8 +50,19 @@ impl Frame {
     pub fn total_margin(&self) -> Margin {
         self.inner_margin + self.outer_margin
     }
+}
 
-    pub fn show<R>(self, ui: &mut Ui, add_contents: impl FnOnce(&mut Ui) -> R) -> ResponseValue<R> {
+impl<'a, Message> Widget<Message>
+    for Frame<'a, Message>
+where
+    Message: Clone + 'a
+{
+    fn draw(
+        &mut self,
+        ui: &mut Ui,
+        bounds: &Rectangle,
+        shell: &mut Shell<Message>,
+    ) -> Response {
         let corner_margin = Margin::from_all(ui.style().corner_radius);
 
         let max_bounds = ui.available_bounds() - self.total_margin() - corner_margin;
@@ -57,12 +79,12 @@ impl Frame {
 
         let builder = UiBuilder::default()
             .margin(margin);
-        //    .max_bounds(max_bounds);
 
-        let ResponseValue {
-            value,
-            response
-        } = ui.child(builder, add_contents);
+        // let response = self.content.draw(ui, bounds, shell);
+
+        let response = ui.child(builder, |ui| {
+            self.content.draw(ui, bounds, shell);
+        }).response;
 
         let rect = ui.context().pass(|pass| {
             *pass.widgets().get(response.id()).unwrap()
@@ -82,7 +104,7 @@ impl Frame {
 
         let pos = rect.rect; //  + self.inner_margin + corner_margin;
 
-        let background = self.background;
+        let background = self.background.unwrap_or(Color(0));
         let corner = ui.style().corner_radius;
         let border = ui.style().border;
         let is_shadow = self.is_shadow;
@@ -110,53 +132,16 @@ impl Frame {
             ))
         });
 
-        ResponseValue::new(value, response)
+        response
     }
 }
 
-#[cfg(test)]
-mod test {
-    use essay_graphics_test::{TestGraphicsContext, TestRenderer};
-
-    use crate::{context::Context, ui::{CentralPanel, Frame}, windows::Popup};
-
-    #[test]
-    fn frame() {
-        let mut test = TestRenderer::new([1000., 1000.]);
-        let ctx = Context::new(Box::new(TestGraphicsContext::new()));
-
-        ctx.run(&mut test, |ctx| {
-            CentralPanel::new().show(ctx, |ui| {
-                ui.label("Ante");
-
-                Frame::group(&ui).background(0x00ff00).show(ui, |ui| {
-                    ui.label("Frame");
-                });
-
-                ui.label("Post");
-            });
-        }).unwrap();
-
-        assert_eq!(test.take(), "text (0.0,0.0) 'Ante'
-rect (0.0,27.0) 166.0x58.0 #00ff00ff
-text (16.0,42.7) 'Frame'
-text (0.0,85.3) 'Post'");
-
-        ctx.run(&mut test, |ctx| {
-            CentralPanel::new().show(ctx, |ui| {
-                ui.label("Ante");
-
-                Frame::group(&ui).background(0x00ff00).show(ui, |ui| {
-                    ui.label("Frame");
-                });
-
-                ui.label("Post");
-            });
-        }).unwrap();
-
-        assert_eq!(test.take(), "text (0.0,0.0) 'Ante'
-rect (0.0,27.0) 166.0x58.0 #00ff00ff
-text (16.0,42.7) 'Frame'
-text (0.0,85.3) 'Post'");
+impl<'a, Message> From<Frame<'a, Message>>
+    for Element<'a, Message>
+where
+    Message: Clone + 'a,
+{
+    fn from(frame: Frame<'a, Message>) -> Self {
+        Self::new(frame)
     }
 }

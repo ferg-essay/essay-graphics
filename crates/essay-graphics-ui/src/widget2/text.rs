@@ -1,6 +1,10 @@
 use essay_graphics_api::{renderer::Renderer};
 
-use crate::{ui::{Response, ResponseValue}, widget2::{Element, Shell, Widget}};
+use crate::{ui::{Response, ResponseValue}, widget2::{Element, Shell, Widget, WidgetFrame}};
+
+pub fn text(value: &str) -> Text {
+    Text::new(value)
+}
 
 pub struct Text {
     pub content: String,
@@ -72,3 +76,5 @@ impl<'a, M> From<Text> for Element<'a, M> {
         Element::new(value)
     }
 }
+
+impl<'a, M> WidgetFrame<'a, M> for Text {}

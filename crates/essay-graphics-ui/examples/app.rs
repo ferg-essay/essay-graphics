@@ -1,4 +1,8 @@
-use essay_graphics_ui::{main_loop::MainLoop, ui::CentralPanel, widget2::{button, column, row, Element}};
+use essay_graphics_ui::{
+    main_loop::MainLoop, 
+    ui::CentralPanel, 
+    widget2::{button, column, frame, row, text, Element, WidgetFrame}
+};
 
 fn main() { 
     let mut state = State::default();
@@ -29,9 +33,9 @@ impl State {
 
     fn view(&self) -> impl Into<Element<'_, Message>> {
         row([
-            button("button A").press(self.a).on_press(Message::A).into(),
-            button("button B").press(self.b).on_press(Message::B).into(),
-            "text".into(),
+            button("button A").press(self.a).on_press(Message::A).tooltip("Tooltip A").into(),
+            button("button B").press(self.b).on_press(Message::B).tooltip("Tooltip B").into(),
+            text("text").into()
         ])
     }
 }

@@ -1,6 +1,6 @@
 use essay_graphics_api::{renderer::Renderer, Margin, Point, Rectangle, Shapes, Size};
 
-use crate::{ui::{Response, ResponseValue, Ui}, widget2::{Element, Shell, Widget}};
+use crate::{ui::{Response, ResponseValue, Ui}, widget2::{Element, Shell, Widget, WidgetFrame}};
 
 pub fn column<'a, Message>(
     content: impl IntoIterator<Item=Element<'a, Message>>
@@ -53,3 +53,5 @@ where
         Self::new(column)
     }
 }
+
+impl<'a, Message: Clone + 'a> WidgetFrame<'a, Message> for Column<'a, Message> {}

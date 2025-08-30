@@ -1,6 +1,6 @@
 use essay_graphics_api::{renderer::Renderer, Margin, Point, Rectangle, Shapes, Size};
 
-use crate::{ui::{Response, ResponseValue, Ui}, widget2::{Element, Shell, Widget}};
+use crate::{ui::{Response, ResponseValue, Ui}, widget2::{Element, Shell, Widget, WidgetFrame}};
 
 pub fn row<'a, Message>(
     content: impl IntoIterator<Item=Element<'a, Message>>
@@ -25,11 +25,7 @@ impl<'a, Message> Row<'a, Message>
     }
 }
 
-impl<'a, Message> Widget<Message>
-    for Row<'a, Message>
-where
-    Message: Clone + 'a
-{
+impl<'a, Message> Widget<Message> for Row<'a, Message> {
     fn draw(
         &mut self,
         ui: &mut Ui,
@@ -53,3 +49,5 @@ where
         Self::new(row)
     }
 }
+
+impl<'a, M: 'a> WidgetFrame<'a, M> for Row<'a, M> {}

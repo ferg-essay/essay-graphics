@@ -1,3 +1,5 @@
+mod tooltip;
+mod frame;
 mod application;
 mod button;
 mod column;
@@ -15,9 +17,11 @@ pub use application::{application, View, Update, AppState};
 pub use button::{button, Button};
 pub use column::{column, Column};
 pub use element::Element;
+pub use frame::{frame, Frame};
 pub use row::{row, Row};
 pub use shell::Shell;
 pub use task::Task;
+pub use text::{text, Text};
 pub use theme::Theme;
-pub use widget::Widget;
+pub use widget::{Widget, WidgetFrame};
 
