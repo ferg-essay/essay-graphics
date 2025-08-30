@@ -39,7 +39,7 @@ where
     ) -> Response {
         let response = self.content.draw(ui, bounds, shell);
 
-        response.on_hover_ui(|ui| {
+        response.on_hover_ui(ui, |ui| {
             self.tooltip.draw(ui, bounds, shell);
         });
 

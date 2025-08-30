@@ -32,7 +32,7 @@ impl<'a, Message> Widget<Message> for Row<'a, Message> {
         bounds: &Rectangle,
         shell: &mut Shell<Message>,
     ) -> Response {
-        ui.horizontal(|ui| {
+        ui.row(|ui| {
             for item in &mut self.content {
                 item.draw(ui, bounds, shell);
             }

@@ -1,47 +1,68 @@
 use core::hash;
-use std::{marker::PhantomData, ops, sync::Arc};
+use std::{ops, sync::Arc};
 
 use essay_graphics_api::{
-    input::Input, renderer::{self, Canvas, Drawable, Renderer}, Bounds, Margin, Size, TextStyle
+    input::Input, output::Output, renderer::{self, Canvas, Drawable, Renderer}, Bounds, Margin, Size, TextStyle
 };
 
 use crate::{
-    context::{Context, WidgetRect}, painter::Painter, style::UiStyle, ui::Response, util::Id, widget2::{AppState, Update, View}, widgets::{Button, Label, Radio, SelectableLabel}, windows::MenuButton
+    context::{Context, RenderPass, UiRender, WidgetRect}, painter::Painter, style::UiStyle, ui::Response, util::Id, widget2::{AppState, Update, View}, widgets::{Button, Label, Radio, SelectableLabel}, windows::MenuButton
 };
 
-use super::alloc::{Alloc, AllocUpdate};
+use super::alloc::{Alloc, AllocDirection};
 
-pub struct Ui {
+pub struct Ui<'a> {
     id: Id,
     unique_id: Id,
     next_auto_id_salt: u64,
     
     alloc: Alloc,
-    // update: AllocUpdate,
 
+    render: &'a mut UiRender,
     painter: Painter,
     style: Arc<UiStyle>,
 
-    //state: &'a mut S,
-    //shell: &'a Shell<'a, M>,
-
     cache_index: usize,
-
-    // _message: PhantomData<M>,
 }
 
-impl Ui {
+impl<'a> Ui<'a> {
     #[inline]
     pub fn style(&self) -> &UiStyle {
         &self.style
     }
 
+    #[inline]
+    pub fn context(&self) -> &Context {
+        self.painter.context()
+    }
+
+    #[inline]
+    pub fn pass(&self) -> &RenderPass {
+        &self.render.pass
+    }
+
+    #[inline]
+    pub fn pass_mut(&mut self) -> &mut RenderPass {
+        &mut self.render.pass
+    }
+
+    #[inline]
+    pub fn last_pass(&self) -> &RenderPass {
+        &self.render.last_pass
+    }
+
+    #[inline]
+    pub fn painter_mut(&mut self) -> &mut Painter {
+        &mut self.painter
+    }
+
     pub(crate) fn top<R>(
         ctx: &Context,
+        render: &mut UiRender,
         id: Id,
         builder: UiBuilder,
         add_content: impl FnOnce(&mut Ui) -> R
-    ) -> ResponseValue<R> {
+    ) {
         let UiBuilder {
             max_bounds,
             ..
@@ -51,10 +72,11 @@ impl Ui {
             ctx.screen_pos()
         });
 
-        let alloc_cache = ctx.last_pass(|pass| pass.alloc_map.get(&id).cloned());
+        // let mut render = ctx.take_render();
 
-        let alloc = Alloc::new(canvas, AllocUpdate::Vertical, alloc_cache.clone());
+        let alloc_cache = render.last_pass.alloc_map.get(&id).cloned();
 
+        let alloc = Alloc::new(canvas, AllocDirection::Vertical, alloc_cache.clone());
 
         let mut ui = Ui {
             id,
@@ -63,33 +85,31 @@ impl Ui {
             alloc,
             painter: Painter::new(&ctx),
             style: ctx.style(),
-
-            //state: &mut state,
-            //shell: &mut shell,
+            render,
     
             cache_index: 0,
         };
 
         let start_rect = Bounds::none();
-        ui.context().create_widget(WidgetRect {
+        ui.create_widget(WidgetRect {
             id: ui.unique_id,
             rect: start_rect,
         });
     
         let result = (add_content)(&mut ui);
     
-        let response = ui.end();
+        let response = ui.child_end();
 
         let new_alloc = ui.alloc.to_cache();
         if new_alloc.is_changed(&alloc_cache) {
             println!("AllocChangeTop")
         }
 
-        ctx.pass_mut(|pass| {
-            pass.alloc_map.insert(id, new_alloc);
-        });
+        render.pass.alloc_map.insert(id, new_alloc);
 
-        ResponseValue::new(result, response)
+        //ctx.replace_render(render);
+
+        // ResponseValue::new(result, self.create_response(response))
     }
     
     pub(crate) fn child<R>(
@@ -118,14 +138,14 @@ impl Ui {
         let update = alloc_update.unwrap_or_else(|| self.alloc.update);
 
         let bounds = Bounds::none();
-        self.context().create_widget(WidgetRect {
+
+        self.create_widget(WidgetRect {
             id: unique_id,
             rect: bounds,
         });
 
-        let alloc_cache = self.context().last_pass(|pass| {
-            pass.alloc_map.get(&unique_id).cloned()
-        });
+        let alloc_cache = self.last_pass()
+            .alloc_map.get(&unique_id).cloned();
 
         let alloc = self.alloc.child(
             max_bounds,
@@ -142,6 +162,7 @@ impl Ui {
             alloc,
             painter: Painter::new(self.painter.context()),
             style: self.style.clone(),
+            render: self.render,
 
             cache_index: self.cache_index,
         };
@@ -150,38 +171,32 @@ impl Ui {
 
         self.alloc.merge_child(&child.alloc);
 
-        let response = child.end();
+        let child_widget = child.child_end();
 
         let new_alloc = child.alloc.to_cache();
         if new_alloc.is_changed(&alloc_cache) {
             println!("AllocChange")
         }
 
-        self.context().pass_mut(|pass| {
-            pass.alloc_map.insert(unique_id, new_alloc);
-        });
+        self.pass_mut().alloc_map.insert(unique_id, new_alloc);
+
+        let response = Response::new(self, child_widget);
 
         ResponseValue::new(result, response)
     }
 
-    fn end(&mut self) -> Response {
+    fn child_end(&mut self) -> WidgetRect {
         let bounds = self.alloc.alloc + self.alloc.margin;
-        let response = self.context().create_widget(WidgetRect {
+        WidgetRect {
             id: self.unique_id,
             rect: bounds,
-        });
-
-        response
+        }
     }
 
-    #[inline]
-    pub fn context(&self) -> &Context {
-        self.painter.context()
-    }
+    pub(crate) fn create_widget(&mut self, widget: WidgetRect) -> Response {
+        self.pass_mut().widgets.insert(widget);
 
-    #[inline]
-    pub fn painter_mut(&mut self) -> &mut Painter {
-        &mut self.painter
+        Response::new(self, widget)
     }
 
     pub fn available_bounds(&self) -> Bounds<Canvas> {
@@ -211,7 +226,7 @@ impl Ui {
             rect: pos,
         };
 
-        let response = self.context().create_widget(widget);
+        let response = self.create_widget(widget);
 
         ResponseValue::new(pos, response)
     }
@@ -307,18 +322,18 @@ impl Ui {
         response
     }
 
-    pub fn horizontal<R>(&mut self, add_content: impl FnOnce(&mut Ui) -> R) -> ResponseValue<R> {
+    pub fn row<R>(&mut self, add_content: impl FnOnce(&mut Ui) -> R) -> ResponseValue<R> {
         let result = self.child(UiBuilder::default()
-            .update(AllocUpdate::Horizontal),
+            .update(AllocDirection::Horizontal),
             add_content
         );
 
         result
     }
 
-    pub fn vertical<R>(&mut self, add_content: impl FnOnce(&mut Ui) -> R) -> ResponseValue<R> {
+    pub fn column<R>(&mut self, add_content: impl FnOnce(&mut Ui) -> R) -> ResponseValue<R> {
         let result = self.child(UiBuilder::default()
-            .update(AllocUpdate::Vertical),
+            .update(AllocDirection::Vertical),
             add_content
         );
 
@@ -335,7 +350,7 @@ impl Ui {
             UiBuilder::default()
                 .max_bounds(pos)
                 .view(Size::UNIT)
-                .update(AllocUpdate::Vertical),
+                .update(AllocDirection::Vertical),
             add_content
         );
 
@@ -364,7 +379,7 @@ impl Ui {
 
         let result = self.child(builder
             .max_bounds(bounds)
-            .update(AllocUpdate::Horizontal),
+            .update(AllocDirection::Horizontal),
             add_content
         );
 
@@ -392,7 +407,7 @@ impl Ui {
 
         let result = self.child(builder
             .max_bounds(bounds)
-            .update(AllocUpdate::Vertical),
+            .update(AllocDirection::Vertical),
             add_content
         );
 
@@ -400,21 +415,6 @@ impl Ui {
 
         result
     }
-
-    /*
-    fn update_pos(&mut self) {
-        match self.update {
-            AllocUpdate::Vertical => {
-                self.alloc.pos = Point(self.alloc.pos.x(), self.alloc.canvas_allocated.ymax());
-                self.alloc.view_pos = Point(self.alloc.view_pos.x(), self.alloc.view_allocated.ymax());
-            },
-            AllocUpdate::Horizontal => {
-                self.alloc.pos = Point(self.alloc.canvas_allocated.xmax(), self.alloc.pos.y());
-                self.alloc.view_pos = Point(self.alloc.view_allocated.xmax(), self.alloc.view_pos.y());
-            },
-        }
-    }
-    */
 
     pub fn app<'b, State, Message>(
         &mut self, 
@@ -454,6 +454,11 @@ impl Ui {
     pub fn input<R>(&self, reader: impl FnOnce(&Input) -> R) -> R {
         self.context().input(reader)
     }
+
+    #[inline]
+    pub fn output_mut(&mut self) -> &mut Output {
+        self.pass_mut().output.as_mut().unwrap()
+    }
     
     pub fn id(&self) -> Id {
         self.id
@@ -461,6 +466,10 @@ impl Ui {
     
     pub fn next_id(&self) -> Id {
         self.id.with(self.next_auto_id_salt)
+    }
+    
+    pub(crate) fn render_mut(&'a mut self) -> &'a mut UiRender {
+        self.render
     }
 }
 
@@ -484,7 +493,7 @@ pub(crate) struct UiBuilder {
     max_bounds: Option<Bounds<Canvas>>,
     view: Option<Size>,
     margin: Margin,
-    update: Option<AllocUpdate>,
+    update: Option<AllocDirection>,
 }
 
 impl UiBuilder {
@@ -510,7 +519,7 @@ impl UiBuilder {
     }
 
     #[inline]
-    pub(crate) fn update(mut self, update: AllocUpdate) -> Self {
+    pub(crate) fn update(mut self, update: AllocDirection) -> Self {
         self.update = Some(update);
 
         self

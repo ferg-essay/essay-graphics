@@ -12,10 +12,10 @@ fn main() {
         CentralPanel::new().show(ctx, |ui: &mut Ui| {
             if ui.button("hello-g", hello).clicked() { hello=!hello; }
             if ui.button("there", there).clicked() { there=!there; }
-            ui.horizontal(|ui| {
+            ui.row(|ui| {
                 ui.label("gab");
 
-                ui.vertical(|ui| {
+                ui.column(|ui| {
                     ui.label("bag");
                     ui.label("gaba");
                 });

@@ -6,10 +6,8 @@ use essay_graphics_ui::{
 
 fn main() { 
     let mut state = State::default();
-    MainLoop::new().show(move |cxt| {
-        CentralPanel::new().show(cxt, |ui| {
-            ui.app(&mut state, State::update, State::view)
-        });
+    MainLoop::new().show(move |ui| {
+        ui.app(&mut state, State::update, State::view);
     });
 }
 

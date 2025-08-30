@@ -1,3 +1,5 @@
+use std::time::{Duration, Instant};
+
 use crate::{ui::{ui::Ui, Response}, windows::Popup};
 
 pub struct Tooltip {
@@ -5,10 +7,10 @@ pub struct Tooltip {
 }
 
 impl Tooltip {
-    pub fn for_enabled(response: &Response) -> Self {
+    pub fn for_enabled(ui: &mut Ui, response: &Response) -> Self {
         Self {
-            popup: Popup::from_response(response)
-                .open(Self::should_show_tooltip(response)),
+            popup: Popup::from_response(ui, response)
+                .open(Self::should_show_tooltip(ui, response)),
         }
     }
     
@@ -16,15 +18,16 @@ impl Tooltip {
         self.popup.show(add_content);
     }
 
-    pub fn should_show_tooltip(response: &Response) -> bool {
-        let last_move = response.ctx.viewport(|viewport| {
+    pub fn should_show_tooltip(ui: &mut Ui, response: &Response) -> bool {
+        let last_move = ui.context().viewport(|viewport| {
             viewport.interact.since_cursor_move()
         });
 
         if last_move > 1. {
             true
         } else {
-            response.ctx.request_redraw_when(1. - last_move);
+            let time = Instant::now() + Duration::from_millis(1000 - (last_move * 1000.).ceil() as u64);
+            ui.output_mut().redraw_after_delay(time);
             false
         }
     }

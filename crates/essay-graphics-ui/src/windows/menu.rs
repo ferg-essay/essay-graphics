@@ -44,7 +44,7 @@ impl MenuButton {
 
         let button_response = self.button.ui(ui);
 
-        let popup_response = Popup::menu(&button_response)
+        let popup_response = Popup::menu(ui, &button_response)
             .show(add_content);
 
         (button_response, popup_response)

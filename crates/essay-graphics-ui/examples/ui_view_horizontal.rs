@@ -3,7 +3,7 @@ use essay_graphics_ui::{main_loop::MainLoop, ui::{CentralPanel, Frame, Ui}};
 fn main() { 
     MainLoop::new().show(move |cxt| {
         CentralPanel::new().show(cxt, |ui| {
-            ui.horizontal(|ui| {
+            ui.row(|ui| {
                 ui.view(|ui| {
                     ui.label("A")
                 });
@@ -19,7 +19,7 @@ fn main() {
                     ui.label("D")
                 });
             });
-            ui.horizontal(|ui| {
+            ui.row(|ui| {
                 ui.view(|ui| {
                     ui.label("1")
                 });

@@ -4,23 +4,25 @@ use crate::{context::{Context, WidgetRect}, ui::Ui, util::Id, windows::Tooltip};
 
 pub struct Response {
     pub id: Id,
-    pub ctx: Context,
     pub is_hover: bool,
 
     #[doc(hidden)]
     pub flags: Flags,
+
+    // render: &'a mut Render,
 }
 
 impl Response {
-    pub(crate) fn new(ctx: &Context, widget: WidgetRect) -> Self {
+    pub(crate) fn new(ui: &mut Ui, widget: WidgetRect) -> Self {
         let mut response = Self {
             id: widget.id,
-            ctx: ctx.clone(),
             is_hover: false,
             flags: Flags::empty(),
+
+            // render: ui.render_mut(),
         };
 
-        ctx.viewport(|viewport| {
+        ui.context().viewport(|viewport| {
             let id = widget.id;
 
             if viewport.hover.contains(id) {
@@ -43,24 +45,28 @@ impl Response {
 
     #[inline]
     pub fn context(&self) -> &Context {
-        &self.ctx
+        // &self.ctx
+        todo!();
     }
 
     pub fn input<R>(&self, reader: impl FnOnce(&Input) -> R) -> R {
-        self.ctx.input(reader)
+        // self.ctx.input(reader)
+        todo!();
     }
 
     #[inline]
     pub fn is_hover(&self) -> bool {
         self.is_hover
     }
-    pub(crate) fn rect(&self) -> Pos {
-        self.ctx.pass(|pass| pass.widgets.get(self.id).unwrap().rect)
+
+    pub(crate) fn rect(&self, ui: &Ui) -> Pos {
+        // self.ui.pass().widgets.get(self.id).unwrap().rect
+        ui.pass().widgets.get(self.id).unwrap().rect
     }
 
-    pub fn on_hover_ui(&self, add_contents: impl FnOnce(&mut Ui)) -> &Self {
+    pub fn on_hover_ui(&self, ui: &mut Ui, add_contents: impl FnOnce(&mut Ui)) -> &Self {
         if self.is_hover() {
-            Tooltip::for_enabled(&self).show(add_contents);
+            Tooltip::for_enabled(ui, &self).show(add_contents);
         }
 
         &self

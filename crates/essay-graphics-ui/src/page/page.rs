@@ -522,7 +522,7 @@ impl PageTabs {
 
 impl PageDraw for PageTabs {
     fn draw(&mut self, ui: &mut Ui) {
-        ui.vertical(|ui| {
+        ui.column(|ui| {
             let mut tabs = Tabs::<String>::new(self.value.clone());
 
             for (label, draw) in &mut self.children {

@@ -64,9 +64,7 @@ impl Frame {
             response
         } = ui.child(builder, add_contents);
 
-        let rect = ui.context().pass(|pass| {
-            *pass.widgets().get(response.id()).unwrap()
-        });
+        let rect = ui.pass_mut().widgets().get(response.id()).unwrap();
 
         // rect.rect = rect.rect + corner_margin;
 
@@ -125,16 +123,14 @@ mod test {
         let mut test = TestRenderer::new([1000., 1000.]);
         let ctx = Context::new(Box::new(TestGraphicsContext::new()));
 
-        ctx.run(&mut test, |ctx| {
-            CentralPanel::new().show(ctx, |ui| {
-                ui.label("Ante");
+        ctx.run(&mut test, |ui| {
+            ui.label("Ante");
 
-                Frame::group(&ui).background(0x00ff00).show(ui, |ui| {
-                    ui.label("Frame");
-                });
-
-                ui.label("Post");
+            Frame::group(&ui).background(0x00ff00).show(ui, |ui| {
+                ui.label("Frame");
             });
+
+            ui.label("Post");
         }).unwrap();
 
         assert_eq!(test.take(), "text (0.0,0.0) 'Ante'
@@ -142,16 +138,14 @@ rect (0.0,27.0) 166.0x58.0 #00ff00ff
 text (16.0,42.7) 'Frame'
 text (0.0,85.3) 'Post'");
 
-        ctx.run(&mut test, |ctx| {
-            CentralPanel::new().show(ctx, |ui| {
-                ui.label("Ante");
+        ctx.run(&mut test, |ui| {
+            ui.label("Ante");
 
-                Frame::group(&ui).background(0x00ff00).show(ui, |ui| {
-                    ui.label("Frame");
-                });
-
-                ui.label("Post");
+            Frame::group(&ui).background(0x00ff00).show(ui, |ui| {
+                ui.label("Frame");
             });
+
+            ui.label("Post");
         }).unwrap();
 
         assert_eq!(test.take(), "text (0.0,0.0) 'Ante'

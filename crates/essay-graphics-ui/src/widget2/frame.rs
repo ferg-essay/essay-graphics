@@ -86,9 +86,7 @@ where
             self.content.draw(ui, bounds, shell);
         }).response;
 
-        let rect = ui.context().pass(|pass| {
-            *pass.widgets().get(response.id()).unwrap()
-        });
+        let rect = ui.pass().widgets().get(response.id()).unwrap();
 
         // rect.rect = rect.rect + corner_margin;
 

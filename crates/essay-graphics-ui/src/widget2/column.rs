@@ -36,7 +36,7 @@ where
         bounds: &Rectangle,
         shell: &mut Shell<Message>,
     ) -> Response {
-        ui.vertical(|ui| {
+        ui.column(|ui| {
             for item in &mut self.content {
                 item.draw(ui, bounds, shell);
             }

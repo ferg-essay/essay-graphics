@@ -20,20 +20,18 @@ impl Popup {
         }
     }
 
-    pub fn from_response(response: &Response) -> Self {
-        let widget = response.context().pass(|pass| {
-            *pass.widgets().get(response.id).unwrap()
-        });
+    pub fn from_response(ui: &mut Ui, response: &Response) -> Self {
+        let widget = ui.pass().widgets().get(response.id).unwrap();
 
         Self::new(
             response.id().with("popup"),
-            response.context(),
+            ui.context(),
             [widget.rect.x0(), widget.rect.ymax()],
         )
     }
 
-    pub fn menu(response: &Response) -> Self {
-        Self::from_response(response)
+    pub fn menu(ui: &mut Ui, response: &Response) -> Self {
+        Self::from_response(ui, response)
             .open_memory(response.clicked().then_some(OpenMemory::Toggle))
     }
 
@@ -57,6 +55,7 @@ impl Popup {
         let builder = UiBuilder::default()
             .max_bounds(([self.pos.x, self.pos.y], [400., 100.]));
 
+            /*
         Some(Ui::top(&self.ctx, self.id, builder, |ui| {
             let frame = Frame::group(ui).shadow(true);
         
@@ -67,6 +66,10 @@ impl Popup {
 
             value
         }))
+        */
+        println!("TODO Popup");
+
+        None
     }
 
     fn update_open(&self) {
@@ -130,15 +133,13 @@ mod test {
         let mut test = TestRenderer::new([1000., 1000.]);
         let ctx = Context::new(Box::new(TestGraphicsContext::new()));
 
-        ctx.run(&mut test, |ctx| {
-            CentralPanel::new().show(ctx, |ui| {
-                let response = ui.label("Test");
+        ctx.run(&mut test, |ui| {
+            let response = ui.label("Test");
 
-                Popup::from_response(&response).open(true).show(|ui| {
-                    ui.label("Popup");
-                })
+            Popup::from_response(ui, &response).open(true).show(|ui| {
+                ui.label("Popup");
             });
-        }).unwrap();
+        });
 
         assert_eq!(test.take(), "text (0.0,0.0) 'Test'
 rect (5.0,32.0) 166.0x58.0 #00000020
@@ -149,15 +150,13 @@ text (16.0,42.7) 'Popup'");
 
         println!("\n  Pass2");
 
-        ctx.run(&mut test, |ctx| {
-            CentralPanel::new().show(ctx, |ui| {
-                let response = ui.label("Test");
+        ctx.run(&mut test, |ui| {
+            let response = ui.label("Test");
 
-                Popup::from_response(&response).open(true).show(|ui| {
-                    ui.label("Popup");
-                })
+            Popup::from_response(ui, &response).open(true).show(|ui| {
+                ui.label("Popup");
             });
-        }).unwrap();
+        });
 
         assert_eq!(test.take(), "text (0.0,0.0) 'Test'
 rect (5.0,32.0) 166.0x58.0 #00000020

@@ -32,8 +32,8 @@ impl<T: PartialEq + Clone + Into<String>> Tabs<'_, T> {
         let mut add_content: Option<Box<dyn FnOnce(&mut Ui)>> = None;
         let mut selected: Option<T> = Some(self.select.clone());
 
-        ui.vertical(|ui| {
-            ui.horizontal(|ui| {
+        ui.column(|ui| {
+            ui.row(|ui| {
                 let remaining_size = ui.remaining_size();
                 let text_size = ui.text_size("M", &style_text);
                 let text_size = Size::new(text_size.width + 2. * margin, text_size.width + 2. * margin);

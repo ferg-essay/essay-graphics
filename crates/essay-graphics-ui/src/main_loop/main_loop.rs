@@ -2,7 +2,7 @@ use essay_graphics_wgpu::{WgpuBackend};
 
 use essay_graphics_api::{output::Output, renderer::{self, App, Backend, Renderer}};
 
-use crate::context::Context;
+use crate::{context::Context, ui::Ui};
 
 pub struct MainLoop {
     device: Box<dyn Backend>,
@@ -17,7 +17,7 @@ impl MainLoop {
 
     pub fn show(
         self,
-        app: impl FnMut(&Context) + Send + Sync + 'static,
+        app: impl FnMut(&mut Ui) + Send + Sync + 'static,
     ) {
         let mut device = self.device;
 
@@ -33,12 +33,12 @@ impl MainLoop {
     }
 }
 
-struct ContextApp(Context, Box<dyn FnMut(&Context) + Send + Sync>);
+struct ContextApp(Context, Box<dyn FnMut(&mut Ui) + Send + Sync>);
 
 impl App for ContextApp {
     fn render(&mut self, ui: &mut dyn Renderer) -> renderer::Result<Output> {
-        self.0.run(ui, |ctx| {
-            (self.1)(ctx);
+        self.0.run(ui, |ui| {
+            (self.1)(ui);
         })
     }
 }

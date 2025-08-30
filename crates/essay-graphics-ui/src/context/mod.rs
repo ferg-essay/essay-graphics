@@ -5,5 +5,5 @@ mod widget;
 
 pub use context::{Context};
 pub use memory::{Memory, MemoryData};
-pub use render_pass::{RenderPass, CacheAlloc};
+pub use render_pass::{UiRender, RenderPass, AllocCache};
 pub use widget::{WidgetRect};

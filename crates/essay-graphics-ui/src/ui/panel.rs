@@ -20,8 +20,11 @@ impl CentralPanel {
 
         let builder = UiBuilder::default();
             
+        todo!();
+        /*
         Ui::top(ctx, id, builder, |ui2| {
             (add_contents)(ui2)
         })
+        */
     }
 }
