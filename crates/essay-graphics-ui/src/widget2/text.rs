@@ -1,24 +1,55 @@
-use std::borrow::Cow;
+use essay_graphics_api::{renderer::Renderer};
 
-use essay_graphics_api::{Color, Point, Size};
+use crate::{ui::{Response, ResponseValue}, widget2::{Element, Shell, Widget}};
 
-use crate::widget2::{self, Element, Shell, Widget};
-
-pub struct Text<Content = String> {
-    pub content: Content,
+pub struct Text {
+    pub content: String,
     // pub font: Font,
 
     // pub bounds: Size,
 }
 
-impl<'a, Message, C: 'static> Widget<Message> for Text<C> {
+impl Text {
+    pub fn new(value: &str) -> Self {
+        Self {
+            content: String::from(value),
+        }
+    }
+
+    pub fn value(&self) -> &str {
+        &self.content
+    }
+}
+
+impl<'a, Message> Widget<Message> for Text {
     fn draw(
         &mut self,
         ui: &mut crate::ui::Ui,
-        bounds: &essay_graphics_api::Rectangle,
-        shell: &mut Shell<Message>,
-    ) -> crate::ui::Response {
-        todo!()
+        _bounds: &essay_graphics_api::Rectangle,
+        _shell: &mut Shell<Message>,
+    ) -> Response {
+        let style = ui.style().label.clone();
+        let style_text = ui.style().label_text.clone();
+        let size = ui.text_size(&self.content, &style_text);
+        
+        let ResponseValue { 
+            value, 
+            response
+        } = ui.allocate_rect(size);
+
+        let label = String::from(&self.content);
+
+        ui.painter_mut().add(move |renderer: &mut dyn Renderer| {
+            renderer.draw_text(
+                value.p0(), 
+                &label, 
+                0., 
+                &style,
+                &style_text
+            )
+        });
+
+        response
     }
 }
 
@@ -36,20 +67,8 @@ impl<'a, M> From<&str> for Element<'a, M> {
     }
 }
 
-impl<'a, C: 'static, M> From<Text<C>> for Element<'a, M> {
-    fn from(value: Text<C>) -> Self {
+impl<'a, M> From<Text> for Element<'a, M> {
+    fn from(value: Text) -> Self {
         Element::new(value)
-    }
-}
-
-pub type Fragment<'a> = Cow<'a, str>;
-
-pub trait IntoFragment<'a> {
-    fn into_fragment(self) -> Fragment<'a>;
-}
-
-impl<'a> IntoFragment<'a> for Fragment<'a> {
-    fn into_fragment(self) -> Fragment<'a> {
-        self
     }
 }

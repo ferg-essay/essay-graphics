@@ -1,9 +1,9 @@
 use essay_graphics_api::{renderer::Renderer, Margin, Point, Rectangle, Shapes, Size};
 
-use crate::{ui::{Response, ResponseValue, Ui}, widget2::{Element, Shell, Widget}};
+use crate::{ui::{Response, ResponseValue, Ui}, widget2::{text::Text, Element, Shell, Widget}};
 
 pub fn button<'a, Message>(
-    content: impl Into<Element<'a, Message>>
+    content: impl Into<Text>
 ) -> Button<'a, Message> {
     Button {
         content: content.into(),
@@ -13,7 +13,7 @@ pub fn button<'a, Message>(
 }
 
 pub struct Button<'a, Message> {
-    content: Element<'a, Message>,   
+    content: Text,
     on_press: Option<OnPress<'a, Message>>,
     press: bool,
 }
@@ -21,7 +21,7 @@ pub struct Button<'a, Message> {
 impl<'a, Message> Button<'a, Message>
 {
     pub fn new(
-        content: impl Into<Element<'a, Message>>,
+        content: impl Into<Text>,
     ) -> Self {
         let content = content.into();
 
@@ -68,12 +68,11 @@ where
     fn draw(
         &mut self,
         ui: &mut Ui,
-        bounds: &Rectangle,
+        _bounds: &Rectangle,
         shell: &mut Shell<Message>,
     ) -> Response {
-        let label = "hello";
         let button_text = ui.style().button_text.clone();
-        let size = ui.text_size(&label, &button_text);
+        let size = ui.text_size(self.content.value(), &button_text);
 
         let corner = ui.style().corner_radius;
         let pad = 10.;
@@ -135,6 +134,7 @@ where
 
         let border = background;
         let corner = ui_style.corner_radius;
+        let label = String::from(self.content.value());
 
         ui.painter_mut().add(move |ui: &mut dyn Renderer| {
             let sz = 0.;

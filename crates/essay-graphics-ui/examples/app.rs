@@ -31,6 +31,7 @@ impl State {
         column([
             button("button A").press(self.a).on_press(Message::A).into(),
             button("button B").press(self.b).on_press(Message::B).into(),
+            "text".into(),
         ])
     }
 }
