@@ -1,6 +1,9 @@
-use essay_graphics_api::{renderer::Renderer, Margin, Point, Rectangle, Shapes, Size};
+use essay_graphics_api::{renderer::Renderer, Margin, Point, Shapes, Size};
 
-use crate::{ui::{Response, ResponseValue, Ui}, widget2::{text::Text, Element, Shell, Widget, WidgetFrame}};
+use crate::{
+    ui::{Response, ResponseValue, Ui}, 
+    widget2::{text::Text, Element, Shell, Widget, WidgetFrame}
+};
 
 pub fn button<'a, Message>(
     content: impl Into<Text>
@@ -68,7 +71,6 @@ where
     fn draw(
         &mut self,
         ui: &mut Ui,
-        _bounds: &Rectangle,
         shell: &mut Shell<Message>,
     ) -> Response {
         let button_text = ui.style().button_text.clone();
@@ -189,19 +191,6 @@ where
 enum OnPress<'a, Message> {
     Direct(Message),
     Closure(Box<dyn Fn() -> Message + 'a>),
-}
-
-impl<Message: Clone> OnPress<'_, Message> {
-    fn get(&self) -> Message {
-        match self {
-            OnPress::Direct(message) => message.clone(),
-            OnPress::Closure(f) => f(),
-        }
-    }
-}
-
-struct State {
-    is_pressed: bool,
 }
 
 impl<'a, Message: Clone + 'a> WidgetFrame<'a, Message> for Button<'a, Message> {}

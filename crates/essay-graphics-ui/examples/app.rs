@@ -1,7 +1,7 @@
 use essay_graphics_ui::{
+    column,
     main_loop::MainLoop, 
-    ui::CentralPanel, 
-    widget2::{button, column, frame, row, text, Element, WidgetFrame}
+    widget2::{button, text, Element, WidgetFrame}
 };
 
 fn main() { 
@@ -30,11 +30,11 @@ impl State {
     }
 
     fn view(&self) -> impl Into<Element<'_, Message>> {
-        row([
-            button("button A").press(self.a).on_press(Message::A).tooltip("Tooltip A").into(),
-            button("button B").press(self.b).on_press(Message::B).tooltip("Tooltip B").into(),
-            text("text").into()
-        ])
+        column![
+            button("button A").press(self.a).on_press(Message::A).tooltip("Tooltip A"),
+            button("button B").press(self.b).on_press(Message::B).tooltip("Tooltip B"),
+            text("text")
+        ]
     }
 }
 

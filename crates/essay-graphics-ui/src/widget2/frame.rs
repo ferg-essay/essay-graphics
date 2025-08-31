@@ -1,6 +1,6 @@
-use essay_graphics_api::{renderer::Renderer, Color, Margin, Point, Rectangle, Shapes, Size};
+use essay_graphics_api::{renderer::Renderer, Color, Margin, Point, Shapes};
 
-use crate::{ui::{ui::UiBuilder, Response, ResponseValue, Ui}, widget2::{Element, Shell, Widget}};
+use crate::{ui::{ui::UiBuilder, Response, Ui}, widget2::{Element, Shell, Widget}};
 
 pub fn frame<'a, Message>(
     content: impl Into<Element<'a, Message>>
@@ -60,7 +60,6 @@ where
     fn draw(
         &mut self,
         ui: &mut Ui,
-        bounds: &Rectangle,
         shell: &mut Shell<Message>,
     ) -> Response {
         let corner_margin = Margin::from_all(ui.style().corner_radius);
@@ -83,7 +82,7 @@ where
         // let response = self.content.draw(ui, bounds, shell);
 
         let response = ui.child(builder, |ui| {
-            self.content.draw(ui, bounds, shell);
+            self.content.draw(ui, shell);
         }).response;
 
         let rect = ui.pass().widgets().get(response.id()).unwrap();

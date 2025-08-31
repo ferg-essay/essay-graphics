@@ -48,7 +48,7 @@ impl Widget for Label {
 mod test {
     use essay_graphics_test::{TestGraphicsContext, TestRenderer};
 
-    use crate::{context::Context, ui::{CentralPanel, Frame}};
+    use crate::{context::Context};
 
     #[test]
     fn label() {

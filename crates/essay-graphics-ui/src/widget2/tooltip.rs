@@ -1,6 +1,4 @@
-use essay_graphics_api::{renderer::Renderer, Margin, Point, Rectangle, Shapes, Size};
-
-use crate::{ui::{Response, ResponseValue, Ui}, widget2::{Element, Shell, Widget, WidgetFrame}};
+use crate::{ui::{Response, Ui}, widget2::{Element, Shell, Widget, WidgetFrame}};
 
 pub fn tooltip<'a, Message>(
     content: impl Into<Element<'a, Message>>,
@@ -34,13 +32,12 @@ where
     fn draw(
         &mut self,
         ui: &mut Ui,
-        bounds: &Rectangle,
         shell: &mut Shell<Message>,
     ) -> Response {
-        let response = self.content.draw(ui, bounds, shell);
+        let response = self.content.draw(ui, shell);
 
         response.on_hover_ui(ui, |ui| {
-            self.tooltip.draw(ui, bounds, shell);
+            self.tooltip.draw(ui, shell);
         });
 
         response

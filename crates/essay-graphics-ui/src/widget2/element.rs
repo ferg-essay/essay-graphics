@@ -1,6 +1,4 @@
-use essay_graphics_api::Rectangle;
-
-use crate::{ui::{Response, Ui}, widget2::{widget::Widget, Frame, Shell}};
+use crate::{ui::{Response, Ui}, widget2::{widget::Widget, Shell}};
 
 
 pub struct Element<'a, Message> {
@@ -35,9 +33,8 @@ impl<'a, Message> Widget<Message> for Element<'a, Message> {
     fn draw(
         &mut self,
         ui: &mut Ui,
-        bounds: &Rectangle,
         shell: &mut Shell<Message>,
     ) -> Response {
-        self.widget.draw(ui, bounds, shell)
+        self.widget.draw(ui, shell)
     }
 }

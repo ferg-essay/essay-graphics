@@ -29,7 +29,6 @@ impl<'a, Message> Widget<Message> for Text {
     fn draw(
         &mut self,
         ui: &mut crate::ui::Ui,
-        _bounds: &essay_graphics_api::Rectangle,
         _shell: &mut Shell<Message>,
     ) -> Response {
         let style = ui.style().label.clone();

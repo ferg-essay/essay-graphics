@@ -1,4 +1,4 @@
-use essay_graphics_ui::{main_loop::MainLoop, ui::CentralPanel};
+use essay_graphics_ui::{main_loop::MainLoop};
 
 fn main() { 
     let mut var = Values::None;

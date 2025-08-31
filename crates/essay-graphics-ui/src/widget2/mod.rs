@@ -22,6 +22,7 @@ pub use row::{row, Row};
 pub use shell::Shell;
 pub use task::Task;
 pub use text::{text, Text};
+pub use tooltip::{tooltip, Tooltip};
 pub use theme::Theme;
 pub use widget::{Widget, WidgetFrame};
 

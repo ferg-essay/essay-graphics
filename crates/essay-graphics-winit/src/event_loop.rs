@@ -41,7 +41,6 @@ pub fn run_event_loop(
                                 Command::RedrawAfterDelay(instant) => {
                                     wait_until = Some(instant);
                                 },
-                                _ => {}
                             }
                         }
                     }

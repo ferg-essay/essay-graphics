@@ -393,7 +393,7 @@ pub struct Length {
 mod test {
     use essay_graphics_test::{TestGraphicsContext, TestRenderer};
 
-    use crate::{context::Context, ui::{CentralPanel, Frame}};
+    use crate::{context::Context, ui::{Frame}};
 
     #[test]
     fn vertical_label() {
@@ -416,7 +416,7 @@ mod test {
             ui.label("A");
             ui.label("B");
             ui.label("C");
-        });
+        }).unwrap();
 
         assert_eq!(test.take(), "text (0.0,0.0) 'A'
 text (0.0,26.7) 'B'
@@ -428,7 +428,7 @@ text (0.0,53.3) 'C'");
             ui.label("A");
             ui.label("B");
             ui.label("C");
-        });
+        }).unwrap();
 
         assert_eq!(test.take(), "text (0.0,0.0) 'A'
 text (0.0,26.7) 'B'
@@ -446,7 +446,7 @@ text (0.0,53.3) 'C'");
                 ui.label("B");
             });
             ui.label("C");
-        });
+        }).unwrap();
 
         assert_eq!(test.take(), "text (0.0,0.0) 'A'
 text (0.0,26.7) 'B'
@@ -460,7 +460,7 @@ text (0.0,53.3) 'C'");
                 ui.label("B");
             });
             ui.label("C");
-        });
+        }).unwrap();
 
         assert_eq!(test.take(), "text (0.0,0.0) 'A'
 text (0.0,26.7) 'B'
@@ -482,7 +482,7 @@ text (0.0,53.3) 'C'");
             ui.view(|ui| {
                 ui.label("B");
             });
-        });
+        }).unwrap();
 
         assert_eq!(test.take(), "text (0.0,0.0) 'A'
 text (0.0,600.0) 'B'");
@@ -499,7 +499,7 @@ text (0.0,600.0) 'B'");
                     ui.label("A");
                 });
             });
-        });
+        }).unwrap();
 
         assert_eq!(test.take(), "rect (0.0,0.0) 1200.0x1200.0 #ffffffff
 text (16.0,16.0) 'A'");
@@ -516,7 +516,7 @@ text (16.0,16.0) 'A'");
                     ui.view(|_| {});
                 })
             });
-        });
+        }).unwrap();
 
         assert_eq!(test.take(), "rect (0.0,0.0) 1200.0x1200.0 #ffffffff");
     }
@@ -534,7 +534,7 @@ text (16.0,16.0) 'A'");
                     });
                 });
             });
-        });
+        }).unwrap();
 
         assert_eq!(test.take(), "rect (0.0,0.0) 1200.0x1200.0 #ffffffff
 rect (16.0,16.0) 1168.0x1168.0 #ff0000ff");
@@ -557,7 +557,7 @@ rect (16.0,16.0) 1168.0x1168.0 #ff0000ff");
             ui.view(|ui| {
                 ui.label("C");
             });
-        });
+        }).unwrap();
 
         assert_eq!(test.take(), "text (0.0,0.0) 'A'
 rect (0.0,400.0) 1200.0x400.0 #ffffffff
@@ -589,7 +589,7 @@ text (0.0,800.0) 'C'");
                     ui.label("D");
                 });
             });
-        });
+        }).unwrap();
 
         assert_eq!(test.take(), "rect (0.0,0.0) 1200.0x300.0 #ffffffff
 text (16.0,16.0) 'A'
@@ -626,7 +626,7 @@ text (16.0,916.0) 'D'");
                     ui.label("D");
                 });
             });
-        });
+        }).unwrap();
 
         assert_eq!(test.take(), "rect (0.0,0.0) 1200.0x400.0 #ffffffff
 text (16.0,16.0) 'A'
@@ -658,7 +658,7 @@ text (16.0,816.0) 'D'");
                     });
                 });
             });
-        });
+        }).unwrap();
 
         assert_eq!(test.take(), "rect (0.0,0.0) 600.0x1200.0 #ffffffff
 rect (600.0,0.0) 600.0x600.0 #ffffffff
@@ -686,7 +686,7 @@ rect (600.0,600.0) 600.0x600.0 #ffffffff");
                     });
                 });
             });
-        });
+        }).unwrap();
 
         assert_eq!(test.take(), "rect (0.0,0.0) 1200.0x600.0 #ffffffff
 rect (0.0,600.0) 600.0x600.0 #ffffffff
@@ -702,7 +702,7 @@ rect (600.0,600.0) 600.0x600.0 #ffffffff");
             ui.row(|ui| {
                 ui.label("Test");
             });
-        });
+        }).unwrap();
 
         assert_eq!(test.take(), "text (0.0,0.0) 'Test'");
     }
@@ -717,7 +717,7 @@ rect (600.0,600.0) 600.0x600.0 #ffffffff");
                 ui.label("A");
                 ui.label("B");
             });
-        });
+        }).unwrap();
 
         assert_eq!(test.take(), "text (0.0,0.0) 'A'
 text (26.7,0.0) 'B'");

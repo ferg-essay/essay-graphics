@@ -1,53 +1,81 @@
-use essay_graphics_api::{renderer::Renderer, Margin, Point, Rectangle, Shapes, Size};
+use essay_graphics_api::{Rectangle};
 
-use crate::{ui::{Response, ResponseValue, Ui}, widget2::{Element, Shell, Widget, WidgetFrame}};
+use crate::{
+    ui::{Response, Ui}, 
+    widget2::{Element, Shell, Widget, WidgetFrame}
+};
 
 pub fn column<'a, Message>(
-    content: impl IntoIterator<Item=Element<'a, Message>>
+    children: impl IntoIterator<Item=Element<'a, Message>>
 ) -> Column<'a, Message> {
-    Column::new(content)
+    Column::with_children(children)
+}
+
+#[macro_export]
+macro_rules! column {
+    () => (
+        $crate::widget2::Column::new()
+    );
+    ($($x:expr),+ $(,)?) => (
+        $crate::widget2::Column::with_children([$($crate::widget2::Element::from($x)),+])
+    )
 }
 
 pub struct Column<'a, Message> {
-    content: Vec<Element<'a, Message>>,   
+    children: Vec<Element<'a, Message>>,   
 }
 
-impl<'a, Message> Column<'a, Message>
-{
-    pub fn new(
-        content: impl IntoIterator<Item=Element<'a, Message>>,
-    ) -> Self {
-        let content = content.into_iter().collect();
-
+impl<'a, Message> Column<'a, Message> {
+    pub fn new() -> Self {
         Self {
-            content,
+            children: Default::default(),
         }
+    }
+
+    pub fn with_children(
+        children: impl IntoIterator<Item=Element<'a, Message>>,
+    ) -> Self {
+        Self {
+            children: children.into_iter().collect(),
+        }
+    }
+
+    #[must_use]
+    pub fn push(mut self, child: impl Into<Element<'a, Message>>) -> Self {
+        self.children.push(child.into());
+
+        self
+    }
+
+    #[must_use]
+    pub fn extend(
+        self,
+        children: impl IntoIterator<Item=Element<'a, Message>>,
+    ) -> Self {
+        children.into_iter().fold(self, Self::push)
     }
 }
 
-impl<'a, Message> Widget<Message>
-    for Column<'a, Message>
+impl<'a, Message> Widget<Message> for Column<'a, Message>
 where
-    Message: Clone + 'a
+    Message: 'a
 {
     fn draw(
         &mut self,
         ui: &mut Ui,
-        bounds: &Rectangle,
         shell: &mut Shell<Message>,
     ) -> Response {
         ui.column(|ui| {
-            for item in &mut self.content {
-                item.draw(ui, bounds, shell);
+            for item in &mut self.children {
+                item.draw(ui, shell);
             }
         }).response
     }
 }
 
-impl<'a, Message> From<Column<'a, Message>>
-    for Element<'a, Message>
+impl<'a, Message> From<Column<'a, Message>> for Element<'a, Message>
 where
-    Message: Clone + 'a,
+    Message: 'a,
 {
     fn from(column: Column<'a, Message>) -> Self {
         Self::new(column)

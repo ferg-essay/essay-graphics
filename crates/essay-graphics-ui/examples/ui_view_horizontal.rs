@@ -1,4 +1,4 @@
-use essay_graphics_ui::{main_loop::MainLoop, ui::{CentralPanel, Frame, Ui}};
+use essay_graphics_ui::{main_loop::MainLoop, ui::{Frame}};
 
 fn main() { 
     MainLoop::new().show(move |ui| {

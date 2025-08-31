@@ -1,4 +1,4 @@
-use essay_graphics_ui::{main_loop::MainLoop, ui::{CentralPanel, Frame}};
+use essay_graphics_ui::{main_loop::MainLoop, ui::{Frame}};
 
 fn main() { 
     let mut option_a = false;

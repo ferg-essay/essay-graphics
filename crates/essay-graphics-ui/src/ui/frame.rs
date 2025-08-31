@@ -1,6 +1,6 @@
-use essay_graphics_api::{renderer::Renderer, Color, Margin, Point, Shapes, Size};
+use essay_graphics_api::{renderer::Renderer, Color, Margin, Point, Shapes};
 
-use crate::{ui::ui::{ResponseValue, Ui, UiBuilder}, widget2::Widget};
+use crate::{ui::ui::{ResponseValue, Ui, UiBuilder}};
 
 pub struct Frame {
     pub inner_margin: Margin,
@@ -116,7 +116,7 @@ impl Frame {
 mod test {
     use essay_graphics_test::{TestGraphicsContext, TestRenderer};
 
-    use crate::{context::Context, ui::{CentralPanel, Frame}, windows::Popup};
+    use crate::{context::Context, ui::Frame};
 
     #[test]
     fn frame() {

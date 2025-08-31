@@ -1,8 +1,6 @@
-use std::marker::PhantomData;
+use essay_graphics_api::{Size};
 
-use essay_graphics_api::{Rectangle, Size};
-
-use crate::{context, ui::{ui, Response, Ui}, widget2::{Element, Shell, Task, Widget}};
+use crate::{ui::{ui, Response, Ui}, widget2::{Element, Shell, Task, Widget}};
 
 pub fn application<State, Message>(
     update: impl Update<State, Message>,
@@ -89,8 +87,7 @@ where
     fn draw(&self, ui: &mut Ui, shell: &mut Shell<Message>) -> Response {
         let mut element = self.view.view(self.state);
 
-        let rect = Rectangle::new(0., 0., 1., 1.);
-        element.draw(ui, &rect, shell)
+        element.draw(ui, shell)
     }
 
     fn update(&mut self, message: Message) {
