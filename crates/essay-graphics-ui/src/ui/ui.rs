@@ -70,15 +70,11 @@ impl<'a> Ui<'a> {
             ..
         } = builder;
 
-        let canvas = max_bounds.unwrap_or_else(|| {
-            ctx.screen_pos()
-        });
-
-        // let mut render = ctx.take_render();
+        let bounds = max_bounds.unwrap_or_else(|| ctx.screen_pos());
 
         let alloc_cache = render.last_pass.alloc_map.get(&id).cloned();
 
-        let alloc = Alloc::new(canvas, AllocDirection::Vertical, alloc_cache.clone());
+        let alloc = Alloc::new(bounds, AllocDirection::Vertical, alloc_cache.clone());
 
         let mut ui = Ui {
             id,
@@ -135,7 +131,7 @@ impl<'a> Ui<'a> {
         let next_auto_id_salt = unique_id.value().wrapping_add(1);
 
         let max_bounds = max_bounds.unwrap_or_else(|| {
-            self.alloc.available_bounds()
+            self.alloc.available()
         });
 
         let update = alloc_update.unwrap_or_else(|| self.alloc.alloc_dir);
@@ -204,7 +200,7 @@ impl<'a> Ui<'a> {
     }
 
     pub fn available_bounds(&self) -> Bounds<Canvas> {
-        self.alloc.available_bounds()
+        self.alloc.available()
     }
 
     #[inline]

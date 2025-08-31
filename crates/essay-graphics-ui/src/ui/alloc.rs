@@ -152,7 +152,8 @@ impl Alloc {
         }
     }
 
-    pub(crate) fn available_bounds(&self) -> Bounds<Canvas> {
+    // returns the boundary box for available layout
+    pub(crate) fn available(&self) -> Bounds<Canvas> {
         match self.alloc_dir {
             AllocDirection::Vertical => {
                 Bounds::from([

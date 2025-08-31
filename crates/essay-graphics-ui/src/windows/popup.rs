@@ -126,7 +126,7 @@ pub enum OpenMemory {
 mod test {
     use essay_graphics_test::{TestGraphicsContext, TestRenderer};
 
-    use crate::{context::Context, ui::{CentralPanel, Frame}, windows::Popup};
+    use crate::{context::Context, windows::Popup};
 
     #[test]
     fn popup() {
@@ -139,7 +139,7 @@ mod test {
             Popup::from_response(ui, &response).open(true).show(|ui| {
                 ui.label("Popup");
             });
-        });
+        }).unwrap();
 
         assert_eq!(test.take(), "text (0.0,0.0) 'Test'
 rect (5.0,32.0) 166.0x58.0 #00000020
