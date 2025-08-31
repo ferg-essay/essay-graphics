@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use essay_graphics_api::{output::Output, renderer::Canvas, Bounds};
 
-use crate::{context::{widget::WidgetRects, Context}, page::Page, style::UiStyle, util::IdMap};
+use crate::{context::{widget::WidgetRects, Context}, page::Page, style::UiStyle, ui::AllocCache, util::IdMap};
 
 pub struct UiRender {
     pub pass: RenderPass,
@@ -25,17 +25,5 @@ pub struct RenderPass {
 impl RenderPass {
     pub fn widgets(&self) -> &WidgetRects {
         &self.widgets
-    }
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub struct AllocCache {
-    pub view: Bounds<Page>,
-    pub fixed: Bounds<Canvas>,
-}
-
-impl AllocCache {
-    pub(crate) fn is_changed(&self, alloc_cache: &Option<AllocCache>) -> bool {
-        false
     }
 }

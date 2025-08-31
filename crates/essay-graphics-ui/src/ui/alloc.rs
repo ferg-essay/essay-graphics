@@ -1,25 +1,19 @@
 use essay_graphics_api::{renderer::{Canvas, Pos}, Bounds, Margin, Point, Size};
 
-use crate::{context::AllocCache, page::Page};
+use crate::{page::Page};
 
 #[derive(Debug)]
 pub struct Alloc {
-    pub update: AllocDirection,
+    pub alloc_dir: AllocDirection,
 
     pub bounds: Bounds<Canvas>, // extent of the canvas managed by the cursor
     pub margin: Margin,
-    pub view_bounds: Bounds<Page>,     
-    pub _fixed_bounds: Bounds<Canvas>,  // total size of fixed elements managed by the cursor
 
     view_width: f32,
     view_height: f32,
 
-    //pos: Point,
-    //view_pos: Point,
-
     pub alloc: Bounds<Canvas>, // current bounds allocated by the cursor
-    pub view_alloc: Bounds<Page>,
-    pub fixed_alloc: Bounds<Canvas>,
+    pub alloc_cache: AllocCache,
 }
 
 impl Alloc {
@@ -30,25 +24,19 @@ impl Alloc {
     ) -> Self {
         let point = Point::new(bounds.xmin(), bounds.ymin());
 
-        let (view_cache, fixed_cache) = match cache {
-            Some(cache) => { (cache.view, cache.fixed) },
-            None => { (Bounds::zero(), Bounds::zero()) }
-        };
+        let bounds_cache = cache.unwrap_or_else(AllocCache::default);
 
         Self {
-            update,
+            alloc_dir: update,
 
             bounds,
             margin: Margin::ZERO,
-            view_bounds: view_cache,
-            _fixed_bounds: fixed_cache,
 
-            view_width: view_width(bounds.width(), fixed_cache, view_cache),
-            view_height: view_height(bounds.height(), fixed_cache, view_cache),
+            view_width: bounds_cache.view_width(bounds.width()),
+            view_height: bounds_cache.view_height(bounds.height()),
 
             alloc: Bounds::from(point),
-            view_alloc: Bounds::zero(),
-            fixed_alloc: Bounds::zero(),
+            alloc_cache: AllocCache::default(),
         }
     }
 
@@ -60,44 +48,26 @@ impl Alloc {
         alloc_dir: AllocDirection,
         cache: Option<AllocCache>
     ) -> Self {
-        let (view_cache, fixed_cache) = match cache {
-            Some(cache) => { (cache.view, cache.fixed) },
-            None => { (Bounds::zero(), Bounds::zero()) }
-        };
+        let bounds_cache = cache.unwrap_or_else(AllocCache::default);
 
-        let view_bounds = match alloc_dir {
-            AllocDirection::Vertical => {
-                Bounds::from(Size::new(view_cache.width(), self.view_bounds.height()))
-            }
-            AllocDirection::Horizontal => {
-                Bounds::from(Size::new(self.view_bounds.width(), view_cache.height()))
-            }
-        };
-
-        let view_bounds2 = match self.update {
+        let view_bounds = match self.alloc_dir {
             AllocDirection::Vertical => {
                 match alloc_dir {
                     AllocDirection::Vertical => {
-                        let height = init_height(self.view_height, fixed_cache, view_cache);
+                        let height = bounds_cache.init_height(self.view_height);
                         ViewBounds {
                             width: parent_free.width(),
                             height: height,
                             view_width: parent_free.width(),
-                            view_height: view_height(
-                                height - margin.height(),
-                                fixed_cache,
-                                view_cache
-                            )
+                            view_height: bounds_cache.view_height(height - margin.height()),
                         }
                     },
                     AllocDirection::Horizontal => {
                         ViewBounds {
                             width: parent_free.width(),
                             height: self.view_height,
-                            view_width: view_width(
+                            view_width: bounds_cache.view_width(
                                 parent_free.width() - margin.width(),
-                                fixed_cache, 
-                                view_cache,
                             ),
                             view_height: self.view_height,
                         }
@@ -111,24 +81,18 @@ impl Alloc {
                             width: self.view_width,
                             height: parent_free.height(),
                             view_width: self.view_width,
-                            view_height: view_height(
-                                parent_free.height() - margin.height(), 
-                                fixed_cache,
-                                view_cache
+                            view_height: bounds_cache.view_height(
+                                parent_free.height() - margin.height(),
                             ),
                         }
                     },
                     AllocDirection::Horizontal => {
-                        let width = init_width(self.view_width, fixed_cache, view_cache);
+                        let width = bounds_cache.init_width(self.view_width);
 
                         ViewBounds {
                             width,
                             height: parent_free.height(),
-                            view_width: view_width(
-                                width - margin.width(),
-                                fixed_cache,
-                                view_cache
-                            ),
+                            view_width: bounds_cache.view_width(width - margin.width()),
                             view_height: parent_free.height(),
                         }
                     },
@@ -138,46 +102,41 @@ impl Alloc {
 
         let mut bounds = Bounds::from((
             parent_free.p0(),
-            Size::new(view_bounds2.width, view_bounds2.height),
+            Size::new(view_bounds.width, view_bounds.height),
         ));
 
         bounds = bounds - margin;
 
-        let view_width = view_bounds2.view_width;
-        let view_height = view_bounds2.view_height;
+        let view_width = view_bounds.view_width;
+        let view_height = view_bounds.view_height;
 
-        /*
-        println!("  ChildBounds {:?} -> {:?} {:?}", self.update, update, bounds);
-        println!("    View {:?} Fixed {:?}", view_cache, fixed_cache);
-        println!("    f_view {:?}, {:?}", view_width, view_height);
-        */
         let alloc = Bounds::from(bounds.p0());
 
-        let view_alloc = if let Some(size) = view {
-            Bounds::from(size)
+        let alloc_cache = if let Some(size) = view {
+            AllocCache {
+                view: Bounds::from(size),
+                fixed: Bounds::zero(),
+            }
         } else {
-            Bounds::zero()
+            AllocCache::default()
         };
 
         Self {
-            update: alloc_dir,
+            alloc_dir,
 
             bounds,
             margin,
-            view_bounds, // view_cache,
-            _fixed_bounds: fixed_cache,
 
             view_width,
             view_height,
 
             alloc,
-            view_alloc,
-            fixed_alloc: Bounds::zero(),
+            alloc_cache,
         }
     }
 
     pub(crate) fn canvas_free(&self) -> Size {
-        match self.update {
+        match self.alloc_dir {
             AllocDirection::Vertical => {
                 Size::new(
                     self.bounds.width(),
@@ -194,7 +153,7 @@ impl Alloc {
     }
 
     pub(crate) fn available_bounds(&self) -> Bounds<Canvas> {
-        match self.update {
+        match self.alloc_dir {
             AllocDirection::Vertical => {
                 Bounds::from([
                     [self.bounds.xmin(), self.alloc.ymax()],
@@ -211,16 +170,13 @@ impl Alloc {
     }
 
     pub(crate) fn to_cache(self) -> AllocCache {
-        AllocCache {
-            view: self.view_alloc, // .union(Bounds::unit()),
-            fixed: self.fixed_alloc,
-        }
+        self.alloc_cache.clone()
     }
 
     pub(super) fn alloc_canvas(&mut self, size: impl Into<Size>) -> Bounds<Canvas> {
         let size = size.into();
 
-        match self.update {
+        match self.alloc_dir {
             AllocDirection::Vertical => {
                 let rect = Bounds::<Canvas>::from((
                     Point::new(self.bounds.xmin(), self.alloc.ymax()),
@@ -228,7 +184,7 @@ impl Alloc {
                 ));
 
                 self.alloc = self.alloc.union(&rect);
-                self.fixed_alloc = self.fixed_alloc.union(&rect);
+                self.alloc_cache.fixed = self.alloc_cache.fixed.union(&rect);
 
                 rect
             },
@@ -239,7 +195,7 @@ impl Alloc {
                 ));
 
                 self.alloc = self.alloc.union(&rect);
-                self.fixed_alloc = self.fixed_alloc.union(&rect);
+                self.alloc_cache.fixed = self.alloc_cache.fixed.union(&rect);
 
                 rect
             }
@@ -247,7 +203,7 @@ impl Alloc {
     }
 
     pub fn alloc_view(&mut self, size: impl Into<Size>) -> Bounds<Canvas> {
-        match self.update {
+        match self.alloc_dir {
             AllocDirection::Vertical => {
                 let rect = self.view_alloc_canvas(size);
         
@@ -281,7 +237,7 @@ impl Alloc {
             size.height * self.view_height,
         );
 
-        let alloc = match self.update {
+        let alloc = match self.alloc_dir {
             AllocDirection::Vertical => {
                 Bounds::from([
                     [self.bounds.xmin(), self.alloc.ymax()],
@@ -302,8 +258,6 @@ impl Alloc {
             }
         };
         
-        //self.canvas_allocated = self.canvas_allocated.union(&alloc);
-
         alloc
     }
 
@@ -311,17 +265,17 @@ impl Alloc {
         &mut self, 
         child: &Self, 
     ) {
-        if child.view_alloc.is_none() {
+        if child.alloc_cache.view.is_none() {
             self.alloc = self.alloc.union(child.alloc + child.margin);
-            self.fixed_alloc = self.fixed_alloc.union(child.fixed_alloc); // + self.margin;
+            self.alloc_cache.fixed = self.alloc_cache.fixed.union(child.alloc_cache.fixed); // + self.margin;
         } else {
             self.alloc = self.alloc.union(child.bounds + child.margin);
         }
             
-        let view = self.view_alloc;
-        let child = child.view_alloc;
+        let view = self.alloc_cache.view;
+        let child = child.alloc_cache.view;
 
-        self.view_alloc = match self.update {
+        self.alloc_cache.view = match self.alloc_dir {
             AllocDirection::Vertical => {
                 Bounds::from((
                     [view.x0(), view.y0()],
@@ -344,30 +298,6 @@ impl Alloc {
     }
 }
 
-fn view_width(width: f32, fixed: Bounds<Canvas>, view: Bounds<Page>) -> f32 {
-    ((width - fixed.width()) / view.width().max(1.)).floor()
-}
-
-fn view_height(height: f32, fixed: Bounds<Canvas>, view: Bounds<Page>) -> f32 {
-    ((height - fixed.height()) / view.height().max(1.)).floor()
-}
-
-fn init_width(factor: f32, fixed: Bounds<Canvas>, view: Bounds<Page>) -> f32 {
-    if view.width() > 0. {
-        factor * view.width()
-    } else {
-        fixed.width()
-    }
-}
-
-fn init_height(factor: f32, fixed: Bounds<Canvas>, view: Bounds<Page>) -> f32 {
-    if view.height() > 0. {
-        factor * view.height()
-    } else {
-        fixed.height()
-    }
-}
-
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub(crate) enum AllocDirection {
     Vertical,
@@ -384,9 +314,40 @@ pub(crate) struct ViewBounds {
     view_height: f32,
 }
 
-pub struct Length {
-    fixed: f32,
-    view: f32,
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AllocCache {
+    pub fixed: Bounds<Canvas>,
+    pub view: Bounds<Page>,
+}
+
+impl AllocCache {
+    pub(crate) fn is_changed(&self, _alloc_cache: &Option<AllocCache>) -> bool {
+        false
+    }
+
+    fn view_width(&self, width: f32) -> f32 {
+        ((width - self.fixed.width()) / self.view.width().max(1.)).floor()
+    }
+
+    fn view_height(&self, height: f32) -> f32 {
+        ((height - self.fixed.height()) / self.view.height().max(1.)).floor()
+    }
+
+    fn init_width(&self, factor: f32) -> f32 {
+        if self.view.width() > 0. {
+            factor * self.view.width()
+        } else {
+            self.fixed.width()
+        }
+    }
+
+    fn init_height(&self, factor: f32) -> f32 {
+        if self.view.height() > 0. {
+            factor * self.view.height()
+        } else {
+            self.fixed.height()
+        }
+    }
 }
 
 #[cfg(test)]

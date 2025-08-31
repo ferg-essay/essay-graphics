@@ -138,7 +138,7 @@ impl<'a> Ui<'a> {
             self.alloc.available_bounds()
         });
 
-        let update = alloc_update.unwrap_or_else(|| self.alloc.update);
+        let update = alloc_update.unwrap_or_else(|| self.alloc.alloc_dir);
 
         let bounds = Bounds::none();
 

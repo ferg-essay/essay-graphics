@@ -5,6 +5,7 @@ mod alloc;
 mod tabs;
 pub mod ui;
 
+pub use alloc::{AllocCache};
 pub use frame::Frame;
 pub use response::{Response, Flags};
 pub use panel::{CentralPanel};
