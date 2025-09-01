@@ -7,9 +7,8 @@ use essay_graphics_api::{
 
 use crate::{
     style::UiStyle, 
-    ui::{Context, Painter, RenderPass, Response, Shell, UiRender, Widget, WidgetPos}, 
+    ui::{AppState, Context, Painter, RenderPass, Response, Shell, UiRender, Update, View, Widget, WidgetPos}, 
     util::Id, 
-    widget2::{AppState, Update, View}, 
     widgets::{Button, Label, Radio, SelectableLabel}, 
     windows::MenuButton
 };
@@ -412,13 +411,13 @@ impl<'a> Ui<'a> {
         result
     }
 
-    pub fn app<'b, State, AppMessage>(
+    pub fn app<'b, State, Message>(
         &mut self, 
         state: &'b mut State, 
-        update: impl Update<State, AppMessage>,
-        view: impl for<'c> View<'c, State, AppMessage>,
+        view: impl for<'c> View<'c, State, Message>,
+        update: impl Update<State, Message>,
     ) -> Response {
-        self.add(AppState::new(state, update, view))
+        AppState::new(state, update, view).show(self)
     }
     
     pub fn text_size(&mut self, label: &str, style_text: &TextStyle) -> Size {

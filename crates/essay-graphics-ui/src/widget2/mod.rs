@@ -1,6 +1,5 @@
 mod tooltip;
 mod frame;
-mod application;
 mod button;
 mod column;
 mod checkbox;
@@ -12,7 +11,6 @@ mod task;
 pub mod element;
 mod widget;
 
-pub use application::{application, View, Update, AppState};
 pub use button::{button, Button};
 pub use column::{column, Column};
 pub use element::Element;

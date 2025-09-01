@@ -7,7 +7,7 @@ use essay_graphics_ui::{
 fn main() { 
     let mut state = State::default();
     MainLoop::new().show(move |ui| {
-        ui.app(&mut state, State::update, State::view);
+        ui.app(&mut state, State::view, State::update);
     });
 }
 

@@ -1,4 +1,5 @@
 mod alloc;
+mod application;
 mod context;
 mod memory;
 mod painter;
@@ -10,6 +11,7 @@ pub mod ui;
 mod widget;
 
 pub use alloc::{AllocSize};
+pub use application::{View, Update, AppState};
 pub use frame::Frame;
 pub use painter::{Painter, PaintList, GraphicsLayers};
 pub use response::{Response, Flags};
