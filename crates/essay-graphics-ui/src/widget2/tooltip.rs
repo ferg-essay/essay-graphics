@@ -1,4 +1,4 @@
-use crate::{ui::{Response, Ui}, widget2::{Element, Shell, Widget, WidgetFrame}};
+use crate::{ui::{Response, Shell, Ui, Widget}, widget2::{Element, WidgetFrame}};
 
 pub fn tooltip<'a, Message>(
     content: impl Into<Element<'a, Message>>,
@@ -24,20 +24,19 @@ impl<'a, Message> Tooltip<'a, Message> {
     }
 }
 
-impl<'a, Message> Widget<Message>
-    for Tooltip<'a, Message>
+impl<'a, Message> Widget<Message> for Tooltip<'a, Message>
 where
     Message: Clone + 'a
 {
-    fn draw(
+    fn ui(
         &mut self,
         ui: &mut Ui,
         shell: &mut Shell<Message>,
     ) -> Response {
-        let response = self.content.draw(ui, shell);
+        let response = self.content.ui(ui, shell);
 
         response.on_hover_ui(ui, |ui| {
-            self.tooltip.draw(ui, shell);
+            self.tooltip.ui(ui, shell);
         });
 
         response

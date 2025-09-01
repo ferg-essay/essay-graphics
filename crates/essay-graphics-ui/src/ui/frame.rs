@@ -78,7 +78,7 @@ impl Frame {
 
         // rect.rect = rect.rect + self.total_margin();
 
-        let pos = rect.rect; //  + self.inner_margin + corner_margin;
+        let pos = rect.pos; //  + self.inner_margin + corner_margin;
 
         let background = self.background;
         let corner = ui.style().corner_radius;
@@ -87,7 +87,7 @@ impl Frame {
         let shadow = ui.style().shadow;
 
         ui.painter_mut().set(index, move |ui: &mut dyn Renderer| {
-            let pos = pos.round_ui();
+            let pos = pos.snap();
 
             if is_shadow {
                 // cheap shadow

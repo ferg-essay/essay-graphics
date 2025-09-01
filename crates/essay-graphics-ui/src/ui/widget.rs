@@ -1,26 +1,56 @@
 use std::collections::hash_map;
 
-use essay_graphics_api::{renderer::Canvas, Bounds};
+use essay_graphics_api::{input::Input, Rectangle};
 
-use crate::util::{Id, IdMap};
+use crate::{ui::{Response, Ui}, util::{Id, IdMap}};
 
+pub trait Widget<Message> {
+    fn ui(&mut self, ui: &mut Ui, shell: &mut Shell<Message>) -> Response;
+
+    #[allow(unused_variables)]
+    fn update(
+        &mut self,
+        input: &Input,
+        shell: &mut Shell<'_, Message>,
+    ) {
+    }
+}
+pub struct Shell<'a, Message> {
+    messages: &'a mut Vec<Message>,
+}
+
+impl<'a, Message> Shell<'a, Message> {
+    pub fn new(messages: &'a mut Vec<Message>) -> Self {
+        Self {
+            messages,
+        }
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.messages.is_empty()
+    }
+
+    pub fn publish(&mut self, message: Message) {
+        self.messages.push(message);
+    }
+}
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct WidgetRect {
+pub struct WidgetPos {
     pub id: Id,
 
-    pub rect: Bounds<Canvas>,
+    pub pos: Rectangle,
 }
 
 #[derive(Default, Clone)]
 pub struct WidgetRects {
-    widgets: Vec<WidgetRect>,
+    widgets: Vec<WidgetPos>,
 
-    by_id: IdMap<(usize, WidgetRect)>,
+    by_id: IdMap<(usize, WidgetPos)>,
 }
 
 impl WidgetRects {
     #[inline]
-    pub fn get(&self, id: Id) -> Option<&WidgetRect> {
+    pub fn get(&self, id: Id) -> Option<&WidgetPos> {
         self.by_id.get(&id).map(|(_, w)| w)
     }
 
@@ -29,32 +59,36 @@ impl WidgetRects {
         self.by_id.contains_key(&id)
     }
 
-    pub fn insert(&mut self, widget_rect: WidgetRect) {
+    pub fn insert(&mut self, id: Id, pos: impl Into<Rectangle>) -> WidgetPos {
+        let widget_pos = WidgetPos { id, pos: pos.into() };
+
         let Self {
             widgets,
             by_id
         } = self;
 
-        match by_id.entry(widget_rect.id) {
+        match by_id.entry(id) {
             hash_map::Entry::Vacant(entry) => {
                 let index = widgets.len();
-                entry.insert((index, widget_rect));
-                widgets.push(widget_rect);
+                entry.insert((index, widget_pos));
+                widgets.push(widget_pos);
             },
             hash_map::Entry::Occupied(mut entry) => {
                 let (index, widget) = entry.get_mut();
 
-                widget.rect = widget_rect.rect;
-                self.widgets[*index].rect = widget_rect.rect;
+                widget.pos = widget_pos.pos;
+                self.widgets[*index].pos = widget_pos.pos;
             },
         }
+
+        widget_pos
     }
 
-    pub fn iter(&self) -> impl ExactSizeIterator<Item=&WidgetRect> {
+    pub fn iter(&self) -> impl ExactSizeIterator<Item=&WidgetPos> {
         self.widgets.iter()
     }
 
-    pub fn iter_mut(&mut self) -> impl ExactSizeIterator<Item=&mut WidgetRect> {
+    pub fn iter_mut(&mut self) -> impl ExactSizeIterator<Item=&mut WidgetPos> {
         self.widgets.iter_mut()
     }
 

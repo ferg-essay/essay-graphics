@@ -1,6 +1,6 @@
 use essay_graphics_api::{renderer::{Renderer}, Margin, Point, Shapes, Size};
 
-use crate::{ui::{ui::Widget, Response, ResponseValue, Ui}};
+use crate::ui::{ui::MessageBase, Response, ResponseValue, Shell, Ui, Widget};
 
 pub struct Button {
     label: String,
@@ -24,8 +24,8 @@ impl Button {
     }
 }
 
-impl Widget for Button {
-    fn ui(self, ui: &mut Ui) -> Response {
+impl Widget<MessageBase> for Button {
+    fn ui(&mut self, ui: &mut Ui, _shell: &mut Shell<MessageBase>) -> Response {
         let button_text = ui.style().button_text.clone();
         let size = ui.text_size(&self.label, &button_text);
 

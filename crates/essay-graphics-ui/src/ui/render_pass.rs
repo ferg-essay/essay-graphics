@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
-use essay_graphics_api::{output::Output, renderer::Canvas, Bounds};
+use essay_graphics_api::{output::Output};
 
-use crate::{page::Page, style::UiStyle, ui::{widget::WidgetRects, AllocCache, Context}, util::IdMap};
+use crate::{style::UiStyle, ui::{widget::WidgetRects, AllocSize, Context}, util::IdMap};
 
 pub struct UiRender {
     pub pass: RenderPass,
@@ -17,7 +17,7 @@ pub struct RenderPass {
     pub widgets: WidgetRects,
 
     // view_size: ViewSizeCache,
-    pub alloc_map: IdMap<AllocCache>,
+    pub alloc_map: IdMap<AllocSize>,
 
     pub output: Option<Output>,
 }

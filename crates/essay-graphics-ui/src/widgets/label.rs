@@ -1,6 +1,6 @@
 use essay_graphics_api::renderer::Renderer;
 
-use crate::ui::{ui::Widget, Response, ResponseValue, Ui};
+use crate::ui::{Response, ResponseValue, Shell, Ui, Widget};
 
 pub struct Label {
     label: String,
@@ -14,10 +14,11 @@ impl Label {
     }
 }
 
-impl Widget for Label {
+impl<M> Widget<M> for Label {
     fn ui(
-        self, 
+        &mut self, 
         ui: &mut Ui, 
+        _shell: &mut Shell<M>,
     ) -> Response {
         let style = ui.style().label.clone();
         let style_text = ui.style().label_text.clone();

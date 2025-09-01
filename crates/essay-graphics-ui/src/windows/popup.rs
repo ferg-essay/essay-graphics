@@ -26,7 +26,7 @@ impl Popup {
         Self::new(
             response.id().with("popup"),
             ui.context(),
-            [widget.rect.x0(), widget.rect.ymax()],
+            [widget.pos.xmin(), widget.pos.ymax()],
         )
     }
 

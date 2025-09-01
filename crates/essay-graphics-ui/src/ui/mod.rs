@@ -9,7 +9,7 @@ mod tabs;
 pub mod ui;
 mod widget;
 
-pub use alloc::{AllocCache};
+pub use alloc::{AllocSize};
 pub use frame::Frame;
 pub use painter::{Painter, PaintList, GraphicsLayers};
 pub use response::{Response, Flags};
@@ -21,4 +21,4 @@ pub use ui::{Ui, UiSize, ResponseValue, OnceView};
 pub use context::{Context};
 pub use memory::{Memory, MemoryData};
 pub use render_pass::{UiRender, RenderPass};
-pub use widget::{WidgetRect};
+pub use widget::{Shell, Widget, WidgetPos};

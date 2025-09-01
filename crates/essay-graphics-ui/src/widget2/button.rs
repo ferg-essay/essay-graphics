@@ -1,8 +1,8 @@
 use essay_graphics_api::{renderer::Renderer, Margin, Point, Shapes, Size};
 
 use crate::{
-    ui::{Response, ResponseValue, Ui}, 
-    widget2::{text::Text, Element, Shell, Widget, WidgetFrame}
+    ui::{Response, ResponseValue, Shell, Ui, Widget}, 
+    widget2::{text::Text, Element, WidgetFrame}
 };
 
 pub fn button<'a, Message>(
@@ -63,12 +63,11 @@ impl<'a, Message> Button<'a, Message>
     }
 }
 
-impl<'a, Message> Widget<Message>
-    for Button<'a, Message>
+impl<'a, Message> Widget<Message> for Button<'a, Message>
 where
     Message: Clone + 'a
 {
-    fn draw(
+    fn ui(
         &mut self,
         ui: &mut Ui,
         shell: &mut Shell<Message>,

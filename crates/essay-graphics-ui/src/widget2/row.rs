@@ -1,4 +1,4 @@
-use crate::{ui::{Response, Ui}, widget2::{Element, Shell, Widget, WidgetFrame}};
+use crate::{ui::{Response, Shell, Ui, Widget}, widget2::{Element, WidgetFrame}};
 
 pub fn row<'a, Message>(
     content: impl IntoIterator<Item=Element<'a, Message>>
@@ -54,14 +54,14 @@ impl<'a, Message> Row<'a, Message> {
 }
 
 impl<'a, Message> Widget<Message> for Row<'a, Message> {
-    fn draw(
+    fn ui(
         &mut self,
         ui: &mut Ui,
         shell: &mut Shell<Message>,
     ) -> Response {
         ui.row(|ui| {
             for item in &mut self.children {
-                item.draw(ui, shell);
+                item.ui(ui, shell);
             }
         }).response
     }

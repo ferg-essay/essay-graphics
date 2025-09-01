@@ -1,6 +1,6 @@
 use essay_graphics_api::{renderer::{Canvas, Renderer}, Color, Margin, Path, Point, Shapes, Size};
 
-use crate::{style::State, ui::{ui::Widget, Response, ResponseValue, Ui}};
+use crate::{style::State, ui::{ui::MessageBase, Response, ResponseValue, Shell, Ui, Widget}};
 
 pub struct SelectableLabel {
     label: String,
@@ -24,8 +24,8 @@ impl SelectableLabel {
     }
 }
 
-impl Widget for SelectableLabel {
-    fn ui(self, ui: &mut Ui) -> Response {
+impl Widget<MessageBase> for SelectableLabel {
+    fn ui(&mut self, ui: &mut Ui, shell: &mut Shell<MessageBase>) -> Response {
         let text_style = ui.style().button_text.clone();
         let size = ui.text_size(&self.label, &text_style);
 

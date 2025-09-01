@@ -1,6 +1,6 @@
 use essay_graphics_api::{renderer::Renderer};
 
-use crate::{ui::{Response, ResponseValue}, widget2::{Element, Shell, Widget, WidgetFrame}};
+use crate::{ui::{Response, ResponseValue, Shell, Widget}, widget2::{Element, WidgetFrame}};
 
 pub fn text(value: &str) -> Text {
     Text::new(value)
@@ -26,7 +26,7 @@ impl Text {
 }
 
 impl<'a, Message> Widget<Message> for Text {
-    fn draw(
+    fn ui(
         &mut self,
         ui: &mut crate::ui::Ui,
         _shell: &mut Shell<Message>,

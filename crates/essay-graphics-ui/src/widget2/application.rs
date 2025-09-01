@@ -1,6 +1,8 @@
+use std::marker::PhantomData;
+
 use essay_graphics_api::{Size};
 
-use crate::{ui::{ui, Response, Ui}, widget2::{Element, Shell, Task, Widget}};
+use crate::{ui::{ui::{self, MessageBase}, Response, Shell, Ui, Widget}, widget2::{Element, Task}};
 
 pub fn application<State, Message>(
     update: impl Update<State, Message>,
@@ -31,8 +33,7 @@ pub trait View<'a, State, Message> {
     fn view(&self, state: &'a State) -> Element<'a, Message>;
 }
 
-impl<'a, T, State, Message, Widget>
-    View<'a, State, Message> for T
+impl<'a, T, State, Message, Widget> View<'a, State, Message> for T
 where
     T: Fn(&'a State) -> Widget,
     State: 'static,
@@ -52,8 +53,7 @@ where
     view: Box<View>,
 }
 
-impl<'a, State, Message, View>
-    AppState<'a, State, Message, View>
+impl<'a, State, Message, View> AppState<'a, State, Message, View>
 where
     View: for<'b> self::View<'b, State, Message>
 {
@@ -87,7 +87,7 @@ where
     fn draw(&self, ui: &mut Ui, shell: &mut Shell<Message>) -> Response {
         let mut element = self.view.view(self.state);
 
-        element.draw(ui, shell)
+        element.ui(ui, shell)
     }
 
     fn update(&mut self, message: Message) {
@@ -95,14 +95,15 @@ where
     }
 }
 
-impl<'a, State, Message, View> ui::Widget
+impl<'a, State, Message, View> Widget<MessageBase>
     for AppState<'a, State, Message, View>
 where
     View: for<'b> self::View<'b, State, Message>
 {
     fn ui(
-        self, 
+        &mut self, 
         ui: &mut ui::Ui,
+        shell: &mut Shell<MessageBase>,
     ) -> crate::ui::Response {
         let mut messages: Vec<Message> = Vec::new();
 

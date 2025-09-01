@@ -1,6 +1,6 @@
-use essay_graphics_api::{input::Input, renderer::Pos};
+use essay_graphics_api::{input::Input, renderer::Pos, Rectangle};
 
-use crate::{ui::{Context, Ui, WidgetRect}, util::Id, windows::Tooltip};
+use crate::{ui::{Context, Ui, WidgetPos}, util::Id, windows::Tooltip};
 
 pub struct Response {
     pub id: Id,
@@ -13,7 +13,7 @@ pub struct Response {
 }
 
 impl Response {
-    pub(crate) fn new(ui: &mut Ui, widget: WidgetRect) -> Self {
+    pub(crate) fn new(ui: &mut Ui, widget: WidgetPos) -> Self {
         let mut response = Self {
             id: widget.id,
             is_hover: false,
@@ -59,9 +59,9 @@ impl Response {
         self.is_hover
     }
 
-    pub(crate) fn rect(&self, ui: &Ui) -> Pos {
+    pub(crate) fn rect(&self, ui: &Ui) -> Rectangle {
         // self.ui.pass().widgets.get(self.id).unwrap().rect
-        ui.pass().widgets.get(self.id).unwrap().rect
+        ui.pass().widgets.get(self.id).unwrap().pos
     }
 
     pub fn on_hover_ui(&self, ui: &mut Ui, add_contents: impl FnOnce(&mut Ui)) -> &Self {

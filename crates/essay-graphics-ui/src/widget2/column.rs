@@ -1,8 +1,8 @@
 use essay_graphics_api::{Rectangle};
 
 use crate::{
-    ui::{Response, Ui}, 
-    widget2::{Element, Shell, Widget, WidgetFrame}
+    ui::{Response, Shell, Ui, Widget}, 
+    widget2::{Element, WidgetFrame}
 };
 
 pub fn column<'a, Message>(
@@ -60,14 +60,14 @@ impl<'a, Message> Widget<Message> for Column<'a, Message>
 where
     Message: 'a
 {
-    fn draw(
+    fn ui(
         &mut self,
         ui: &mut Ui,
         shell: &mut Shell<Message>,
     ) -> Response {
         ui.column(|ui| {
             for item in &mut self.children {
-                item.draw(ui, shell);
+                item.ui(ui, shell);
             }
         }).response
     }

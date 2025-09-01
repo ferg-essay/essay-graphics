@@ -1,6 +1,6 @@
 use essay_graphics_api::{color::Grey, renderer::{Canvas, Renderer}, Bounds, Margin, Shapes, Size};
 
-use crate::{ui::{ui::Widget, Response, ResponseValue, Ui}};
+use crate::ui::{ui::MessageBase, Response, ResponseValue, Shell, Ui, Widget};
 
 pub struct Radio {
     label: String,
@@ -24,8 +24,8 @@ impl Radio {
     }
 }
 
-impl Widget for Radio {
-    fn ui(self, ui: &mut Ui) -> Response {
+impl Widget<MessageBase> for Radio {
+    fn ui(&mut self, ui: &mut Ui, shell: &mut Shell<MessageBase>) -> Response {
         let text_style = ui.style().button_text.clone();
         let size = ui.text_size(&self.label, &text_style);
 

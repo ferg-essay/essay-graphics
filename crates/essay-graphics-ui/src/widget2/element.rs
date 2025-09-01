@@ -1,4 +1,6 @@
-use crate::{ui::{Response, Ui}, widget2::{widget::Widget, Shell}};
+use essay_graphics_api::input::Input;
+
+use crate::ui::{Response, Shell, Ui, Widget};
 
 
 pub struct Element<'a, Message> {
@@ -24,17 +26,17 @@ impl<'a, Message> Element<'a, Message> {
 impl<'a, Message> Widget<Message> for Element<'a, Message> {
     fn update(
         &mut self,
-        input: &essay_graphics_api::input::Input,
-        shell: &mut super::Shell<'_, Message>,
+        input: &Input,
+        shell: &mut Shell<'_, Message>,
     ) {
         self.widget.update(input, shell)
     }
 
-    fn draw(
+    fn ui(
         &mut self,
         ui: &mut Ui,
         shell: &mut Shell<Message>,
     ) -> Response {
-        self.widget.draw(ui, shell)
+        self.widget.ui(ui, shell)
     }
 }

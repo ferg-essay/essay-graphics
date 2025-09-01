@@ -1,6 +1,6 @@
 use essay_graphics_api::{renderer::Renderer, Color, Margin, Point, Shapes};
 
-use crate::{ui::{ui::UiBuilder, Response, Ui}, widget2::{Element, Shell, Widget}};
+use crate::{ui::{ui::UiBuilder, Response, Shell, Ui, Widget}, widget2::Element};
 
 pub fn frame<'a, Message>(
     content: impl Into<Element<'a, Message>>
@@ -52,12 +52,11 @@ impl<'a, Message> Frame<'a, Message> {
     }
 }
 
-impl<'a, Message> Widget<Message>
-    for Frame<'a, Message>
+impl<'a, Message> Widget<Message> for Frame<'a, Message>
 where
     Message: Clone + 'a
 {
-    fn draw(
+    fn ui(
         &mut self,
         ui: &mut Ui,
         shell: &mut Shell<Message>,
@@ -82,7 +81,7 @@ where
         // let response = self.content.draw(ui, bounds, shell);
 
         let response = ui.child(builder, |ui| {
-            self.content.draw(ui, shell);
+            self.content.ui(ui, shell);
         }).response;
 
         let rect = ui.pass().widgets().get(response.id()).unwrap();
@@ -99,7 +98,7 @@ where
 
         // rect.rect = rect.rect + self.total_margin();
 
-        let pos = rect.rect; //  + self.inner_margin + corner_margin;
+        let pos = rect.pos; //  + self.inner_margin + corner_margin;
 
         let background = self.background.unwrap_or(Color(0));
         let corner = ui.style().corner_radius;
@@ -108,7 +107,7 @@ where
         let shadow = ui.style().shadow;
 
         ui.painter_mut().set(index, move |ui: &mut dyn Renderer| {
-            let pos = pos.round_ui();
+            let pos = pos.snap();
 
             if is_shadow {
                 // cheap shadow

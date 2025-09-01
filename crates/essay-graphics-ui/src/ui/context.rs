@@ -1,15 +1,15 @@
 use std::ops::{Deref, DerefMut};
 use std::sync::{Arc, RwLock};
-use std::time::{Duration, Instant};
+use std::time::{Instant};
 
 use essay_graphics_api::input::Input;
-use essay_graphics_api::output::{Command, Output};
+use essay_graphics_api::output::{Output};
 use essay_graphics_api::renderer::{self, Canvas, FontSetMetrics, GraphicsContext, Renderer};
 use essay_graphics_api::{Bounds, Point};
 
 use crate::style::UiStyle;
 use crate::ui::ui::UiBuilder;
-use crate::ui::{GraphicsLayers, Memory, RenderPass, Response, Ui, UiRender};
+use crate::ui::{GraphicsLayers, Memory, RenderPass, Ui, UiRender};
 use crate::util::{Id, IdSet};
 
 #[derive(Clone)]
@@ -212,7 +212,7 @@ impl Context {
                 }
 
                 for widget in ctx.viewport.last_pass.as_ref().unwrap().widgets.iter() {
-                    if widget.rect.contains(point) {
+                    if widget.pos.contains(point) {
                         ctx.viewport.hover.insert(widget.id);
 
                         if input.left.click {

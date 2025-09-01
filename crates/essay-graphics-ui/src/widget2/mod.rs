@@ -10,7 +10,6 @@ mod row;
 mod theme;
 mod task;
 pub mod element;
-mod shell;
 mod widget;
 
 pub use application::{application, View, Update, AppState};
@@ -19,10 +18,9 @@ pub use column::{column, Column};
 pub use element::Element;
 pub use frame::{frame, Frame};
 pub use row::{row, Row};
-pub use shell::Shell;
 pub use task::Task;
 pub use text::{text, Text};
 pub use tooltip::{tooltip, Tooltip};
 pub use theme::Theme;
-pub use widget::{Widget, WidgetFrame};
+pub use widget::{WidgetFrame};
 

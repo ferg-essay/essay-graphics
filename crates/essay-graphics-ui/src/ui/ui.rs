@@ -2,12 +2,12 @@ use core::hash;
 use std::{marker::PhantomData, ops, sync::Arc};
 
 use essay_graphics_api::{
-    input::Input, output::Output, renderer::{self, Canvas, Drawable, Renderer}, Bounds, Margin, Size, TextStyle
+    input::Input, output::Output, renderer::{self, Canvas, Drawable, Renderer}, Bounds, Margin, Rectangle, Size, TextStyle
 };
 
 use crate::{
     style::UiStyle, 
-    ui::{Context, Painter, RenderPass, Response, UiRender, WidgetRect}, 
+    ui::{Context, Painter, RenderPass, Response, Shell, UiRender, Widget, WidgetPos}, 
     util::Id, 
     widget2::{AppState, Update, View}, 
     widgets::{Button, Label, Radio, SelectableLabel}, 
@@ -16,7 +16,7 @@ use crate::{
 
 use super::alloc::{Alloc, AllocDirection};
 
-pub struct Ui<'a, Message=MessageBase> {
+pub struct Ui<'a> {
     id: Id,
     unique_id: Id,
     next_auto_id_salt: u64,
@@ -29,7 +29,7 @@ pub struct Ui<'a, Message=MessageBase> {
 
     cache_index: usize,
 
-    marker: PhantomData<Message>,
+    // marker: PhantomData<Message>,
 }
 
 impl<'a> Ui<'a> {
@@ -78,7 +78,6 @@ impl<'a> Ui<'a> {
         let bounds = max_bounds.unwrap_or_else(|| ctx.screen_pos());
 
         let alloc_cache = render.last_pass.alloc_map.get(&id).cloned();
-
         let alloc = Alloc::new(bounds, AllocDirection::Vertical, alloc_cache.clone());
 
         let mut ui = Ui {
@@ -91,14 +90,11 @@ impl<'a> Ui<'a> {
             render,
     
             cache_index: 0,
-            marker: Default::default(),
+            // marker: Default::default(),
         };
 
-        let start_rect = Bounds::none();
-        ui.create_widget(WidgetRect {
-            id: ui.unique_id,
-            rect: start_rect,
-        });
+        let start_rect = Rectangle::ZERO;
+        ui.insert_widget(ui.unique_id, start_rect);
     
         let result = (add_content)(&mut ui);
     
@@ -141,12 +137,9 @@ impl<'a> Ui<'a> {
 
         let update = alloc_update.unwrap_or_else(|| self.alloc.alloc_dir);
 
-        let bounds = Bounds::none();
+        let pos = Rectangle::ZERO;
 
-        self.create_widget(WidgetRect {
-            id: unique_id,
-            rect: bounds,
-        });
+        self.insert_widget(unique_id, pos);
 
         let alloc_cache = self.last_pass()
             .alloc_map.get(&unique_id).cloned();
@@ -169,14 +162,14 @@ impl<'a> Ui<'a> {
             render: self.render,
 
             cache_index: self.cache_index,
-            marker: Default::default(),
+            // marker: Default::default(),
         };
 
         let result = (add_content)(&mut child);
 
         self.alloc.merge_child(&child.alloc);
 
-        let child_widget = child.child_end();
+        let pos = child.child_end();
 
         let new_alloc = child.alloc.to_cache();
         if new_alloc.is_changed(&alloc_cache) {
@@ -185,26 +178,25 @@ impl<'a> Ui<'a> {
 
         self.pass_mut().alloc_map.insert(unique_id, new_alloc);
 
-        let response = Response::new(self, child_widget);
+        let response = Response::new(self, pos);
 
         ResponseValue::new(result, response)
     }
 
-    fn child_end(&mut self) -> WidgetRect {
+    fn child_end(&mut self) -> WidgetPos {
         let bounds = self.alloc.alloc + self.alloc.margin;
-        WidgetRect {
+        WidgetPos {
             id: self.unique_id,
-            rect: bounds,
+            pos: bounds.into(),
         }
     }
 
-    pub(crate) fn create_widget(&mut self, widget: WidgetRect) -> Response {
-        self.pass_mut().widgets.insert(widget);
-
-        Response::new(self, widget)
+    pub fn available_bounds(&self) -> Bounds<Canvas> {
+        self.alloc.available()
     }
 
-    pub fn available_bounds(&self) -> Bounds<Canvas> {
+    #[inline]
+    pub fn available(&mut self) -> Bounds<Canvas> {
         self.alloc.available()
     }
 
@@ -226,24 +218,23 @@ impl<'a> Ui<'a> {
         let id = self.id.with(self.next_auto_id_salt);
         self.next_auto_id_salt = self.next_auto_id_salt.wrapping_add(1);
 
-        let widget = WidgetRect {
-            id,
-            rect: pos,
-        };
-
-        let response = self.create_widget(widget);
+        let response = self.insert_widget(id, pos);
 
         ResponseValue::new(pos, response)
     }
 
-    #[inline]
-    pub fn remaining_size(&mut self) -> Size {
-        self.alloc.canvas_free()
+    pub(crate) fn insert_widget(&mut self, id: Id, pos: impl Into<Rectangle>) -> Response {
+        let widget = self.pass_mut().widgets.insert(id, pos);
+
+        Response::new(self, widget)
     }
 
     #[inline]
-    pub fn add(&mut self, widget: impl Widget) -> Response {
-        widget.ui(self)
+    pub fn add(&mut self, mut widget: impl Widget<MessageBase>) -> Response {
+        let mut messages = Vec::new();
+        let mut shell = Shell::new(&mut messages);
+
+        widget.ui(self, &mut shell)
     }
 
     #[inline]
@@ -275,7 +266,7 @@ impl<'a> Ui<'a> {
 
     #[must_use="Check for input with ui.selectable_label(...).clicked()"]
     pub fn selectable_label(&mut self, is_checked: bool, text: &str) -> Response {
-        SelectableLabel::new(text, is_checked).ui(self)
+        self.add(SelectableLabel::new(text, is_checked))
     }
 
     pub fn selectable_value<V: PartialEq>(
@@ -284,7 +275,7 @@ impl<'a> Ui<'a> {
         value: V,
         text: &str, 
     ) -> Response {
-        let response = SelectableLabel::new(text, *var == value).ui(self);
+        let response = self.add(SelectableLabel::new(text, *var == value));
 
         if response.clicked() && *var != value {
             *var = value;
@@ -296,7 +287,7 @@ impl<'a> Ui<'a> {
 
     #[must_use="Check for input with ui.radio(...).clicked()"]
     pub fn radio(&mut self, is_checked: bool, text: &str) -> Response {
-        Radio::new(text, is_checked).ui(self)
+        self.add(Radio::new(text, is_checked))
     }
 
     pub fn radio_value<V: PartialEq>(
@@ -305,7 +296,7 @@ impl<'a> Ui<'a> {
         value: V,
         text: &str, 
     ) -> Response {
-        let response = Radio::new(text, *var == value).ui(self);
+        let response = self.add(Radio::new(text, *var == value));
 
         if response.clicked() && *var != value {
             *var = value;
@@ -421,11 +412,11 @@ impl<'a> Ui<'a> {
         result
     }
 
-    pub fn app<'b, State, Message>(
+    pub fn app<'b, State, AppMessage>(
         &mut self, 
         state: &'b mut State, 
-        update: impl Update<State, Message>,
-        view: impl for<'c> View<'c, State, Message>,
+        update: impl Update<State, AppMessage>,
+        view: impl for<'c> View<'c, State, AppMessage>,
     ) -> Response {
         self.add(AppState::new(state, update, view))
     }
@@ -481,17 +472,6 @@ impl<'a> Ui<'a> {
 pub struct StateBase {}
 pub enum MessageBase {}
 
-pub struct Shell<'a, M> {
-    messages: &'a Vec<M>,
-}
-
-impl<'a, M> Shell<'a, M> {
-    pub fn new(vec: &'a Vec<M>) -> Self {
-        Self {
-            messages: vec,
-        }
-    }
-}
 #[derive(Default)]
 pub(crate) struct UiBuilder {
     id_salt: Option<Id>,
@@ -586,14 +566,6 @@ impl<T: Drawable> Drawable for OnceView<T> {
             Ok(())
         }
     }
-}
-
-
-pub trait Widget {
-    fn ui(
-        self, 
-        ui: &mut Ui,
-    ) -> Response;
 }
 
 pub struct ResponseValue<T> {

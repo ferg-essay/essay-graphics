@@ -496,6 +496,12 @@ impl<M: Coord> From<Bounds<M>> for Size {
     }
 }
 
+impl<M: Coord> From<Bounds<M>> for Rectangle {
+    fn from(value: Bounds<M>) -> Self {
+        value.rect
+    }
+}
+
 impl<M: Coord> From<Option<Size>> for Bounds<M> {
     #[inline]
     fn from(value: Option<Size>) -> Self {
