@@ -1,6 +1,7 @@
 mod alloc;
 mod context;
 mod memory;
+mod painter;
 mod render_pass;
 mod response;
 mod frame;
@@ -10,6 +11,7 @@ mod widget;
 
 pub use alloc::{AllocCache};
 pub use frame::Frame;
+pub use painter::{Painter, PaintList, GraphicsLayers};
 pub use response::{Response, Flags};
 //pub use panel::{CentralPanel};
 pub use tabs::Tabs;

@@ -1,4 +1,4 @@
-use essay_graphics::ui::{CentralPanel, Tabs, UiSize};
+use essay_graphics::ui::{Tabs, UiSize};
 use essay_graphics_ui::main_loop::MainLoop;
 
 fn main() { 

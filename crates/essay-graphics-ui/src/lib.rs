@@ -1,5 +1,5 @@
 pub mod widget2;
-pub mod painter;
+//pub mod painter;
 pub mod windows;
 //pub mod context;
 pub mod main_loop;

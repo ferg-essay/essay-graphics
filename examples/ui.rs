@@ -1,7 +1,4 @@
-use essay_graphics::ui::ui::Ui;
-//use essay_graphics::ui::UiView;
-//use essay_graphics::layout::MainLoop;
-use essay_graphics_ui::{main_loop::MainLoop, ui::CentralPanel};
+use essay_graphics_ui::{main_loop::MainLoop};
 
 
 fn main() { 
