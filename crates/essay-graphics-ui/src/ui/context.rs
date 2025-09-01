@@ -7,12 +7,10 @@ use essay_graphics_api::output::{Command, Output};
 use essay_graphics_api::renderer::{self, Canvas, FontSetMetrics, GraphicsContext, Renderer};
 use essay_graphics_api::{Bounds, Point};
 
-use crate::context::widget::{WidgetRect};
-use crate::context::{Memory, RenderPass, UiRender};
 use crate::painter::GraphicsLayers;
 use crate::style::UiStyle;
 use crate::ui::ui::UiBuilder;
-use crate::ui::{Response, Ui};
+use crate::ui::{Memory, RenderPass, Response, Ui, UiRender};
 use crate::util::{Id, IdSet};
 
 #[derive(Clone)]

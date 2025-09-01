@@ -6,7 +6,7 @@ use essay_graphics_api::{
 };
 
 use crate::{
-    context::{Context, RenderPass, UiRender, WidgetRect}, painter::Painter, style::UiStyle, ui::Response, util::Id, widget2::{AppState, Update, View}, widgets::{Button, Label, Radio, SelectableLabel}, windows::MenuButton
+    painter::Painter, style::UiStyle, ui::{Context, RenderPass, Response, UiRender, WidgetRect}, util::Id, widget2::{AppState, Update, View}, widgets::{Button, Label, Radio, SelectableLabel}, windows::MenuButton
 };
 
 use super::alloc::{Alloc, AllocDirection};

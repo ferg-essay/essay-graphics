@@ -1,6 +1,6 @@
 use essay_graphics_api::{input::Input, renderer::Pos};
 
-use crate::{context::{Context, WidgetRect}, ui::Ui, util::Id, windows::Tooltip};
+use crate::{ui::{Context, Ui, WidgetRect}, util::Id, windows::Tooltip};
 
 pub struct Response {
     pub id: Id,

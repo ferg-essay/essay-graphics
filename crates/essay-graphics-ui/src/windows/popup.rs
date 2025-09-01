@@ -1,6 +1,6 @@
 use essay_graphics_api::{Point};
 
-use crate::{context::Context, ui::{ui::{ResponseValue, Ui, UiBuilder}, Frame, Response}, util::Id};
+use crate::{ui::{ui::{ResponseValue, Ui, UiBuilder}, Context, Frame, Response}, util::Id};
 
 pub struct Popup {
     id: Id,
@@ -126,7 +126,7 @@ pub enum OpenMemory {
 mod test {
     use essay_graphics_test::{TestGraphicsContext, TestRenderer};
 
-    use crate::{context::Context, windows::Popup};
+    use crate::{ui::Context, windows::Popup};
 
     #[test]
     fn popup() {

@@ -1,6 +1,6 @@
 use essay_graphics_api::renderer::{self, Drawable, Renderer};
 
-use crate::context::Context;
+use crate::ui::Context;
 
 pub struct Painter {
     ctx: Context,

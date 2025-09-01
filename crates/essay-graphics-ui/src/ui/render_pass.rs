@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use essay_graphics_api::{output::Output, renderer::Canvas, Bounds};
 
-use crate::{context::{widget::WidgetRects, Context}, page::Page, style::UiStyle, ui::AllocCache, util::IdMap};
+use crate::{page::Page, style::UiStyle, ui::{widget::WidgetRects, AllocCache, Context}, util::IdMap};
 
 pub struct UiRender {
     pub pass: RenderPass,

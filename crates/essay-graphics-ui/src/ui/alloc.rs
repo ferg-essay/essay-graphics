@@ -355,7 +355,7 @@ impl AllocCache {
 mod test {
     use essay_graphics_test::{TestGraphicsContext, TestRenderer};
 
-    use crate::{context::Context, ui::{Frame}};
+    use crate::ui::{Context, Frame};
 
     #[test]
     fn vertical_label() {

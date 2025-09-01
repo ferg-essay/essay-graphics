@@ -2,7 +2,7 @@ use essay_graphics_wgpu::{WgpuBackend};
 
 use essay_graphics_api::{output::Output, renderer::{self, App, Backend, Renderer}};
 
-use crate::{context::Context, ui::Ui};
+use crate::ui::{Context, Ui};
 
 pub struct MainLoop {
     device: Box<dyn Backend>,
