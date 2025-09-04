@@ -462,6 +462,13 @@ impl<M: Coord> From<&Bounds<M>> for Bounds<M> {
     }
 }
 
+impl<M: Coord> From<Rectangle> for Bounds<M> {
+    #[inline]
+    fn from(rect: Rectangle) -> Self {
+        Bounds::new0(rect.x, rect.y, rect.width, rect.height)
+    }
+}
+
 impl<M: Coord> From<(Point, Size)> for Bounds<M> {
     #[inline]
     fn from((point, size): (Point, Size)) -> Self {

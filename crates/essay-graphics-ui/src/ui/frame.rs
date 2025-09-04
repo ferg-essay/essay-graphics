@@ -43,7 +43,7 @@ impl Frame {
     pub fn show<R>(self, ui: &mut Ui, add_contents: impl FnOnce(&mut Ui) -> R) -> ResponseValue<R> {
         let corner_margin = Margin::from_all(ui.style().corner_radius);
 
-        let max_bounds = ui.available_bounds() - self.total_margin() - corner_margin;
+        //let max_bounds = ui.available_bounds() - self.total_margin() - corner_margin;
 
         // todo: negative bounds
         /*
@@ -57,7 +57,7 @@ impl Frame {
 
         let builder = UiBuilder::default()
             .margin(margin);
-        //    .max_bounds(max_bounds);
+            //.max_bounds(max_bounds);
 
         let ResponseValue {
             value,
@@ -134,7 +134,7 @@ mod test {
         }).unwrap();
 
         assert_eq!(test.take(), "text (0.0,0.0) 'Ante'
-rect (0.0,27.0) 166.0x58.0 #00ff00ff
+rect (0.0,27.0) 166.0x59.0 #00ff00ff
 text (16.0,42.7) 'Frame'
 text (0.0,85.3) 'Post'");
 
@@ -149,7 +149,7 @@ text (0.0,85.3) 'Post'");
         }).unwrap();
 
         assert_eq!(test.take(), "text (0.0,0.0) 'Ante'
-rect (0.0,27.0) 166.0x58.0 #00ff00ff
+rect (0.0,27.0) 166.0x59.0 #00ff00ff
 text (16.0,42.7) 'Frame'
 text (0.0,85.3) 'Post'");
     }

@@ -7,7 +7,7 @@ use essay_graphics_api::{
 
 use crate::{
     style::UiStyle, 
-    ui::{AppState, Context, Painter, RenderPass, Response, Shell, UiRender, Update, View, Widget, WidgetPos}, 
+    ui::{widget::DrawWidget, AppState, Context, Painter, RenderPass, Response, Shell, UiRender, Update, View, Widget, WidgetPos}, 
     util::Id, 
     widgets::{Button, Label, Radio, SelectableLabel}, 
     windows::MenuButton
@@ -113,7 +113,7 @@ impl<'a> Ui<'a> {
     
     pub(crate) fn child<R>(
         &mut self,
-        builder: UiBuilder,
+        builder: impl Into<UiBuilder>,
         add_content: impl FnOnce(&mut Ui) -> R
     ) -> ResponseValue<R> {
         let UiBuilder {
@@ -122,7 +122,7 @@ impl<'a> Ui<'a> {
             view,
             margin,
             update: alloc_update,
-        } = builder;
+        } = builder.into();
         
         let id_salt = id_salt.unwrap_or_else(|| Id::from("child"));
         let stable_id = self.id.with(id_salt);
@@ -176,6 +176,7 @@ impl<'a> Ui<'a> {
         }
 
         self.pass_mut().alloc_map.insert(unique_id, new_alloc);
+        self.pass_mut().widgets.insert(pos.id, pos.pos);
 
         let response = Response::new(self, pos);
 
@@ -184,6 +185,7 @@ impl<'a> Ui<'a> {
 
     fn child_end(&mut self) -> WidgetPos {
         let bounds = self.alloc.alloc + self.alloc.margin;
+
         WidgetPos {
             id: self.unique_id,
             pos: bounds.into(),
@@ -229,25 +231,22 @@ impl<'a> Ui<'a> {
     }
 
     #[inline]
-    pub fn add(&mut self, mut widget: impl Widget<MessageBase>) -> Response {
-        let mut messages = Vec::new();
-        let mut shell = Shell::new(&mut messages);
-
-        widget.ui(self, &mut shell)
+    pub fn draw(&mut self, mut widget: impl DrawWidget) -> Response {
+        widget.draw(self)
     }
 
     #[inline]
     pub fn label(&mut self, label: &str) -> Response {
         let label = Label::new(label);
 
-        self.add(label)
+        self.draw(label)
     }
 
     #[inline]
     pub fn button(&mut self, label: &str, press: bool) -> Response {
         let button = Button::new(label, press);
 
-        self.add(button)
+        self.draw(button)
     }
 
     #[inline]
@@ -265,7 +264,7 @@ impl<'a> Ui<'a> {
 
     #[must_use="Check for input with ui.selectable_label(...).clicked()"]
     pub fn selectable_label(&mut self, is_checked: bool, text: &str) -> Response {
-        self.add(SelectableLabel::new(text, is_checked))
+        self.draw(SelectableLabel::new(text, is_checked))
     }
 
     pub fn selectable_value<V: PartialEq>(
@@ -274,7 +273,7 @@ impl<'a> Ui<'a> {
         value: V,
         text: &str, 
     ) -> Response {
-        let response = self.add(SelectableLabel::new(text, *var == value));
+        let response = self.draw(SelectableLabel::new(text, *var == value));
 
         if response.clicked() && *var != value {
             *var = value;
@@ -286,7 +285,7 @@ impl<'a> Ui<'a> {
 
     #[must_use="Check for input with ui.radio(...).clicked()"]
     pub fn radio(&mut self, is_checked: bool, text: &str) -> Response {
-        self.add(Radio::new(text, is_checked))
+        self.draw(Radio::new(text, is_checked))
     }
 
     pub fn radio_value<V: PartialEq>(
@@ -295,7 +294,7 @@ impl<'a> Ui<'a> {
         value: V,
         text: &str, 
     ) -> Response {
-        let response = self.add(Radio::new(text, *var == value));
+        let response = self.draw(Radio::new(text, *var == value));
 
         if response.clicked() && *var != value {
             *var = value;
@@ -305,9 +304,11 @@ impl<'a> Ui<'a> {
         response
     }
 
+    /*
     pub fn draw(&mut self, draw: impl Drawable + 'static) -> Response {
         self.draw_size(Size::UNIT, draw)
     }
+    */
 
     pub fn draw_size(&mut self, size: Size, draw: impl Drawable + 'static) -> Response {
         let ResponseValue { response, .. } = self.allocate_view(size);
@@ -344,7 +345,7 @@ impl<'a> Ui<'a> {
         let result = self.child(
             UiBuilder::default()
                 .max_bounds(pos)
-                .view(Size::UNIT)
+                .size(Size::new(Length::Fill, Length::Fill))
                 .update(AllocDirection::Vertical),
             add_content
         );
@@ -354,7 +355,7 @@ impl<'a> Ui<'a> {
         result
     }
 
-    pub fn horizontal_size<R>(
+    pub fn row_size<R>(
         &mut self, 
         size: UiSize, 
         add_content: impl FnOnce(&mut Ui) -> R
@@ -383,7 +384,7 @@ impl<'a> Ui<'a> {
         result
     }
 
-    pub fn vertical_size<R>(
+    pub fn column_size<R>(
         &mut self, 
         size: UiSize, 
         add_content: impl FnOnce(&mut Ui) -> R
@@ -472,10 +473,10 @@ pub struct StateBase {}
 pub enum MessageBase {}
 
 #[derive(Default)]
-pub(crate) struct UiBuilder {
+pub struct UiBuilder {
     id_salt: Option<Id>,
     max_bounds: Option<Bounds<Canvas>>,
-    view: Option<Size>,
+    view: Option<Size<Length>>,
     margin: Margin,
     update: Option<AllocDirection>,
 }
@@ -511,10 +512,42 @@ impl UiBuilder {
 
     #[inline]
     pub fn view(mut self, size: impl Into<Size>) -> Self {
+        let size = size.into();
+
+        self.view = Some(Size::new(
+            Length::View(size.width),
+            Length::View(size.height),
+        ));
+
+        self
+    }
+
+    #[inline]
+    pub fn size(mut self, size: impl Into<Size<Length>>) -> Self {
         self.view = Some(size.into());
 
         self
     }
+}
+
+impl From<Margin> for UiBuilder {
+    fn from(size: Margin) -> Self {
+        UiBuilder::default().margin(size)
+    }
+}
+
+impl From<Size<Length>> for UiBuilder {
+    fn from(size: Size<Length>) -> Self {
+        UiBuilder::default().size(size)
+    }
+}
+
+#[derive(Copy, Clone, Debug)]
+pub enum Length {
+    Shrink,
+    Pixels(f32),
+    Fill,
+    View(f32),
 }
 
 #[derive(Copy, Clone, Debug)]

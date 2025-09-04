@@ -103,6 +103,11 @@ impl Rectangle {
     pub const ZERO: Rectangle = Rectangle::new(0., 0., 0., 0.);
     pub const UNIT: Rectangle = Rectangle::new(0., 0., 1., 1.);
     pub const INFINITE: Rectangle = Rectangle::new(f32::MIN, f32::MIN, f32::MAX, f32::MAX);
+    
+    #[inline]
+    pub fn is_zero(&self) -> bool {
+        self.x == 0. && self.y == 0. && self.width == 0. && self.height == 0.
+    }
 
     #[inline]
     pub fn contains(&self, point: impl Into<Point>) -> bool {
@@ -147,6 +152,39 @@ impl<T: Clone> Clone for Rectangle<T> {
             y: self.y.clone(), 
             width: self.width.clone(), 
             height: self.height.clone() 
+        }
+    }
+}
+
+impl<T: Default> Default for Rectangle<T> {
+    fn default() -> Self {
+        Self { 
+            x: Default::default(), 
+            y: Default::default(), 
+            width: Default::default(), 
+            height: Default::default() 
+        }
+    }
+}
+
+impl<T: Default> From<Size<T>> for Rectangle<T> {
+    fn from(value: Size<T>) -> Self {
+        Self {
+            x: T::default(),
+            y: T::default(),
+            width: value.width,
+            height: value.height,
+        }
+    }
+}
+
+impl<T: Default> From<Point<T>> for Rectangle<T> {
+    fn from(value: Point<T>) -> Self {
+        Self {
+            x: value.x,
+            y: value.y,
+            width: T::default(),
+            height: T::default(),
         }
     }
 }

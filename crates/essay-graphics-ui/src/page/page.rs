@@ -468,7 +468,7 @@ struct _PageUi {
 
 impl PageDraw for _PageUi {
     fn draw(&mut self, ui: &mut Ui) {
-        ui.vertical_size(self.size, |ui| {
+        ui.column_size(self.size, |ui| {
             (self.add_content)(ui)
         });
     }
@@ -481,7 +481,7 @@ struct PageHoriz {
 
 impl PageDraw for PageHoriz {
     fn draw(&mut self, ui: &mut Ui) {
-        ui.horizontal_size(self.size, |ui| {
+        ui.row_size(self.size, |ui| {
             for child in &mut self.children {
                 child.draw(ui);
             }
@@ -496,7 +496,7 @@ struct PageVert {
 
 impl PageDraw for PageVert {
     fn draw(&mut self, ui: &mut Ui) {
-        ui.vertical_size(self.size, |ui| {
+        ui.column_size(self.size, |ui| {
             for child in &mut self.children {
                 child.draw(ui);
             }

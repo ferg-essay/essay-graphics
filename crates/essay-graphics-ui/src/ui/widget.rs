@@ -15,6 +15,18 @@ pub trait Widget<Message> {
     ) {
     }
 }
+
+///
+/// DrawWidget is for non-updating elements such as text, which don't
+/// send update messages.
+/// 
+/// DrawWidgets can be used outside of an application view, as part of the
+/// UI frame.
+/// 
+pub trait DrawWidget {
+    fn draw(&mut self, ui: &mut Ui) -> Response;
+}
+
 pub struct Shell<'a, Message> {
     messages: &'a mut Vec<Message>,
 }

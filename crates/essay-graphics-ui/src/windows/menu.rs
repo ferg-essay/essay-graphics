@@ -10,7 +10,7 @@ pub fn menu_button<R>(
 
     let button = Button::new(title, false);
 
-    let button_response = ui.add(button);
+    let button_response = ui.draw(button);
 
     ResponseValue::new(None, button_response)
 }

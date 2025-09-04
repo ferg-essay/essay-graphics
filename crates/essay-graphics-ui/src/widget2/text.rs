@@ -1,6 +1,6 @@
 use essay_graphics_api::{renderer::Renderer};
 
-use crate::{ui::{Response, ResponseValue, Shell, Widget}, widget2::{Element, WidgetFrame}};
+use crate::{ui::{DrawWidget, Response, ResponseValue, Shell, Widget}, widget2::{Element, WidgetFrame}};
 
 pub fn text(value: &str) -> Text {
     Text::new(value)
@@ -30,6 +30,36 @@ impl<'a, Message> Widget<Message> for Text {
         &mut self,
         ui: &mut crate::ui::Ui,
         _shell: &mut Shell<Message>,
+    ) -> Response {
+        let style = ui.style().label.clone();
+        let style_text = ui.style().label_text.clone();
+        let size = ui.text_size(&self.content, &style_text);
+        
+        let ResponseValue { 
+            value, 
+            response
+        } = ui.allocate_rect(size);
+
+        let label = String::from(&self.content);
+
+        ui.painter_mut().add(move |renderer: &mut dyn Renderer| {
+            renderer.draw_text(
+                value.p0(), 
+                &label, 
+                0., 
+                &style,
+                &style_text
+            )
+        });
+
+        response
+    }
+}
+
+impl DrawWidget for Text {
+    fn draw(
+        &mut self,
+        ui: &mut crate::ui::Ui,
     ) -> Response {
         let style = ui.style().label.clone();
         let style_text = ui.style().label_text.clone();

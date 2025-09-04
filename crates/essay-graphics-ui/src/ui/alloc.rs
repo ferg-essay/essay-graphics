@@ -1,6 +1,6 @@
-use essay_graphics_api::{renderer::{Canvas, Pos}, Bounds, Margin, Point, Size};
+use essay_graphics_api::{renderer::{Canvas, Pos}, Bounds, Margin, Point, Rectangle, Size};
 
-use crate::{page::Page};
+use crate::{page::Page, ui::ui::Length};
 
 #[derive(Debug)]
 pub struct Alloc {
@@ -29,13 +29,13 @@ impl Alloc {
         Self {
             alloc_dir: update,
 
-            bounds,
+            bounds: bounds.into(),
             margin: Margin::ZERO,
 
             view_width: bounds_cache.view_width(bounds.width()),
             view_height: bounds_cache.view_height(bounds.height()),
 
-            alloc: Bounds::from(point),
+            alloc: point.into(),
             alloc_size: AllocSize::default(),
         }
     }
@@ -43,7 +43,7 @@ impl Alloc {
     pub(super) fn child(
         &self, 
         parent_free: Pos,
-        view: Option<Size>,
+        size: Option<Size<Length>>,
         margin: Margin,
         alloc_dir: AllocDirection,
         cache: Option<AllocSize>
@@ -100,10 +100,12 @@ impl Alloc {
             }
         };
 
-        let mut bounds = Bounds::from((
-            parent_free.p0(),
-            Size::new(view_bounds.width, view_bounds.height),
-        ));
+        let mut bounds = Bounds::new0(
+            parent_free.x0(),
+            parent_free.y0(),
+            view_bounds.width, 
+            view_bounds.height,
+        );
 
         bounds = bounds - margin;
 
@@ -112,11 +114,8 @@ impl Alloc {
 
         let alloc = Bounds::from(bounds.p0());
 
-        let alloc_cache = if let Some(size) = view {
-            AllocSize {
-                view: Bounds::from(size),
-                fixed: Bounds::zero(),
-            }
+        let alloc_cache = if let Some(size) = size {
+            AllocSize::from(size)
         } else {
             AllocSize::default()
         };
@@ -179,15 +178,17 @@ impl Alloc {
 
         match self.alloc_dir {
             AllocDirection::Vertical => {
-                let rect = Bounds::<Canvas>::from((
-                    Point::new(self.bounds.xmin(), self.alloc.ymax()),
-                    size,
-                ));
+                let rect = Rectangle::new(
+                    self.bounds.xmin(), 
+                    self.alloc.ymax(),
+                    size.width,
+                    size.height,
+                );
 
-                self.alloc = self.alloc.union(&rect);
-                self.alloc_size.fixed = self.alloc_size.fixed.union(&rect);
+                self.alloc = self.alloc.union(rect);
+                self.alloc_size.fixed = self.alloc_size.fixed.union(rect);
 
-                rect
+                rect.into()
             },
             AllocDirection::Horizontal => {
                 let rect = Bounds::<Canvas>::from((
@@ -196,7 +197,7 @@ impl Alloc {
                 ));
 
                 self.alloc = self.alloc.union(&rect);
-                self.alloc_size.fixed = self.alloc_size.fixed.union(&rect);
+                self.alloc_size.fixed = self.alloc_size.fixed.union(rect);
 
                 rect
             }
@@ -266,7 +267,7 @@ impl Alloc {
         &mut self, 
         child: &Self, 
     ) {
-        if child.alloc_size.view.is_none() {
+        if child.alloc_size.view.is_zero() {
             self.alloc = self.alloc.union(child.alloc + child.margin);
             self.alloc_size.fixed = self.alloc_size.fixed.union(child.alloc_size.fixed); // + self.margin;
         } else {
@@ -278,22 +279,20 @@ impl Alloc {
 
         self.alloc_size.view = match self.alloc_dir {
             AllocDirection::Vertical => {
-                Bounds::from((
-                    [view.x0(), view.y0()],
-                    [
-                        view.width().max(child.width()).min(1.),
-                        view.height() + child.height(), // .min(1.)
-                    ]
-                ))
+                Rectangle::new(
+                    view.x, 
+                    view.y,
+                    view.width.max(child.width).min(1.),
+                    view.height + child.height, // .min(1.)
+                )
             },
             AllocDirection::Horizontal => {
-                Bounds::from((
-                    [view.x0(), view.y0()], 
-                    [
-                        view.width() + child.width(), // .min(1.),
-                        view.height().max(child.height()).min(1.)
-                    ]
-                ))
+                Rectangle::new(
+                    view.x, 
+                    view.y, 
+                    view.width + child.width, // .min(1.),
+                    view.height.max(child.height).min(1.)
+                )
             },
         };
     }
@@ -308,6 +307,7 @@ pub(crate) enum AllocDirection {
 impl AllocDirection {
 }
 
+#[derive(Debug)]
 pub(crate) struct ViewBounds {
     width: f32,
     height: f32,
@@ -315,10 +315,10 @@ pub(crate) struct ViewBounds {
     view_height: f32,
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Default, Debug, PartialEq)]
 pub struct AllocSize {
-    pub fixed: Bounds<Canvas>,
-    pub view: Bounds<Page>,
+    pub fixed: Rectangle,
+    pub view: Rectangle,
 }
 
 impl AllocSize {
@@ -327,26 +327,55 @@ impl AllocSize {
     }
 
     fn view_width(&self, width: f32) -> f32 {
-        ((width - self.fixed.width()) / self.view.width().max(1.)).floor()
+        ((width - self.fixed.width) / self.view.width.max(1.)).floor()
     }
 
     fn view_height(&self, height: f32) -> f32 {
-        ((height - self.fixed.height()) / self.view.height().max(1.)).floor()
+        ((height - self.fixed.height) / self.view.height.max(1.)).floor()
     }
 
     fn init_width(&self, factor: f32) -> f32 {
-        if self.view.width() > 0. {
-            factor * self.view.width()
+        if self.view.width > 0. {
+            factor * self.view.width
         } else {
-            self.fixed.width()
+            self.fixed.width
         }
     }
 
     fn init_height(&self, factor: f32) -> f32 {
-        if self.view.height() > 0. {
-            factor * self.view.height()
+        if self.view.height > 0. {
+            factor * self.view.height
         } else {
-            self.fixed.height()
+            self.fixed.height
+        }
+    }
+}
+
+impl From<Size<Length>> for AllocSize {
+    fn from(value: Size<Length>) -> Self {
+        let mut px_width = 0.;
+        let mut view_width = 0.;
+
+        match value.width {
+            Length::Shrink => {},
+            Length::Pixels(width) => { px_width = width; },
+            Length::Fill => { view_width = 1.; },
+            Length::View(width) => { view_width = width; },
+        }
+
+        let mut px_height = 0.;
+        let mut view_height = 0.;
+
+        match value.height {
+            Length::Shrink => {},
+            Length::Pixels(height) => { px_height = height; },
+            Length::Fill => { view_height = 1.; },
+            Length::View(height) => { view_height = height; },
+        }
+
+        AllocSize {
+            fixed: Size::new(px_width, px_height).into(),
+            view: Size::new(view_width, view_height).into()
         }
     }
 }
@@ -358,7 +387,7 @@ mod test {
     use crate::ui::{Context, Frame};
 
     #[test]
-    fn vertical_label() {
+    fn default_label() {
         let mut test = TestRenderer::new([1000., 1000.]);
         let ctx = Context::new(Box::new(TestGraphicsContext::new()));
 
@@ -370,7 +399,7 @@ mod test {
     }
 
     #[test]
-    fn vertical_label_three() {
+    fn default_label_three() {
         let mut test = TestRenderer::new([1000., 1000.]);
         let ctx = Context::new(Box::new(TestGraphicsContext::new()));
 
@@ -398,7 +427,7 @@ text (0.0,53.3) 'C'");
     }
 
     #[test]
-    fn vert_vert() {
+    fn default_column_fixed() {
         let mut test = TestRenderer::new([1000., 1000.]);
         let ctx = Context::new(Box::new(TestGraphicsContext::new()));
 

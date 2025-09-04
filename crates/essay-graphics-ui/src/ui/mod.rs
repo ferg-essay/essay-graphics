@@ -23,4 +23,4 @@ pub use ui::{Ui, UiSize, ResponseValue, OnceView};
 pub use context::{Context};
 pub use memory::{Memory, MemoryData};
 pub use render_pass::{UiRender, RenderPass};
-pub use widget::{Shell, Widget, WidgetPos};
+pub use widget::{DrawWidget, Shell, Widget, WidgetPos};
