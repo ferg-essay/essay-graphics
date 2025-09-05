@@ -1,7 +1,5 @@
 use essay_graphics_api::{renderer::{Canvas, Pos}, Bounds, Length, Padding, Point, Rectangle, Size};
 
-use crate::{page::Page};
-
 #[derive(Debug)]
 pub struct Alloc {
     pub alloc_dir: AllocDirection,
@@ -11,8 +9,6 @@ pub struct Alloc {
 
     view_width: f32,
     view_height: f32,
-
-    top_size: Option<AllocSize>,
 
     pub alloc: Bounds<Canvas>, // current bounds allocated by the cursor
     pub alloc_size: AllocSize,
@@ -34,8 +30,6 @@ impl Alloc {
             bounds: bounds.into(),
             margin: Padding::ZERO,
 
-            top_size: None,
-
             view_width: bounds_cache.view_width(bounds.width()),
             view_height: bounds_cache.view_height(bounds.height()),
 
@@ -47,7 +41,7 @@ impl Alloc {
     pub(super) fn child(
         &self, 
         parent_free: Pos,
-        size: Option<Size<Length>>,
+        // size: Option<Size<Length>>,
         margin: Padding,
         alloc_dir: AllocDirection,
         cache: Option<AllocSize>
@@ -118,13 +112,6 @@ impl Alloc {
 
         let alloc = Bounds::from(bounds.p0());
 
-        /*
-        let size = if let Some(size) = size {
-            AllocSize::from(size)
-        } else {
-            AllocSize::default()
-        };
-        */
         let alloc_size = AllocSize::default();
 
         Self {
@@ -135,8 +122,6 @@ impl Alloc {
 
             view_width,
             view_height,
-
-            top_size: size.map(|size| size.into()),
 
             alloc,
             alloc_size,
@@ -238,14 +223,16 @@ impl Alloc {
     pub(super) fn merge_child(
         &mut self, 
         child: &mut Self, 
+        size: Option<Size<Length>>,
     ) {
         self.alloc = self.alloc.union(child.bounds + child.margin);
         
         let view = self.alloc_size.view;
         let fixed = self.alloc_size.fixed;
 
-        if let Some(size) = &child.top_size {
-            child.alloc_size = size.clone();
+        // top-down size overrides accumulated size
+        if let Some(size) = size {
+            child.alloc_size = size.into();
         };
 
         let c_view = child.alloc_size.view;

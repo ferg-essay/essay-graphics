@@ -155,7 +155,7 @@ impl<'a> Ui<'a> {
 
         let alloc = self.alloc.child(
             max_bounds,
-            size,
+            // size,
             margin,
             update,
             alloc_cache.clone()
@@ -175,7 +175,7 @@ impl<'a> Ui<'a> {
 
         let result = (add_content)(&mut child);
 
-        self.alloc.merge_child(&mut child.alloc);
+        self.alloc.merge_child(&mut child.alloc, size);
 
         let response = child.end(&alloc_cache);
 
