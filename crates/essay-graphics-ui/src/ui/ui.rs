@@ -175,7 +175,7 @@ impl<'a> Ui<'a> {
 
         let result = (add_content)(&mut child);
 
-        self.alloc.merge_child(&child.alloc);
+        self.alloc.merge_child(&mut child.alloc);
 
         let response = child.end(&alloc_cache);
 
@@ -346,11 +346,11 @@ impl<'a> Ui<'a> {
     ) -> ResponseValue<R> {
         let size = Size::new(Length::Fill, Length::Fill);
 
-        let pos = self.alloc.alloc(size);
+        // let pos = self.alloc.alloc(size);
             
         let result = self.child(
             UiBuilder::default()
-                .max_bounds(pos)
+                //.max_bounds(pos)
                 .size(size)
                 .update(AllocDirection::Vertical),
             add_content

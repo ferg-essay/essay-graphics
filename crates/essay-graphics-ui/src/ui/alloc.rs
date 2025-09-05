@@ -12,12 +12,14 @@ pub struct Alloc {
     view_width: f32,
     view_height: f32,
 
+    top_size: Option<AllocSize>,
+
     pub alloc: Bounds<Canvas>, // current bounds allocated by the cursor
     pub alloc_size: AllocSize,
 }
 
 impl Alloc {
-    pub(crate) fn new(
+    pub(super) fn new(
         bounds: Bounds<Canvas>,
         update: AllocDirection,
         cache: Option<AllocSize>,
@@ -31,6 +33,8 @@ impl Alloc {
 
             bounds: bounds.into(),
             margin: Padding::ZERO,
+
+            top_size: None,
 
             view_width: bounds_cache.view_width(bounds.width()),
             view_height: bounds_cache.view_height(bounds.height()),
@@ -114,11 +118,14 @@ impl Alloc {
 
         let alloc = Bounds::from(bounds.p0());
 
-        let alloc_cache = if let Some(size) = size {
+        /*
+        let size = if let Some(size) = size {
             AllocSize::from(size)
         } else {
             AllocSize::default()
         };
+        */
+        let alloc_size = AllocSize::default();
 
         Self {
             alloc_dir,
@@ -129,13 +136,15 @@ impl Alloc {
             view_width,
             view_height,
 
+            top_size: size.map(|size| size.into()),
+
             alloc,
-            alloc_size: alloc_cache,
+            alloc_size,
         }
     }
 
     // returns the boundary box for available layout
-    pub(crate) fn available(&self) -> Bounds<Canvas> {
+    pub(super) fn available(&self) -> Bounds<Canvas> {
         match self.alloc_dir {
             AllocDirection::Vertical => {
                 Bounds::from([
@@ -228,34 +237,34 @@ impl Alloc {
 
     pub(super) fn merge_child(
         &mut self, 
-        child: &Self, 
+        child: &mut Self, 
     ) {
-        if child.alloc_size.view.is_zero() {
-            self.alloc = self.alloc.union(child.alloc + child.margin);
-            self.alloc_size.fixed = self.alloc_size.fixed.union(child.alloc_size.fixed); // + self.margin;
-        } else {
-            self.alloc = self.alloc.union(child.bounds + child.margin);
-        }
-            
+        self.alloc = self.alloc.union(child.bounds + child.margin);
+        
         let view = self.alloc_size.view;
-        let child = child.alloc_size.view;
+        let fixed = self.alloc_size.fixed;
 
-        self.alloc_size.view = match self.alloc_dir {
+        if let Some(size) = &child.top_size {
+            child.alloc_size = size.clone();
+        };
+
+        let c_view = child.alloc_size.view;
+        let c_fixed = child.alloc_size.fixed;
+
+        match self.alloc_dir {
             AllocDirection::Vertical => {
-                Rectangle::new(
-                    view.x, 
-                    view.y,
-                    view.width.max(child.width).min(1.),
-                    view.height + child.height, // .min(1.)
-                )
+                self.alloc_size.view.width = view.width.max(c_view.width).min(1.);
+                self.alloc_size.view.height = view.height + c_view.height;
+
+                self.alloc_size.fixed.width = fixed.width.max(c_fixed.width);
+                self.alloc_size.fixed.height = fixed.height + c_fixed.height;
             },
             AllocDirection::Horizontal => {
-                Rectangle::new(
-                    view.x, 
-                    view.y, 
-                    view.width + child.width, // .min(1.),
-                    view.height.max(child.height).min(1.)
-                )
+                self.alloc_size.view.width = view.width + c_view.width;
+                self.alloc_size.view.height = view.height.max(c_view.height).min(1.);
+
+                self.alloc_size.fixed.width = fixed.width + c_fixed.width;
+                self.alloc_size.fixed.height = fixed.height.max(c_fixed.height);
             },
         };
     }
@@ -280,8 +289,8 @@ pub(crate) struct ViewBounds {
 
 #[derive(Clone, Default, Debug, PartialEq)]
 pub struct AllocSize {
-    pub fixed: Rectangle,
-    pub view: Rectangle,
+    pub fixed: Size,
+    pub view: Size,
 }
 
 impl AllocSize {

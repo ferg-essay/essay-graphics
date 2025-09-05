@@ -16,6 +16,19 @@ impl Size {
     pub const ZERO: Size = Size::new(0., 0.);
     pub const UNIT: Size = Size::new(1., 0.);
     pub const INFINITE: Size = Size::new(f32::INFINITY, f32::INFINITY);
+
+    #[inline]
+    pub fn is_zero(&self) -> bool {
+        self.width == 0. && self.height == 0.
+    }
+
+    #[inline]
+    pub fn max(&self, rhs: &Self) -> Self {
+        Self {
+            width: self.width.max(rhs.width),
+            height: self.height.max(rhs.height),
+        }
+    }
 }
 
 impl PartialEq for Size {
