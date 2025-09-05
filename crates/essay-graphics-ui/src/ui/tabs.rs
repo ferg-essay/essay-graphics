@@ -42,7 +42,7 @@ impl<T: PartialEq + Clone + Into<String>> Tabs<'_, T> {
                 let ResponseValue {
                     value: pos,
                     response
-                 } = ui.allocate_rect(size);
+                 } = ui.allocate(size);
 
                 let tab_width = pos.width() / self.items.len().max(1) as f32;
 

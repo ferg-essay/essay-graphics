@@ -38,7 +38,7 @@ impl<'a, Message> Widget<Message> for Text {
         let ResponseValue { 
             value, 
             response
-        } = ui.allocate_rect(size);
+        } = ui.allocate(size);
 
         let label = String::from(&self.content);
 
@@ -68,7 +68,7 @@ impl DrawWidget for Text {
         let ResponseValue { 
             value, 
             response
-        } = ui.allocate_rect(size);
+        } = ui.allocate(size);
 
         let label = String::from(&self.content);
 

@@ -1,5 +1,5 @@
 use core::fmt;
-use std::{any::type_name, marker::PhantomData, ops};
+use std::{any::type_name, marker::PhantomData};
 
 use essay_tensor::{ten, tensor::Tensor};
 

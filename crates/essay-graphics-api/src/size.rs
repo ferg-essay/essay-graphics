@@ -59,3 +59,20 @@ impl<T> ops::Sub<Size<T>> for Size<T>
         Self::new(self.width - rhs.width, self.height - rhs.height)
     }
 }
+
+#[derive(Copy, Clone, Debug)]
+pub enum Length {
+    Shrink,
+    Pixels(f32),
+    Fill,
+    View(f32),
+}
+
+impl From<Size> for Size<Length> {
+    fn from(value: Size) -> Self {
+        Size::new(
+            Length::Pixels(value.width),
+            Length::Pixels(value.height),
+        )
+    }
+}

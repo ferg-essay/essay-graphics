@@ -1,6 +1,6 @@
-use essay_graphics_api::{renderer::{Canvas, Pos}, Bounds, Padding, Point, Rectangle, Size};
+use essay_graphics_api::{renderer::{Canvas, Pos}, Bounds, Length, Padding, Point, Rectangle, Size};
 
-use crate::{page::Page, ui::ui::Length};
+use crate::{page::Page};
 
 #[derive(Debug)]
 pub struct Alloc {
@@ -134,23 +134,6 @@ impl Alloc {
         }
     }
 
-    pub(crate) fn _canvas_free(&self) -> Size {
-        match self.alloc_dir {
-            AllocDirection::Vertical => {
-                Size::new(
-                    self.bounds.width(),
-                    self.bounds.ymax() - self.alloc.ymax(),
-                )
-            },
-            AllocDirection::Horizontal => {
-                Size::new(
-                    self.bounds.xmax() - self.alloc.xmax(),
-                    self.bounds.height(),
-                )
-            }
-        }
-    }
-
     // returns the boundary box for available layout
     pub(crate) fn available(&self) -> Bounds<Canvas> {
         match self.alloc_dir {
@@ -169,100 +152,78 @@ impl Alloc {
         }
     }
 
-    pub(crate) fn to_cache(self) -> AllocSize {
-        self.alloc_size.clone()
-    }
-
-    pub(super) fn alloc_canvas(&mut self, size: impl Into<Size>) -> Bounds<Canvas> {
+    pub(super) fn alloc(&mut self, size: impl Into<Size<Length>>) -> Rectangle {
         let size = size.into();
+
+        let (width, f_width, v_width) = self.width(size.width);
+        let (height, f_height, v_height) = self.height(size.height);
 
         match self.alloc_dir {
             AllocDirection::Vertical => {
-                let rect = Rectangle::new(
+                let alloc = Rectangle::new(
                     self.bounds.x0(), 
                     self.alloc.y1(),
-                    size.width,
-                    size.height,
+                    width,
+                    height,
                 );
 
-                self.alloc = self.alloc.union(rect);
-                self.alloc_size.fixed = self.alloc_size.fixed.union(rect);
+                self.alloc = self.alloc.union(alloc);
 
-                rect.into()
+                self.alloc_size.fixed.width = self.alloc_size.fixed.width.max(f_width);
+                self.alloc_size.fixed.height = self.alloc_size.fixed.height + f_height;
+
+                self.alloc_size.view.width = self.alloc_size.view.width.max(v_width);
+                self.alloc_size.view.height = self.alloc_size.view.height + v_height;
+
+                alloc
             },
             AllocDirection::Horizontal => {
-                let rect = Rectangle::new(
+                let alloc = Rectangle::new(
                     self.alloc.x1(), 
                     self.bounds.y0(),
-                    size.width,
-                    size.height,
+                    width,
+                    height,
                 );
 
-                self.alloc = self.alloc.union(rect);
-                self.alloc_size.fixed = self.alloc_size.fixed.union(rect);
+                self.alloc = self.alloc.union(alloc);
 
-                rect.into()
+                self.alloc_size.fixed.width = self.alloc_size.fixed.width + f_width;
+                self.alloc_size.fixed.height = self.alloc_size.fixed.height.max(f_height);
+
+                self.alloc_size.view.width = self.alloc_size.view.width + v_width;
+                self.alloc_size.view.height = self.alloc_size.view.height.max(v_height);
+
+                alloc
             }
         }
     }
 
-    pub fn alloc_view(&mut self, size: impl Into<Size>) -> Bounds<Canvas> {
-        match self.alloc_dir {
-            AllocDirection::Vertical => {
-                let rect = self.view_alloc_canvas(size);
-        
-                //cursor.pos = Point(rect.xmin(), rect.ymax());
-
-                //let _page_rect = self.view_alloc_view(size);
-
-                //cursor.view_pos = Point(page_rect.xmin(), page_rect.ymax());
-
-                rect
+    // return (canvas, fixed, view)
+    fn width(&mut self, width: Length) -> (f32, f32, f32) {
+        match width {
+            Length::Shrink => { (0., 0., 0.) },
+            Length::Pixels(px) => { (px, px, 0.) },
+            Length::Fill => { 
+                (self.view_width, 0., 1.)
             },
-            AllocDirection::Horizontal => {
-                let rect = self.view_alloc_canvas(size);
-        
-                //cursor.pos = Point(rect.xmax(), rect.ymin());
-
-                //let _page_rect = self.view_alloc_view(size);
-
-                //cursor.view_pos = Point(page_rect.xmax(), page_rect.ymin());
-
-                rect
-            }
+            Length::View(width) => {
+                (width * self.view_width, 0., width)
+             },
         }
     }
 
-    fn view_alloc_canvas(&mut self, size: impl Into<Size>) -> Bounds<Canvas> {
-        let size = size.into();
-
-        let canvas_size = Size::new(
-            size.width * self.view_width,
-            size.height * self.view_height,
-        );
-
-        let alloc = match self.alloc_dir {
-            AllocDirection::Vertical => {
-                Bounds::from([
-                    [self.bounds.x0(), self.alloc.y1()],
-                    [
-                        (self.bounds.x0() + canvas_size.width).min(self.bounds.x1()),
-                        (self.alloc.y1() + canvas_size.height).min(self.bounds.y1()),
-                    ]
-                ])
-            }
-            AllocDirection::Horizontal => {
-                Bounds::from([
-                    [self.alloc.xmax(), self.bounds.ymin()],
-                    [
-                        (self.alloc.x1() + canvas_size.width).min(self.bounds.x1()),
-                        (self.bounds.y0() + canvas_size.height).min(self.bounds.y1()),
-                    ]
-                ])
-            }
-        };
-        
-        alloc
+    // return (canvas, fixed, view)
+    fn height(&mut self, height: Length) -> (f32, f32, f32) {
+        match height {
+            Length::Shrink => { (0., 0., 0.) },
+            Length::Pixels(px) => { (px, px, 0.) },
+            Length::Fill => { 
+                (self.view_height, 0., 1.)
+            },
+            Length::View(height) => {
+                (height * self.view_height, 0., height)
+             },
+        }
     }
 
     pub(super) fn merge_child(

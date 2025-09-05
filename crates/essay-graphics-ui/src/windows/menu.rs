@@ -5,12 +5,12 @@ pub fn menu_button<R>(
     title: &str,
     add_contents: impl FnOnce(&mut Ui) -> R
 ) -> ResponseValue<Option<R>> {
-    let parent_id = ui.id();
+    let parent_id = ui.stable_id();
     let menu_id = parent_id.with(title);
 
     let button = Button::new(title, false);
 
-    let button_response = ui.draw(button);
+    let button_response = ui.draw_widget(button);
 
     ResponseValue::new(None, button_response)
 }

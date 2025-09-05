@@ -38,7 +38,7 @@ pub use path::{
 
 pub use rectangle::Rectangle;
 
-pub use size::Size;
+pub use size::{Size, Length};
 
 pub use instance::Instance;
 

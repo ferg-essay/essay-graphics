@@ -84,7 +84,7 @@ where
         let ResponseValue {
             value: bounds,
             response
-        } = ui.allocate_rect(size);
+        } = ui.allocate(size);
 
         //let bounds = bounds.round_ui();
 

@@ -1,13 +1,13 @@
 use core::hash;
-use std::{marker::PhantomData, ops, sync::Arc};
+use std::{ops, sync::Arc};
 
 use essay_graphics_api::{
-    input::Input, output::Output, renderer::{self, Canvas, Drawable, Renderer}, Bounds, Padding, Rectangle, Size, TextStyle
+    input::Input, output::Output, renderer::{self, Canvas, Drawable, Renderer}, Bounds, Length, Padding, Rectangle, Size, TextStyle
 };
 
 use crate::{
     style::UiStyle, 
-    ui::{widget::DrawWidget, AppState, Context, Painter, RenderPass, Response, Shell, UiRender, Update, View, Widget, WidgetPos}, 
+    ui::{widget::DrawWidget, AllocSize, AppState, Context, Painter, RenderPass, Response, UiRender, Update, View}, 
     util::Id, 
     widgets::{Button, Label, Radio, SelectableLabel}, 
     windows::MenuButton
@@ -17,7 +17,7 @@ use super::alloc::{Alloc, AllocDirection};
 
 pub struct Ui<'a> {
     id: Id,
-    unique_id: Id,
+    stable_id: Id,
     next_auto_id_salt: u64,
     
     alloc: Alloc,
@@ -27,11 +27,17 @@ pub struct Ui<'a> {
     style: Arc<UiStyle>,
 
     cache_index: usize,
-
-    // marker: PhantomData<Message>,
 }
 
 impl<'a> Ui<'a> {
+    pub fn stable_id(&self) -> Id {
+        self.stable_id
+    }
+    
+    pub fn next_id(&self) -> Id {
+        self.stable_id.with(self.next_auto_id_salt)
+    }
+
     #[inline]
     pub fn style(&self) -> &UiStyle {
         &self.render.theme
@@ -62,13 +68,27 @@ impl<'a> Ui<'a> {
         &mut self.painter
     }
 
+    #[inline]
+    pub fn input<R>(&self, reader: impl FnOnce(&Input) -> R) -> R {
+        self.context().input(reader)
+    }
+
+    #[inline]
+    pub fn output_mut(&mut self) -> &mut Output {
+        self.pass_mut().output.as_mut().unwrap()
+    }
+    
+    pub(crate) fn render_mut(&'a mut self) -> &'a mut UiRender {
+        self.render
+    }
+
     pub(crate) fn top<R>(
         ctx: &Context,
         render: &mut UiRender,
         id: Id,
         builder: UiBuilder,
         add_content: impl FnOnce(&mut Ui) -> R
-    ) {
+    ) -> ResponseValue<R> {
         let UiBuilder {
             max_bounds,
             ..
@@ -80,8 +100,8 @@ impl<'a> Ui<'a> {
         let alloc = Alloc::new(bounds, AllocDirection::Vertical, alloc_cache.clone());
 
         let mut ui = Ui {
+            stable_id: id,
             id,
-            unique_id: id,
             next_auto_id_salt: id.with("auto").value(),
             alloc,
             painter: Painter::new(&ctx),
@@ -89,26 +109,16 @@ impl<'a> Ui<'a> {
             render,
     
             cache_index: 0,
-            // marker: Default::default(),
         };
 
         let start_rect = Rectangle::ZERO;
-        ui.insert_widget(ui.unique_id, start_rect);
+        ui.insert_widget(ui.id, start_rect);
     
         let result = (add_content)(&mut ui);
     
-        let response = ui.child_end();
+        let response = ui.end(&alloc_cache);
 
-        let new_alloc = ui.alloc.to_cache();
-        if new_alloc.is_changed(&alloc_cache) {
-            println!("AllocChangeTop")
-        }
-
-        render.pass.alloc_map.insert(id, new_alloc);
-
-        //ctx.replace_render(render);
-
-        // ResponseValue::new(result, self.create_response(response))
+        ResponseValue::new(result, response)
     }
     
     pub(crate) fn child<R>(
@@ -119,16 +129,16 @@ impl<'a> Ui<'a> {
         let UiBuilder {
             id_salt,
             max_bounds,
-            view,
+            view: size,
             margin,
             update: alloc_update,
         } = builder.into();
         
         let id_salt = id_salt.unwrap_or_else(|| Id::from("child"));
-        let stable_id = self.id.with(id_salt);
-        let unique_id = stable_id.with(self.next_auto_id_salt);
+        let stable_id = self.stable_id.with(id_salt);
+        let child_id = stable_id.with(self.next_auto_id_salt);
         self.next_auto_id_salt = self.next_auto_id_salt.wrapping_add(1);
-        let next_auto_id_salt = unique_id.value().wrapping_add(1);
+        let next_auto_id_salt = child_id.value().wrapping_add(1);
 
         let max_bounds = max_bounds.unwrap_or_else(|| {
             self.alloc.available()
@@ -138,22 +148,22 @@ impl<'a> Ui<'a> {
 
         let pos = Rectangle::ZERO;
 
-        self.insert_widget(unique_id, pos);
+        self.insert_widget(child_id, pos);
 
         let alloc_cache = self.last_pass()
-            .alloc_map.get(&unique_id).cloned();
+            .alloc_map.get(&child_id).cloned();
 
         let alloc = self.alloc.child(
             max_bounds,
-            view,
+            size,
             margin,
             update,
             alloc_cache.clone()
         );
 
         let mut child = Ui {
-            id: stable_id,
-            unique_id,
+            stable_id,
+            id: child_id,
             next_auto_id_salt,
             alloc,
             painter: Painter::new(self.painter.context()),
@@ -161,35 +171,31 @@ impl<'a> Ui<'a> {
             render: self.render,
 
             cache_index: self.cache_index,
-            // marker: Default::default(),
         };
 
         let result = (add_content)(&mut child);
 
         self.alloc.merge_child(&child.alloc);
 
-        let pos = child.child_end();
-
-        let new_alloc = child.alloc.to_cache();
-        if new_alloc.is_changed(&alloc_cache) {
-            println!("AllocChange")
-        }
-
-        self.pass_mut().alloc_map.insert(unique_id, new_alloc);
-        self.pass_mut().widgets.insert(pos.id, pos.pos);
-
-        let response = Response::new(self, pos);
+        let response = child.end(&alloc_cache);
 
         ResponseValue::new(result, response)
     }
 
-    fn child_end(&mut self) -> WidgetPos {
+    fn end(
+        &mut self, 
+        alloc_cache: &Option<AllocSize>,
+    ) -> Response {
         let bounds = self.alloc.alloc + self.alloc.margin;
 
-        WidgetPos {
-            id: self.unique_id,
-            pos: bounds.into(),
+        let new_alloc = self.alloc.alloc_size.clone();
+        if new_alloc.is_changed(&alloc_cache) {
+            println!("AllocChange")
         }
+
+        let id = self.id;
+        self.pass_mut().alloc_map.insert(id, new_alloc);
+        self.insert_widget(id, bounds)
     }
 
     pub fn available_bounds(&self) -> Bounds<Canvas> {
@@ -202,26 +208,30 @@ impl<'a> Ui<'a> {
     }
 
     #[inline]
-    pub fn allocate_rect(&mut self, size: Size) -> ResponseValue<Bounds<Canvas>> {
-        let pos = self.alloc.alloc_canvas(size);
+    pub fn allocate(&mut self, size: impl Into<Size<Length>>) -> ResponseValue<Bounds<Canvas>> {
+        let pos = self.alloc.alloc(size);
 
-        self.alloc_response(pos)
+        self.add_widget(pos)
     }
     
+    /*
     #[inline]
     pub fn allocate_view(&mut self, size: Size) -> ResponseValue<Bounds<Canvas>> {
         let pos = self.alloc.alloc_view(size);
 
-        self.alloc_response(pos)
+        self.add_widget(pos)
     }
+    */
 
-    pub fn alloc_response(&mut self, pos: Bounds<Canvas>) -> ResponseValue<Bounds<Canvas>> {
-        let id = self.id.with(self.next_auto_id_salt);
+    fn add_widget(&mut self, pos: impl Into<Rectangle>) -> ResponseValue<Bounds<Canvas>> {
+        let id = self.stable_id.with(self.next_auto_id_salt);
         self.next_auto_id_salt = self.next_auto_id_salt.wrapping_add(1);
+
+        let pos = pos.into();
 
         let response = self.insert_widget(id, pos);
 
-        ResponseValue::new(pos, response)
+        ResponseValue::new(pos.into(), response)
     }
 
     pub(crate) fn insert_widget(&mut self, id: Id, pos: impl Into<Rectangle>) -> Response {
@@ -231,7 +241,7 @@ impl<'a> Ui<'a> {
     }
 
     #[inline]
-    pub fn draw(&mut self, mut widget: impl DrawWidget) -> Response {
+    pub fn draw_widget(&mut self, mut widget: impl DrawWidget) -> Response {
         widget.draw(self)
     }
 
@@ -239,14 +249,14 @@ impl<'a> Ui<'a> {
     pub fn label(&mut self, label: &str) -> Response {
         let label = Label::new(label);
 
-        self.draw(label)
+        self.draw_widget(label)
     }
 
     #[inline]
     pub fn button(&mut self, label: &str, press: bool) -> Response {
         let button = Button::new(label, press);
 
-        self.draw(button)
+        self.draw_widget(button)
     }
 
     #[inline]
@@ -264,7 +274,7 @@ impl<'a> Ui<'a> {
 
     #[must_use="Check for input with ui.selectable_label(...).clicked()"]
     pub fn selectable_label(&mut self, is_checked: bool, text: &str) -> Response {
-        self.draw(SelectableLabel::new(text, is_checked))
+        self.draw_widget(SelectableLabel::new(text, is_checked))
     }
 
     pub fn selectable_value<V: PartialEq>(
@@ -273,7 +283,7 @@ impl<'a> Ui<'a> {
         value: V,
         text: &str, 
     ) -> Response {
-        let response = self.draw(SelectableLabel::new(text, *var == value));
+        let response = self.draw_widget(SelectableLabel::new(text, *var == value));
 
         if response.clicked() && *var != value {
             *var = value;
@@ -285,7 +295,7 @@ impl<'a> Ui<'a> {
 
     #[must_use="Check for input with ui.radio(...).clicked()"]
     pub fn radio(&mut self, is_checked: bool, text: &str) -> Response {
-        self.draw(Radio::new(text, is_checked))
+        self.draw_widget(Radio::new(text, is_checked))
     }
 
     pub fn radio_value<V: PartialEq>(
@@ -294,7 +304,7 @@ impl<'a> Ui<'a> {
         value: V,
         text: &str, 
     ) -> Response {
-        let response = self.draw(Radio::new(text, *var == value));
+        let response = self.draw_widget(Radio::new(text, *var == value));
 
         if response.clicked() && *var != value {
             *var = value;
@@ -304,14 +314,8 @@ impl<'a> Ui<'a> {
         response
     }
 
-    /*
-    pub fn draw(&mut self, draw: impl Drawable + 'static) -> Response {
-        self.draw_size(Size::UNIT, draw)
-    }
-    */
-
-    pub fn draw_size(&mut self, size: Size, draw: impl Drawable + 'static) -> Response {
-        let ResponseValue { response, .. } = self.allocate_view(size);
+    pub fn draw_size(&mut self, size: impl Into<Size<Length>>, draw: impl Drawable + 'static) -> Response {
+        let ResponseValue { response, .. } = self.allocate(size);
         
         self.painter_mut().add(draw);
 
@@ -340,12 +344,14 @@ impl<'a> Ui<'a> {
         &mut self, 
         add_content: impl FnOnce(&mut Ui) -> R
     ) -> ResponseValue<R> {
-        let pos = self.alloc.alloc_view(Size::UNIT);
+        let size = Size::new(Length::Fill, Length::Fill);
 
+        let pos = self.alloc.alloc(size);
+            
         let result = self.child(
             UiBuilder::default()
                 .max_bounds(pos)
-                .size(Size::new(Length::Fill, Length::Fill))
+                .size(size)
                 .update(AllocDirection::Vertical),
             add_content
         );
@@ -355,6 +361,7 @@ impl<'a> Ui<'a> {
         result
     }
 
+    /*
     pub fn row_size<R>(
         &mut self, 
         size: UiSize, 
@@ -411,6 +418,7 @@ impl<'a> Ui<'a> {
 
         result
     }
+    */
 
     pub fn app<'b, State, Message>(
         &mut self, 
@@ -444,28 +452,6 @@ impl<'a> Ui<'a> {
         // let pt = style_text.get_size().unwrap_or(10.);
 
         // TODO:
-    }
-
-    #[inline]
-    pub fn input<R>(&self, reader: impl FnOnce(&Input) -> R) -> R {
-        self.context().input(reader)
-    }
-
-    #[inline]
-    pub fn output_mut(&mut self) -> &mut Output {
-        self.pass_mut().output.as_mut().unwrap()
-    }
-    
-    pub fn id(&self) -> Id {
-        self.id
-    }
-    
-    pub fn next_id(&self) -> Id {
-        self.id.with(self.next_auto_id_salt)
-    }
-    
-    pub(crate) fn render_mut(&'a mut self) -> &'a mut UiRender {
-        self.render
     }
 }
 
@@ -540,14 +526,6 @@ impl From<Size<Length>> for UiBuilder {
     fn from(size: Size<Length>) -> Self {
         UiBuilder::default().size(size)
     }
-}
-
-#[derive(Copy, Clone, Debug)]
-pub enum Length {
-    Shrink,
-    Pixels(f32),
-    Fill,
-    View(f32),
 }
 
 #[derive(Copy, Clone, Debug)]

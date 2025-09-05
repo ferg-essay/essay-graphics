@@ -37,7 +37,7 @@ impl DrawWidget for Radio {
         let ResponseValue {
             value: _bounds,
             response
-        } = ui.allocate_rect(size);
+        } = ui.allocate(size);
 
         let pos = response.rect(ui);
 

@@ -26,7 +26,7 @@ impl DrawWidget for Label {
         let ResponseValue { 
             value, 
             response
-        } = ui.allocate_rect(size);
+        } = ui.allocate(size);
 
         let label = String::from(&self.label);
 
