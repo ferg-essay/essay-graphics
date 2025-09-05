@@ -1,3 +1,4 @@
+mod padding;
 mod rectangle;
 pub mod output;
 pub mod input;
@@ -21,13 +22,15 @@ mod text;
 
 pub use affine2d::Affine2d;
 
-pub use bounds::{Bounds, Coord, Margin};
+pub use bounds::{Bounds, Coord};
 
 pub use clip::Clip;
 
 pub use color::{Color, Colors};
 
 pub use mesh2d::{Mesh2d, Mesh2dColor, BezierMesh2d};
+
+pub use padding::{Padding};
 
 pub use path::{
     Path, PathBuilder, PathCode,

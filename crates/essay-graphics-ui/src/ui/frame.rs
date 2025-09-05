@@ -1,10 +1,10 @@
-use essay_graphics_api::{renderer::Renderer, Color, Margin, Point, Shapes};
+use essay_graphics_api::{renderer::Renderer, Color, Padding, Point, Shapes};
 
 use crate::{ui::ui::{ResponseValue, Ui, UiBuilder}};
 
 pub struct Frame {
-    pub inner_margin: Margin,
-    pub outer_margin: Margin,
+    pub inner_margin: Padding,
+    pub outer_margin: Padding,
 
     pub background: Color,
     pub is_shadow: bool,
@@ -14,8 +14,8 @@ impl Frame {
     pub fn group(ui: &Ui) -> Self {
 
         Self {
-            inner_margin: Margin::from_all(6.),
-            outer_margin: Margin::from_all(0.),
+            inner_margin: Padding::from_all(6.),
+            outer_margin: Padding::from_all(0.),
             background: ui.style().background,
             is_shadow: false,
         }
@@ -36,20 +36,12 @@ impl Frame {
     }
 
     #[inline]
-    pub fn total_margin(&self) -> Margin {
+    pub fn total_margin(&self) -> Padding {
         self.inner_margin + self.outer_margin
     }
 
     pub fn show<R>(self, ui: &mut Ui, add_contents: impl FnOnce(&mut Ui) -> R) -> ResponseValue<R> {
-        let corner_margin = Margin::from_all(ui.style().corner_radius);
-
-        //let max_bounds = ui.available_bounds() - self.total_margin() - corner_margin;
-
-        // todo: negative bounds
-        /*
-        assert!(max_bounds.x0() < max_bounds.x1());
-        assert!(max_bounds.y0() < max_bounds.y1());
-        */
+        let corner_margin = Padding::from_all(ui.style().corner_radius);
 
         let index = ui.painter_mut().add(Shapes::None);
 
@@ -57,7 +49,6 @@ impl Frame {
 
         let builder = UiBuilder::default()
             .margin(margin);
-            //.max_bounds(max_bounds);
 
         let ResponseValue {
             value,
@@ -65,18 +56,6 @@ impl Frame {
         } = ui.child(builder, add_contents);
 
         let rect = ui.pass_mut().widgets().get(response.id()).unwrap();
-
-        // rect.rect = rect.rect + corner_margin;
-
-        // TODO: force allocation
-        /*
-        let ResponseValue {
-            response,
-            ..
-        } = ui.alloc_response(rect.rect - self.outer_margin - corner_margin);
-        */
-
-        // rect.rect = rect.rect + self.total_margin();
 
         let pos = rect.pos; //  + self.inner_margin + corner_margin;
 
@@ -97,11 +76,6 @@ impl Frame {
                     pos.p0() + Point::new(px, px), pos.size(), corner, shadow,
                 ))?;
             }
-            /*
-            ui.draw_shape(&Shapes::Rectangle(
-                pos.p0() - Point(1., 1.), pos.size() + Size(2., 2.), corner, border,
-            ))?;
-            */
 
             ui.draw_shape(&Shapes::Rectangle(
                 pos.p0(), pos.size(), corner, background,
@@ -129,6 +103,12 @@ mod test {
             Frame::group(&ui).background(0x00ff00).show(ui, |ui| {
                 ui.label("Frame");
             });
+
+            // ui.frame(Frame::group().background(0x00ff00), |ui| {
+            //   ui.label("Frame");
+            // })
+            //
+            //
 
             ui.label("Post");
         }).unwrap();

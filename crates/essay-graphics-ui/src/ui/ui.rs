@@ -2,7 +2,7 @@ use core::hash;
 use std::{marker::PhantomData, ops, sync::Arc};
 
 use essay_graphics_api::{
-    input::Input, output::Output, renderer::{self, Canvas, Drawable, Renderer}, Bounds, Margin, Rectangle, Size, TextStyle
+    input::Input, output::Output, renderer::{self, Canvas, Drawable, Renderer}, Bounds, Padding, Rectangle, Size, TextStyle
 };
 
 use crate::{
@@ -477,7 +477,7 @@ pub struct UiBuilder {
     id_salt: Option<Id>,
     max_bounds: Option<Bounds<Canvas>>,
     view: Option<Size<Length>>,
-    margin: Margin,
+    margin: Padding,
     update: Option<AllocDirection>,
 }
 
@@ -497,7 +497,7 @@ impl UiBuilder {
     }
 
     #[inline]
-    pub fn margin(mut self, margin: impl Into<Margin>) -> Self {
+    pub fn margin(mut self, margin: impl Into<Padding>) -> Self {
         self.margin = margin.into();
 
         self
@@ -530,8 +530,8 @@ impl UiBuilder {
     }
 }
 
-impl From<Margin> for UiBuilder {
-    fn from(size: Margin) -> Self {
+impl From<Padding> for UiBuilder {
+    fn from(size: Padding) -> Self {
         UiBuilder::default().margin(size)
     }
 }

@@ -1,4 +1,4 @@
-use essay_graphics_api::{renderer::Renderer, Color, Margin, Point, Shapes};
+use essay_graphics_api::{renderer::Renderer, Color, Padding, Point, Shapes};
 
 use crate::{ui::{ui::UiBuilder, Response, Shell, Ui, Widget}, widget2::Element};
 
@@ -11,8 +11,8 @@ pub fn frame<'a, Message>(
 pub struct Frame<'a, Message> {
     content: Element<'a, Message>,   
 
-    pub inner_margin: Margin,
-    pub outer_margin: Margin,
+    pub padding: Padding,
+    pub margin: Padding,
 
     pub background: Option<Color>,
     pub is_shadow: bool,
@@ -25,8 +25,8 @@ impl<'a, Message> Frame<'a, Message> {
         Self {
             content: content.into(),
 
-            inner_margin: Margin::from_all(6.),
-            outer_margin: Margin::from_all(0.),
+            padding: Padding::from_all(6.),
+            margin: Padding::from_all(0.),
             background: None,
             is_shadow: false,
         }
@@ -40,15 +40,15 @@ impl<'a, Message> Frame<'a, Message> {
     }
 
     #[must_use]
-    pub fn padding(mut self, padding: impl Into<Margin>) -> Self {
-        self.inner_margin = padding.into();
+    pub fn padding(mut self, padding: impl Into<Padding>) -> Self {
+        self.padding = padding.into();
 
         self
     }
 
     #[inline]
-    pub fn total_margin(&self) -> Margin {
-        self.inner_margin + self.outer_margin
+    pub fn total_margin(&self) -> Padding {
+        self.padding + self.margin
     }
 }
 
@@ -61,15 +61,7 @@ where
         ui: &mut Ui,
         shell: &mut Shell<Message>,
     ) -> Response {
-        let corner_margin = Margin::from_all(ui.style().corner_radius);
-
-        let max_bounds = ui.available_bounds() - self.total_margin() - corner_margin;
-
-        // todo: negative bounds
-        /*
-        assert!(max_bounds.x0() < max_bounds.x1());
-        assert!(max_bounds.y0() < max_bounds.y1());
-        */
+        let corner_margin = Padding::from_all(ui.style().corner_radius);
 
         let index = ui.painter_mut().add(Shapes::None);
 
@@ -78,25 +70,11 @@ where
         let builder = UiBuilder::default()
             .margin(margin);
 
-        // let response = self.content.draw(ui, bounds, shell);
-
         let response = ui.child(builder, |ui| {
             self.content.ui(ui, shell);
         }).response;
 
         let rect = ui.pass().widgets().get(response.id()).unwrap();
-
-        // rect.rect = rect.rect + corner_margin;
-
-        // TODO: force allocation
-        /*
-        let ResponseValue {
-            response,
-            ..
-        } = ui.alloc_response(rect.rect - self.outer_margin - corner_margin);
-        */
-
-        // rect.rect = rect.rect + self.total_margin();
 
         let pos = rect.pos; //  + self.inner_margin + corner_margin;
 

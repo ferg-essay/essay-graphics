@@ -1,4 +1,4 @@
-use essay_graphics_api::{renderer::{Renderer}, Margin, Point, Shapes, Size};
+use essay_graphics_api::{renderer::{Renderer}, Padding, Point, Shapes, Size};
 
 use crate::ui::{ui::MessageBase, DrawWidget, Response, ResponseValue, Shell, Ui, Widget};
 
@@ -44,7 +44,7 @@ impl DrawWidget for Button {
 
         let pos = Point::new(bounds.xmin() + margin, bounds.ymin() + margin);
 
-        let inner = bounds - Margin::from_pair(corner, corner);
+        let inner = bounds - Padding::from_pair(corner, corner);
         // println!("Size {:?} Bounds {:?} {:?}", size, bounds, inner);
 
         let mut style = ui.style().button.clone();

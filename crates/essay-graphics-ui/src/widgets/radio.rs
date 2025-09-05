@@ -1,4 +1,4 @@
-use essay_graphics_api::{color::Grey, renderer::{Canvas, Renderer}, Bounds, Margin, Shapes, Size};
+use essay_graphics_api::{color::Grey, renderer::{Canvas, Renderer}, Bounds, Padding, Shapes, Size};
 
 use crate::ui::{ui::MessageBase, DrawWidget, Response, ResponseValue, Shell, Ui, Widget};
 
@@ -76,7 +76,7 @@ impl DrawWidget for Radio {
         ui.painter_mut().add(move |ui: &mut dyn Renderer| {
             ui.draw_text(pos.p0(), &label, 0., &style, &text_style)?;
 
-            let pos_center = radio_pos - Margin::from_all(6.);
+            let pos_center = radio_pos - Padding::from_all(6.);
 
             ui.draw_shape(&Shapes::Rectangle(
                 radio_pos.p0(),

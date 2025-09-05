@@ -1,4 +1,4 @@
-use essay_graphics_api::{renderer::{Canvas, Pos}, Bounds, Margin, Point, Rectangle, Size};
+use essay_graphics_api::{renderer::{Canvas, Pos}, Bounds, Padding, Point, Rectangle, Size};
 
 use crate::{page::Page, ui::ui::Length};
 
@@ -7,7 +7,7 @@ pub struct Alloc {
     pub alloc_dir: AllocDirection,
 
     pub bounds: Bounds<Canvas>, // extent of the canvas managed by the cursor
-    pub margin: Margin,
+    pub margin: Padding,
 
     view_width: f32,
     view_height: f32,
@@ -30,7 +30,7 @@ impl Alloc {
             alloc_dir: update,
 
             bounds: bounds.into(),
-            margin: Margin::ZERO,
+            margin: Padding::ZERO,
 
             view_width: bounds_cache.view_width(bounds.width()),
             view_height: bounds_cache.view_height(bounds.height()),
@@ -44,7 +44,7 @@ impl Alloc {
         &self, 
         parent_free: Pos,
         size: Option<Size<Length>>,
-        margin: Margin,
+        margin: Padding,
         alloc_dir: AllocDirection,
         cache: Option<AllocSize>
     ) -> Self {
@@ -156,14 +156,14 @@ impl Alloc {
         match self.alloc_dir {
             AllocDirection::Vertical => {
                 Bounds::from([
-                    [self.bounds.xmin(), self.alloc.ymax()],
-                    [self.bounds.xmax(), self.bounds.ymax()],
+                    [self.bounds.x0(), self.alloc.y1()],
+                    [self.bounds.x1(), self.bounds.y1()],
                 ])
             },
             AllocDirection::Horizontal => {
                 Bounds::from([
-                    [self.alloc.xmax(), self.bounds.ymin()],
-                    [self.bounds.xmax(), self.bounds.ymax()],
+                    [self.alloc.x1(), self.bounds.y0()],
+                    [self.bounds.x1(), self.bounds.y1()],
                 ])
             }
         }
@@ -179,8 +179,8 @@ impl Alloc {
         match self.alloc_dir {
             AllocDirection::Vertical => {
                 let rect = Rectangle::new(
-                    self.bounds.xmin(), 
-                    self.alloc.ymax(),
+                    self.bounds.x0(), 
+                    self.alloc.y1(),
                     size.width,
                     size.height,
                 );
@@ -191,15 +191,17 @@ impl Alloc {
                 rect.into()
             },
             AllocDirection::Horizontal => {
-                let rect = Bounds::<Canvas>::from((
-                    Point::new(self.alloc.xmax(), self.bounds.ymin()),
-                    size,
-                ));
+                let rect = Rectangle::new(
+                    self.alloc.x1(), 
+                    self.bounds.y0(),
+                    size.width,
+                    size.height,
+                );
 
-                self.alloc = self.alloc.union(&rect);
+                self.alloc = self.alloc.union(rect);
                 self.alloc_size.fixed = self.alloc_size.fixed.union(rect);
 
-                rect
+                rect.into()
             }
         }
     }
@@ -242,10 +244,10 @@ impl Alloc {
         let alloc = match self.alloc_dir {
             AllocDirection::Vertical => {
                 Bounds::from([
-                    [self.bounds.xmin(), self.alloc.ymax()],
+                    [self.bounds.x0(), self.alloc.y1()],
                     [
-                        (self.bounds.xmin() + canvas_size.width).min(self.bounds.xmax()),
-                        (self.alloc.ymax() + canvas_size.height).min(self.bounds.ymax()),
+                        (self.bounds.x0() + canvas_size.width).min(self.bounds.x1()),
+                        (self.alloc.y1() + canvas_size.height).min(self.bounds.y1()),
                     ]
                 ])
             }
@@ -253,8 +255,8 @@ impl Alloc {
                 Bounds::from([
                     [self.alloc.xmax(), self.bounds.ymin()],
                     [
-                        (self.alloc.xmax() + canvas_size.width).min(self.bounds.xmax()),
-                        (self.bounds.ymin() + canvas_size.height).min(self.bounds.ymax()),
+                        (self.alloc.x1() + canvas_size.width).min(self.bounds.x1()),
+                        (self.bounds.y0() + canvas_size.height).min(self.bounds.y1()),
                     ]
                 ])
             }
