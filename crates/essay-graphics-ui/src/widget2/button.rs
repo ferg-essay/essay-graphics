@@ -95,7 +95,7 @@ where
 
         let mut style = ui.style().button.clone();
 
-        if response.clicked() {
+        if response.clicked(ui) {
             match &self.on_press {
                 Some(OnPress::Direct(message)) => {
                     shell.publish(message.clone());

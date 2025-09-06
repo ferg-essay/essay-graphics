@@ -32,7 +32,7 @@ impl Popup {
 
     pub fn menu(ui: &mut Ui, response: &Response) -> Self {
         Self::from_response(ui, response)
-            .open_memory(response.clicked().then_some(OpenMemory::Toggle))
+            .open_memory(response.clicked(ui).then_some(OpenMemory::Toggle))
     }
 
     pub fn open(mut self, is_enabled: bool) -> Self {

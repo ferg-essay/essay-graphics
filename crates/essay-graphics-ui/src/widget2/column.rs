@@ -1,5 +1,3 @@
-use essay_graphics_api::{Rectangle};
-
 use crate::{
     ui::{Response, Shell, Ui, Widget}, 
     widget2::{Element, WidgetFrame}

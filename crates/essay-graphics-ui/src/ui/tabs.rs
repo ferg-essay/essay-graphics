@@ -54,7 +54,7 @@ impl<T: PartialEq + Clone + Into<String>> Tabs<'_, T> {
                         [tab_width, pos.height()]
                     ));
 
-                    if response.clicked() && ui.input(|input| input.cursor_in(&pos)) {
+                    if response.clicked(ui) && ui.input(|input| input.cursor_in(&pos)) {
                         selected = Some(item.key.clone());
                     }
 
@@ -96,7 +96,7 @@ impl<T: PartialEq + Clone + Into<String>> Tabs<'_, T> {
 
                         add_content = item.add_content.take();
                         selected = Some(item.key);
-                    } else if response.is_hover() {
+                    } else if response.is_hover(ui) {
                         let mut tab_style = tab_style.clone();
                         tab_style.edge_color(ui.style()[State::Hover].edge);
                         tab_style.face_color(ui.style()[State::Hover].background);

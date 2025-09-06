@@ -6,11 +6,7 @@ use essay_graphics_api::{
 };
 
 use crate::{
-    style::UiStyle, 
-    ui::{widget::DrawWidget, AllocSize, AppState, Context, Painter, RenderPass, Response, UiRender, Update, View}, 
-    util::Id, 
-    widgets::{Button, Label, Radio, SelectableLabel}, 
-    windows::MenuButton
+    style::UiStyle, ui::{widget::DrawWidget, AllocSize, AppState, Context, Painter, RenderPass, Response, UiRender, Update, View}, util::Id, widget2::Text, widgets::{Button, Label, Radio, SelectableLabel}, windows::MenuButton
 };
 
 use super::alloc::{Alloc, AllocDirection};
@@ -78,7 +74,7 @@ impl<'a> Ui<'a> {
         self.pass_mut().output.as_mut().unwrap()
     }
     
-    pub(crate) fn render_mut(&'a mut self) -> &'a mut UiRender {
+    pub(crate) fn _render_mut(&'a mut self) -> &'a mut UiRender {
         self.render
     }
 
@@ -279,7 +275,7 @@ impl<'a> Ui<'a> {
     pub(crate) fn insert_widget(&mut self, id: Id, pos: impl Into<Rectangle>) -> Response {
         let widget = self.pass_mut().widgets.insert(id, pos);
 
-        Response::new(self, widget)
+        Response::new(widget)
     }
 
     #[inline]
@@ -288,18 +284,18 @@ impl<'a> Ui<'a> {
     }
 
     #[inline]
-    pub fn label(&mut self, label: &str) -> Response {
-        let label = Label::new(label);
-
-        self.draw_widget(label)
+    pub fn label(&mut self, label: impl Into<Text>) -> Response {
+        self.draw_widget(label.into())
     }
 
+    /*
     #[inline]
     pub fn button(&mut self, label: &str, press: bool) -> Response {
         let button = Button::new(label, press);
 
         self.draw_widget(button)
     }
+    */
 
     #[inline]
     pub fn menu_button<R>(
@@ -327,7 +323,7 @@ impl<'a> Ui<'a> {
     ) -> Response {
         let response = self.draw_widget(SelectableLabel::new(text, *var == value));
 
-        if response.clicked() && *var != value {
+        if response.clicked(self) && *var != value {
             *var = value;
             // response.mark_changed();
         }
@@ -348,7 +344,7 @@ impl<'a> Ui<'a> {
     ) -> Response {
         let response = self.draw_widget(Radio::new(text, *var == value));
 
-        if response.clicked() && *var != value {
+        if response.clicked(self) && *var != value {
             *var = value;
             // response.mark_changed();
         }

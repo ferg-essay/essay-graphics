@@ -80,7 +80,7 @@ where
 
         let background = self.background.unwrap_or(Color(0));
         let corner = ui.style().corner_radius;
-        let border = ui.style().border;
+        let _border = ui.style().border;
         let is_shadow = self.is_shadow;
         let shadow = ui.style().shadow;
 

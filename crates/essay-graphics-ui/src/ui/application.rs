@@ -26,6 +26,7 @@ pub trait View<'a, State, Message> {
 impl<'a, T, State, Message, Widget> View<'a, State, Message> for T
 where
     T: Fn(&'a State) -> Widget,
+    // T: for<'b> Fn(&'b State) -> Widget + 'a,
     State: 'static,
     Widget: Into<Element<'a, Message>>,
 {

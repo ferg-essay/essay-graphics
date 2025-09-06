@@ -49,7 +49,7 @@ impl DrawWidget for Button {
 
         let mut style = ui.style().button.clone();
 
-        let press_one = response.clicked();
+        let press_one = response.clicked(ui);
 
         let ui_style = ui.style();
 

@@ -1,6 +1,4 @@
-use essay_graphics_api::{input::Input};
-
-use crate::{ui::{Response, Ui, Widget}, widget2::{tooltip::Tooltip, Element, Frame}};
+use crate::{ui::{Widget}, widget2::{tooltip::Tooltip, Element, Frame}};
 
 pub trait WidgetFrame<'a, Message>: Widget<Message> + Sized + 'a {
     fn frame(self) -> Frame<'a, Message> {
