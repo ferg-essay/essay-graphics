@@ -45,7 +45,11 @@ impl Popup {
         self
     }
 
-    pub fn show<R>(self, add_content: impl FnOnce(&mut Ui) -> R) -> Option<ResponseValue<R>> {
+    pub fn show<R>(
+        self, 
+        ui: &mut Ui, 
+        add_content: impl FnOnce(&mut Ui) -> R
+    ) -> Option<ResponseValue<R>> {
         self.update_open();
 
         if ! self.is_open() {
@@ -55,21 +59,15 @@ impl Popup {
         let builder = UiBuilder::default()
             .max_bounds(([self.pos.x, self.pos.y], [400., 100.]));
 
-            /*
-        Some(Ui::top(&self.ctx, self.id, builder, |ui| {
-            let frame = Frame::group(ui).shadow(true);
+        Some(ui.popup(
+            Id::from("popup"), 
+            builder,
+            |ui| {
+                let frame = Frame::group(ui).shadow(true);
         
-            let ResponseValue {
-                value,
-                response,
-            } = frame.show(ui, add_content);
-
-            value
-        }))
-        */
-        println!("TODO Popup");
-
-        None
+                frame.show(ui, add_content).value
+            }
+        ))
     }
 
     fn update_open(&self) {
@@ -136,31 +134,27 @@ mod test {
         ctx.run(&mut test, |ui| {
             let response = ui.label("Test");
 
-            Popup::from_response(ui, &response).open(true).show(|ui| {
+            Popup::from_response(ui, &response).open(true).show(ui, |ui| {
                 ui.label("Popup");
             });
         }).unwrap();
 
         assert_eq!(test.take(), "text (0.0,0.0) 'Test'
-rect (5.0,32.0) 166.0x58.0 #00000020
-rect (0.0,27.0) 166.0x58.0 #ffffffff
+rect (5.0,32.0) 166.0x59.0 #00000020
+rect (0.0,27.0) 166.0x59.0 #ffffffff
 text (16.0,42.7) 'Popup'");
-
-        if true { return; }
-
-        println!("\n  Pass2");
 
         ctx.run(&mut test, |ui| {
             let response = ui.label("Test");
 
-            Popup::from_response(ui, &response).open(true).show(|ui| {
+            Popup::from_response(ui, &response).open(true).show(ui, |ui| {
                 ui.label("Popup");
             });
-        });
+        }).unwrap();
 
         assert_eq!(test.take(), "text (0.0,0.0) 'Test'
-rect (5.0,32.0) 166.0x58.0 #00000020
-rect (0.0,27.0) 166.0x58.0 #ffffffff
+rect (5.0,32.0) 166.0x59.0 #00000020
+rect (0.0,27.0) 166.0x59.0 #ffffffff
 text (16.0,42.7) 'Popup'");
     }
 }

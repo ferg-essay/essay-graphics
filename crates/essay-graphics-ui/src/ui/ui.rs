@@ -155,7 +155,6 @@ impl<'a> Ui<'a> {
 
         let alloc = self.alloc.child(
             max_bounds,
-            // size,
             margin,
             update,
             alloc_cache.clone()
@@ -197,6 +196,58 @@ impl<'a> Ui<'a> {
         self.pass_mut().alloc_map.insert(id, new_alloc);
         self.insert_widget(id, bounds)
     }
+    
+    pub(crate) fn popup<R>(
+        &mut self,
+        id: Id,
+        builder: impl Into<UiBuilder>,
+        add_content: impl FnOnce(&mut Ui) -> R
+    ) -> ResponseValue<R> {
+        let UiBuilder {
+            id_salt: _id_salt,
+            max_bounds,
+            view: _size,
+            margin,
+            update: alloc_update,
+        } = builder.into();
+        
+        let bounds = max_bounds.unwrap_or_else(|| self.context().screen_pos());
+
+        let update = alloc_update.unwrap_or_else(|| self.alloc.alloc_dir);
+
+        let pos = Rectangle::ZERO;
+
+        self.insert_widget(id, pos);
+
+        let alloc_cache = self.last_pass().alloc_map.get(&id).cloned();
+        let alloc = Alloc::new(bounds, update, alloc_cache.clone());
+
+        let mut popup_ui = Ui {
+            stable_id: id,
+            id,
+            next_auto_id_salt: id.with("auto").value(),
+            alloc,
+            painter: Painter::new(self.painter.context()),
+            style: self.style.clone(),
+            render: self.render,
+    
+            cache_index: 0,
+        };
+
+        let result = (add_content)(&mut popup_ui);
+
+        let bounds = popup_ui.alloc.alloc + margin;
+
+        let new_alloc = popup_ui.alloc.alloc_size.clone();
+        if new_alloc.is_changed(&alloc_cache) {
+            println!("AllocChange")
+        }
+
+        self.pass_mut().alloc_map.insert(id, new_alloc);
+        let response = self.insert_widget(id, bounds);
+
+        ResponseValue::new(result, response)
+    }
 
     pub fn available_bounds(&self) -> Bounds<Canvas> {
         self.alloc.available()
@@ -213,15 +264,6 @@ impl<'a> Ui<'a> {
 
         self.add_widget(pos)
     }
-    
-    /*
-    #[inline]
-    pub fn allocate_view(&mut self, size: Size) -> ResponseValue<Bounds<Canvas>> {
-        let pos = self.alloc.alloc_view(size);
-
-        self.add_widget(pos)
-    }
-    */
 
     fn add_widget(&mut self, pos: impl Into<Rectangle>) -> ResponseValue<Bounds<Canvas>> {
         let id = self.stable_id.with(self.next_auto_id_salt);
@@ -323,21 +365,39 @@ impl<'a> Ui<'a> {
     }
 
     pub fn row<R>(&mut self, add_content: impl FnOnce(&mut Ui) -> R) -> ResponseValue<R> {
-        let result = self.child(UiBuilder::default()
+        self.child(UiBuilder::default()
             .update(AllocDirection::Horizontal),
             add_content
-        );
+        )
+    }
 
-        result
+    pub fn row_with<R>(
+        &mut self, 
+        builder: impl Into<UiBuilder>,
+        add_content: impl FnOnce(&mut Ui) -> R
+    ) -> ResponseValue<R> {
+        self.child(builder.into()
+            .update(AllocDirection::Horizontal),
+            add_content
+        )
     }
 
     pub fn column<R>(&mut self, add_content: impl FnOnce(&mut Ui) -> R) -> ResponseValue<R> {
-        let result = self.child(UiBuilder::default()
+        self.child(UiBuilder::default()
             .update(AllocDirection::Vertical),
             add_content
-        );
+        )
+    }
 
-        result
+    pub fn column_with<R>(
+        &mut self, 
+        builder: impl Into<UiBuilder>,
+        add_content: impl FnOnce(&mut Ui) -> R
+    ) -> ResponseValue<R> {
+        self.child(builder.into()
+            .update(AllocDirection::Vertical),
+            add_content
+        )
     }
 
     pub fn view<R>(
@@ -346,79 +406,13 @@ impl<'a> Ui<'a> {
     ) -> ResponseValue<R> {
         let size = Size::new(Length::Fill, Length::Fill);
 
-        // let pos = self.alloc.alloc(size);
-            
-        let result = self.child(
+        self.child(
             UiBuilder::default()
-                //.max_bounds(pos)
                 .size(size)
                 .update(AllocDirection::Vertical),
             add_content
-        );
-
-        // self.update_pos();
-
-        result
+        )
     }
-
-    /*
-    pub fn row_size<R>(
-        &mut self, 
-        size: UiSize, 
-        add_content: impl FnOnce(&mut Ui) -> R
-    ) -> ResponseValue<R> {
-        let mut builder = UiBuilder::default();
-
-        let bounds = match size {
-            UiSize::Canvas(width, height) => {
-                self.alloc.alloc_canvas([width, height])
-            }
-            UiSize::View(width, height) => {
-                builder = builder.view([width, height]);
-
-                self.alloc.alloc_view([width, height])
-            }
-        };
-
-        let result = self.child(builder
-            .max_bounds(bounds)
-            .update(AllocDirection::Horizontal),
-            add_content
-        );
-
-        // self.update_pos();
-
-        result
-    }
-
-    pub fn column_size<R>(
-        &mut self, 
-        size: UiSize, 
-        add_content: impl FnOnce(&mut Ui) -> R
-    ) -> ResponseValue<R> {
-        let mut builder = UiBuilder::default();
-
-        let bounds = match size {
-            UiSize::Canvas(width, height) => {
-                self.alloc.alloc_canvas([width, height])
-            }
-            UiSize::View(width, height) => {
-                builder = builder.view([width, height]);
-                self.alloc.alloc_view([width, height])
-            }
-        };
-
-        let result = self.child(builder
-            .max_bounds(bounds)
-            .update(AllocDirection::Vertical),
-            add_content
-        );
-
-        // self.update_pos();
-
-        result
-    }
-    */
 
     pub fn app<'b, State, Message>(
         &mut self, 

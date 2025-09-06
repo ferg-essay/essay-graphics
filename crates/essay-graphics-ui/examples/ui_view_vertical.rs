@@ -22,6 +22,8 @@ fn main() {
                 ui.column(|ui| {
                     ui.view(|ui| {
                         ui.label("A")
+                    }).response.on_hover_ui(ui, |ui| {
+                        ui.label("Tooltip for Label A"); 
                     });
                     Frame::group(ui).background("amber").show(ui, |ui| {
                         ui.view(|ui| {

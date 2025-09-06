@@ -66,7 +66,7 @@ impl Response {
 
     pub fn on_hover_ui(&self, ui: &mut Ui, add_contents: impl FnOnce(&mut Ui)) -> &Self {
         if self.is_hover() {
-            Tooltip::for_enabled(ui, &self).show(add_contents);
+            Tooltip::for_enabled(ui, &self).show(ui, add_contents);
         }
 
         &self

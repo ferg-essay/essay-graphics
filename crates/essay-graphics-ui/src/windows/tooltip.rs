@@ -14,8 +14,8 @@ impl Tooltip {
         }
     }
     
-    pub fn show(self, add_content: impl FnOnce(&mut Ui)) {
-        self.popup.show(add_content);
+    pub fn show(self, ui: &mut Ui, add_content: impl FnOnce(&mut Ui)) {
+        self.popup.show(ui, add_content);
     }
 
     pub fn should_show_tooltip(ui: &mut Ui, response: &Response) -> bool {

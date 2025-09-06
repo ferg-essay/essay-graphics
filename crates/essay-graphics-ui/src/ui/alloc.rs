@@ -41,7 +41,6 @@ impl Alloc {
     pub(super) fn child(
         &self, 
         parent_free: Pos,
-        // size: Option<Size<Length>>,
         margin: Padding,
         alloc_dir: AllocDirection,
         cache: Option<AllocSize>
