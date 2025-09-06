@@ -109,10 +109,10 @@ where
 
         let ui_style = ui.style();
 
-        let (background, foreground) = ui.input(|input| {
+        let (background, foreground) = {
             let is_active = self.press; // self.press ^ press_one;
 
-            if input.cursor
+            if ui.input().cursor
                 .map_or(false, |p| bounds.contains(p)) {
                 if is_active {
                     (ui_style.button2_on.hover_background, ui_style.button2_on.hover_foreground)
@@ -126,7 +126,7 @@ where
                     (ui_style.button2_off.background, ui_style.button2_off.foreground)
                 }
             }
-        });
+        };
         
         //style.edge_color(ui.style()[state].edge);
         style.color(background);
@@ -137,7 +137,7 @@ where
         let corner = ui_style.corner_radius;
         let label = String::from(self.content.value());
 
-        ui.painter_mut().add(move |ui: &mut dyn Renderer| {
+        ui.painter().add(move |ui: &mut dyn Renderer| {
             let sz = 0.;
             let r = corner;
             if sz > 0. { // border

@@ -63,7 +63,7 @@ where
     ) -> Response {
         let corner_margin = Padding::from_all(ui.style().corner_radius);
 
-        let index = ui.painter_mut().add(Shapes::None);
+        let index = ui.painter().add(Shapes::None);
 
         let margin = self.total_margin() + corner_margin;
 
@@ -84,7 +84,7 @@ where
         let is_shadow = self.is_shadow;
         let shadow = ui.style().shadow;
 
-        ui.painter_mut().set(index, move |ui: &mut dyn Renderer| {
+        ui.painter().set(index, move |ui: &mut dyn Renderer| {
             let pos = pos.snap();
 
             if is_shadow {

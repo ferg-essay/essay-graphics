@@ -19,10 +19,7 @@ pub struct Ui<'a> {
     alloc: Alloc,
 
     render: &'a mut UiRender,
-    painter: Painter,
     style: Arc<UiStyle>,
-
-    cache_index: usize,
 }
 
 impl<'a> Ui<'a> {
@@ -46,35 +43,39 @@ impl<'a> Ui<'a> {
 
     #[inline]
     pub fn pass(&self) -> &RenderPass {
-        &self.render.pass
+        &self.render.state.pass
     }
 
     #[inline]
     pub fn pass_mut(&mut self) -> &mut RenderPass {
-        &mut self.render.pass
+        &mut self.render.state.pass
     }
 
     #[inline]
     pub fn last_pass(&self) -> &RenderPass {
-        &self.render.last_pass
+        &self.render.state.last_pass
     }
 
     #[inline]
-    pub fn painter_mut(&mut self) -> &mut Painter {
-        &mut self.painter
+    pub fn painter(&mut self) -> Painter {
+        Painter::new(&mut self.render)
     }
 
     #[inline]
-    pub fn input<R>(&self, reader: impl FnOnce(&Input) -> R) -> R {
-        self.context().input(reader)
+    pub fn input(&self) -> &Input {
+        &self.render.input
     }
 
     #[inline]
     pub fn output_mut(&mut self) -> &mut Output {
-        self.pass_mut().output.as_mut().unwrap()
+        self.render.output.as_mut().unwrap()
     }
     
-    pub(crate) fn _render_mut(&'a mut self) -> &'a mut UiRender {
+    pub(crate) fn render(&self) -> &UiRender {
+        self.render
+    }
+    
+    pub(crate) fn render_mut(&'a mut self) -> &'a mut UiRender {
         self.render
     }
 
@@ -92,7 +93,7 @@ impl<'a> Ui<'a> {
 
         let bounds = max_bounds.unwrap_or_else(|| ctx.screen_pos());
 
-        let alloc_cache = render.last_pass.alloc_map.get(&id).cloned();
+        let alloc_cache = render.state.last_pass.alloc_map.get(&id).cloned();
         let alloc = Alloc::new(bounds, AllocDirection::Vertical, alloc_cache.clone());
 
         let mut ui = Ui {
@@ -100,11 +101,8 @@ impl<'a> Ui<'a> {
             id,
             next_auto_id_salt: id.with("auto").value(),
             alloc,
-            painter: Painter::new(&ctx),
             style: ctx.style(),
             render,
-    
-            cache_index: 0,
         };
 
         let start_rect = Rectangle::ZERO;
@@ -161,11 +159,8 @@ impl<'a> Ui<'a> {
             id: child_id,
             next_auto_id_salt,
             alloc,
-            painter: Painter::new(self.painter.context()),
             style: self.style.clone(),
             render: self.render,
-
-            cache_index: self.cache_index,
         };
 
         let result = (add_content)(&mut child);
@@ -223,11 +218,8 @@ impl<'a> Ui<'a> {
             id,
             next_auto_id_salt: id.with("auto").value(),
             alloc,
-            painter: Painter::new(self.painter.context()),
             style: self.style.clone(),
             render: self.render,
-    
-            cache_index: 0,
         };
 
         let result = (add_content)(&mut popup_ui);
@@ -288,15 +280,6 @@ impl<'a> Ui<'a> {
         self.draw_widget(label.into())
     }
 
-    /*
-    #[inline]
-    pub fn button(&mut self, label: &str, press: bool) -> Response {
-        let button = Button::new(label, press);
-
-        self.draw_widget(button)
-    }
-    */
-
     #[inline]
     pub fn menu_button<R>(
         &mut self, 
@@ -355,7 +338,7 @@ impl<'a> Ui<'a> {
     pub fn draw_size(&mut self, size: impl Into<Size<Length>>, draw: impl Drawable + 'static) -> Response {
         let ResponseValue { response, .. } = self.allocate(size);
         
-        self.painter_mut().add(draw);
+        self.painter().add(draw);
 
         response
     }

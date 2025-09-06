@@ -73,7 +73,7 @@ impl DrawWidget for Radio {
         ]);
 
         // style.color(foreground);
-        ui.painter_mut().add(move |ui: &mut dyn Renderer| {
+        ui.painter().add(move |ui: &mut dyn Renderer| {
             ui.draw_text(pos.p0(), &label, 0., &style, &text_style)?;
 
             let pos_center = radio_pos - Padding::from_all(6.);

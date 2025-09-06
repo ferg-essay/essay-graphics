@@ -42,7 +42,7 @@ impl<'a, Message> Widget<Message> for Text {
 
         let label = String::from(&self.content);
 
-        ui.painter_mut().add(move |renderer: &mut dyn Renderer| {
+        ui.painter().add(move |renderer: &mut dyn Renderer| {
             renderer.draw_text(
                 value.p0(), 
                 &label, 
@@ -72,7 +72,7 @@ impl DrawWidget for Text {
 
         let label = String::from(&self.content);
 
-        ui.painter_mut().add(move |renderer: &mut dyn Renderer| {
+        ui.painter().add(move |renderer: &mut dyn Renderer| {
             renderer.draw_text(
                 value.p0(), 
                 &label, 

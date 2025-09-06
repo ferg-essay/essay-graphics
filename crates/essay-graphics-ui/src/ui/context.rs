@@ -40,10 +40,12 @@ impl Context {
         self.write(|cxt| (writer)(&mut cxt.viewport))
     }
 
+    /*
     #[inline]
     pub fn input<R>(&self, reader: impl FnOnce(&Input) -> R) -> R {
         self.read(|cxt| (reader)(&cxt.viewport.input))
     }
+    */
 
     #[inline]
     pub fn memory<R>(&self, reader: impl FnOnce(&Memory) -> R) -> R {
@@ -65,6 +67,7 @@ impl Context {
         self.write(|cxt| (writer)(&mut cxt.fonts))
     }
 
+    /*
     #[inline]
     pub fn graphics<R>(&self, reader: impl FnOnce(&GraphicsLayers) -> R) -> R {
         self.read(|cxt| (reader)(&cxt.viewport.layers))
@@ -74,6 +77,7 @@ impl Context {
     pub fn graphics_mut<R>(&self, writer: impl FnOnce(&mut GraphicsLayers) -> R) -> R {
         self.write(|cxt| (writer)(&mut cxt.viewport.layers))
     }
+    */
 
     /*
     #[inline]
@@ -113,23 +117,6 @@ impl Context {
     pub fn screen_pos(&self) -> Bounds<Canvas> {
         self.viewport(|viewport| viewport.screen_pos)
     }
-
-    pub(super) fn take_render(&self) -> UiRender {
-        let pass = self.viewport_mut(|viewport| viewport.pass.take());
-        let last_pass = self.viewport_mut(|viewport| viewport.last_pass.take());
-
-        UiRender {
-            pass: pass.unwrap(),
-            last_pass: last_pass.unwrap(),
-            theme: self.style(),
-            context: self.clone(),
-        }
-    }
-
-    pub(super) fn replace_render(&self, render: UiRender) {
-        self.viewport_mut(|viewport| viewport.pass = Some(render.pass));
-        self.viewport_mut(|viewport| viewport.last_pass = Some(render.last_pass));
-    }
     
     /*
     pub fn request_redraw_when(&self, time: f32) {
@@ -157,11 +144,11 @@ impl Context {
                 }
             });
 
-            self.start_pass(is_resize, renderer.input());
-
             let id = Id::new("__essay_top");
 
-            let mut render = self.take_render();
+            let mut render = self.start_pass(is_resize, renderer.input());
+
+            // let mut render = self.take_render();
 
             Ui::top(
                 self, 
@@ -171,70 +158,90 @@ impl Context {
                 &mut draw,
             );
 
-            self.replace_render(render);
             //(draw)(self);
 
             if ! is_resize {
-                self.graphics_mut(|layers| {
-                    layers.render(renderer).unwrap();
-                });
+                render.layers.render(renderer).unwrap();
 
-                return Ok(self.take_output());
+                let output = render.output.take().unwrap();
+
+                self.replace_render(render);
+
+                return Ok(output);
             } else {
-                self.graphics_mut(|layers| {
-                    layers.clear();
-                });
+                render.layers.clear();
+
+                self.replace_render(render);
             }
         }
     }
 
+    /*
     fn take_output(&self) -> Output {
         self.viewport_mut(|viewport| viewport.pass.as_mut().unwrap().output.take()).unwrap()
     }
+    */
 
-    fn start_pass(&self, _is_resize: bool, input: &Input) {
-        self.write(|ctx| {
-            let mut pass = RenderPass::default();
-            pass.output = Some(Output::default());
+    fn start_pass(&self, _is_resize: bool, input: &Input) -> UiRender {
+        let mut state = self.write(|ctx| {
+            ctx.viewport.render.take().unwrap()
+        });
 
-            let last_pass = ctx.viewport.pass.take().unwrap();
-            ctx.viewport.pass = Some(pass);
+        let pass = RenderPass::default();
+        // pass.output = Some(Output::default());
 
-            ctx.viewport.last_pass = Some(last_pass);
+        state.last_pass = std::mem::replace(&mut state.pass, pass);
 
-            ctx.viewport.input = input.clone(); // TODO: transfer input
-            ctx.viewport.interact.clicked = None;
-            ctx.viewport.hover.clear();
+        state.interact.clicked = None;
+        state.hover.clear();
 
-            if let Some(point) = input.cursor {
-                if ctx.viewport.interact.cursor != input.cursor {
-                    ctx.viewport.interact.last_cursor_move = Instant::now();
-                }
+        if let Some(point) = input.cursor {
+            if state.interact.cursor != input.cursor {
+                state.interact.last_cursor_move = Instant::now();
+            }
 
-                for widget in ctx.viewport.last_pass.as_ref().unwrap().widgets.iter() {
-                    if widget.pos.contains(point) {
-                        ctx.viewport.hover.insert(widget.id);
+            for widget in state.last_pass.widgets.iter() {
+                if widget.pos.contains(point) {
+                    state.hover.insert(widget.id);
 
-                        if input.left.click {
-                            ctx.viewport.interact.clicked = Some(widget.id);
-                        }
+                    if input.left.click {
+                        state.interact.clicked = Some(widget.id);
                     }
                 }
             }
+        }
 
-            ctx.viewport.interact.cursor = input.cursor;
-        });
+        state.interact.cursor = input.cursor;
+
+        UiRender {
+            state,
+            theme: self.style(),
+            context: self.clone(),
+            layers: Default::default(),
+            input: input.clone(),
+            output: Some(Default::default()),
+        }
     }
 
     /*
-    pub(crate) fn create_widget(&self, widget: WidgetRect) -> Response {
-        self.write(|ctx| {
-            ctx.viewport.pass.as_mut().unwrap().widgets.insert(widget);
-        });
+    pub(super) fn take_render(&self) -> UiRender {
+        let pass = self.viewport_mut(|viewport| viewport.pass.take());
+        let last_pass = self.viewport_mut(|viewport| viewport.last_pass.take());
 
-        Response::new(&self, widget)
+        UiRender {
+            pass: pass.unwrap(),
+            last_pass: last_pass.unwrap(),
+            theme: self.style(),
+            context: self.clone(),
+        }
     }
     */
+
+    pub(super) fn replace_render(&self, render: UiRender) {
+        self.viewport_mut(|viewport| {
+            viewport.render = Some(render.state);
+        });
+    }
 }
 
 pub(crate) struct ContextInner {
@@ -267,30 +274,42 @@ impl ContextInner {
 }
 
 pub struct Viewport {
-    last_pass: Option<RenderPass>,
-    pass: Option<RenderPass>,
+    render: Option<UiState>,
+    //last_pass: Option<RenderPass>,
+    //pass: Option<RenderPass>,
 
     screen_pos: Bounds<Canvas>,
     
-    layers: GraphicsLayers,
+    //layers: GraphicsLayers,
 
-    input: Input,
-    pub interact: Interact,
-    pub(crate) hover: WidgetHover,
+    //input: Input,
+    //pub interact: Interact,
+    //pub(crate) hover: WidgetHover,
 }
 
 impl Default for Viewport {
     fn default() -> Self {
-        Self { 
+        Self {
+            render: Some(Default::default()),
+            screen_pos: Default::default(), 
+            /*
             last_pass: Some(Default::default()), 
             pass: Some(Default::default()),
-            screen_pos: Default::default(), 
             layers: Default::default(), 
             input: Default::default(), 
             interact: Default::default(), 
             hover: Default::default() 
+            */
         }
     }
+}
+
+#[derive(Default)]
+pub struct UiState {
+    pub last_pass: RenderPass,
+    pub pass: RenderPass,
+    pub interact: Interact,
+    pub hover: WidgetHover,
 }
 
 pub struct Interact {

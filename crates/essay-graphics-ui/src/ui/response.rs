@@ -22,9 +22,7 @@ impl Response {
 
     #[inline]
     pub fn is_hover(&self, ui: &mut Ui) -> bool {
-        ui.context().viewport(|viewport| {
-            viewport.hover.contains(self.id)
-        })
+        ui.render().state.hover.contains(self.id)
     }
 
     pub(crate) fn rect(&self, ui: &Ui) -> Rectangle {
@@ -41,9 +39,7 @@ impl Response {
     
     #[inline]
     pub fn clicked(&self, ui: &mut Ui) -> bool {
-        ui.context().viewport(|viewport| {
-            viewport.interact.clicked == Some(self.id)
-        })
+        ui.render().state.interact.clicked == Some(self.id)
     }
     
 }

@@ -51,10 +51,10 @@ impl DrawWidget for SelectableLabel {
 
         let ui_style = ui.style();
 
-        let (background, foreground) = ui.input(|input| {
+        let (background, foreground) = {
             let is_active = self.is_selected;
 
-            if input.cursor
+            if ui.input().cursor
                 .map_or(false, |p| bounds.contains(p)) {
                 if is_active {
                     (ui_style.button2_on.hover_background, ui_style.button2_on.hover_foreground)
@@ -68,7 +68,7 @@ impl DrawWidget for SelectableLabel {
                     (ui_style.button2_off.background, ui_style.button2_off.foreground)
                 }
             }
-        });
+        };
         
         //style.edge_color(ui.style()[state].edge);
         style.color(background);
@@ -78,7 +78,7 @@ impl DrawWidget for SelectableLabel {
         let border = background;
         let corner = ui_style.corner_radius;
 
-        ui.painter_mut().add(move |ui: &mut dyn Renderer| {
+        ui.painter().add(move |ui: &mut dyn Renderer| {
             let sz = 0.;
             let r = corner;
             if sz > 0. { // border

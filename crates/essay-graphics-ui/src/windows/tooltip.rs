@@ -19,9 +19,7 @@ impl Tooltip {
     }
 
     pub fn should_show_tooltip(ui: &mut Ui, response: &Response) -> bool {
-        let last_move = ui.context().viewport(|viewport| {
-            viewport.interact.since_cursor_move()
-        });
+        let last_move = ui.render().state.interact.since_cursor_move();
 
         if last_move > 1. {
             true

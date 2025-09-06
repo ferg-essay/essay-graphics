@@ -43,7 +43,7 @@ impl Frame {
     pub fn show<R>(self, ui: &mut Ui, add_contents: impl FnOnce(&mut Ui) -> R) -> ResponseValue<R> {
         let corner_margin = Padding::from_all(ui.style().corner_radius);
 
-        let index = ui.painter_mut().add(Shapes::None);
+        let index = ui.painter().add(Shapes::None);
 
         let margin = self.total_margin() + corner_margin;
 
@@ -65,7 +65,7 @@ impl Frame {
         let is_shadow = self.is_shadow;
         let shadow = ui.style().shadow;
 
-        ui.painter_mut().set(index, move |ui: &mut dyn Renderer| {
+        ui.painter().set(index, move |ui: &mut dyn Renderer| {
             let pos = pos.snap();
 
             if is_shadow {

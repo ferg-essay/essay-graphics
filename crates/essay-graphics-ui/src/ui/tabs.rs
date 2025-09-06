@@ -54,7 +54,7 @@ impl<T: PartialEq + Clone + Into<String>> Tabs<'_, T> {
                         [tab_width, pos.height()]
                     ));
 
-                    if response.clicked(ui) && ui.input(|input| input.cursor_in(&pos)) {
+                    if response.clicked(ui) && ui.input().cursor_in(&pos) {
                         selected = Some(item.key.clone());
                     }
 
@@ -72,7 +72,7 @@ impl<T: PartialEq + Clone + Into<String>> Tabs<'_, T> {
                         tab_style.edge_color(ui.style()[State::Active].edge);
                         tab_style.face_color(ui.style()[State::Active].background);
 
-                        ui.painter_mut().add(move |ui: &mut dyn Renderer| {
+                        ui.painter().add(move |ui: &mut dyn Renderer| {
                             let path = Path::move_to(pos.xmin(), pos.ymin())
                                 .line_to(pos.xmin(), pos.ymax())
                                 .to_path();
@@ -101,7 +101,7 @@ impl<T: PartialEq + Clone + Into<String>> Tabs<'_, T> {
                         tab_style.edge_color(ui.style()[State::Hover].edge);
                         tab_style.face_color(ui.style()[State::Hover].background);
 
-                        ui.painter_mut().add(move |ui: &mut dyn Renderer| {
+                        ui.painter().add(move |ui: &mut dyn Renderer| {
                             let path = Path::from(pos);
                             ui.draw_path(&path, &tab_style)
                         });
@@ -110,7 +110,7 @@ impl<T: PartialEq + Clone + Into<String>> Tabs<'_, T> {
                         tab_style.edge_color(ui.style()[State::Inactive].edge);
                         tab_style.face_color(ui.style()[State::Inactive].background);
 
-                        ui.painter_mut().add(move |ui: &mut dyn Renderer| {
+                        ui.painter().add(move |ui: &mut dyn Renderer| {
                             let path = Path::from(pos);
                             ui.draw_path(&path, &tab_style)
                         });
@@ -122,7 +122,7 @@ impl<T: PartialEq + Clone + Into<String>> Tabs<'_, T> {
 
                     let style = tab_style.clone();
                     
-                    ui.painter_mut().add(move |ui: &mut dyn Renderer| {
+                    ui.painter().add(move |ui: &mut dyn Renderer| {
                         ui.draw_text(
                             Point::new(pos.xmid(), pos.ymin()),
                             &label, 

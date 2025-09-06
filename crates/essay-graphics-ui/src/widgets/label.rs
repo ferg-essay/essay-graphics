@@ -30,7 +30,7 @@ impl DrawWidget for Label {
 
         let label = String::from(&self.label);
 
-        ui.painter_mut().add(move |renderer: &mut dyn Renderer| {
+        ui.painter().add(move |renderer: &mut dyn Renderer| {
             renderer.draw_text(
                 value.p0(), 
                 &label, 

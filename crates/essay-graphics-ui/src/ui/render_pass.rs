@@ -1,15 +1,19 @@
 use std::sync::Arc;
 
-use essay_graphics_api::{output::Output};
+use essay_graphics_api::{input::Input, output::Output};
 
-use crate::{style::UiStyle, ui::{widget::WidgetRects, AllocSize, Context}, util::IdMap};
+use crate::{style::UiStyle, ui::{context::{Interact, UiState, WidgetHover}, widget::WidgetRects, AllocSize, Context, GraphicsLayers}, util::IdMap};
 
 pub struct UiRender {
-    pub pass: RenderPass,
-    pub last_pass: RenderPass,
+    pub state: UiState,
 
     pub context: Context,
     pub theme: Arc<UiStyle>,
+    
+    pub layers: GraphicsLayers,
+
+    pub input: Input,
+    pub output: Option<Output>,
 }
 
 #[derive(Default)]
@@ -19,7 +23,7 @@ pub struct RenderPass {
     // view_size: ViewSizeCache,
     pub alloc_map: IdMap<AllocSize>,
 
-    pub output: Option<Output>,
+    // pub output: Option<Output>,
 }
 
 impl RenderPass {

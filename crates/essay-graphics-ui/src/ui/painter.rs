@@ -1,43 +1,43 @@
 use essay_graphics_api::renderer::{self, Drawable, Renderer};
 
-use crate::ui::Context;
+use crate::ui::{Context, UiRender};
 
-pub struct Painter {
-    ctx: Context,
+pub struct Painter<'a> {
+    render: &'a mut UiRender,
 }
 
-impl Painter {
-    pub fn new(ctx: &Context) -> Self {
+impl<'a> Painter<'a> {
+    pub fn new(render: &'a mut UiRender) -> Self {
         Self {
-            ctx: ctx.clone(),
+            render,
         }
     }
     
+    /*
     pub(crate) fn context(&self) -> &Context {
         &self.ctx
     }
+    */
 
     #[inline]
-    fn paint<R>(&self, paint: impl FnOnce(&mut PaintList) -> R) -> R {
-        self.ctx.graphics_mut(|layers| {
-            (paint)(&mut layers.paint_list)
-        })
+    fn paint<R>(&mut self, paint: impl FnOnce(&mut PaintList) -> R) -> R {
+        paint(&mut self.render.layers.paint_list)
     }
 
-    pub fn add(&self, draw: impl Drawable + 'static) -> PaintIndex {
+    pub fn add(&mut self, draw: impl Drawable + 'static) -> PaintIndex {
         self.paint(|paint_list| {
             paint_list.add(draw);
             PaintIndex(paint_list.len() - 1)
         })
     }
 
-    pub fn set(&self, index: PaintIndex, draw: impl Drawable + 'static) {
+    pub fn set(&mut self, index: PaintIndex, draw: impl Drawable + 'static) {
         self.paint(|paint_list| {
             paint_list.set(index, draw);
         })
     }
 
-    pub fn extend<I>(&self, iter: I) 
+    pub fn extend<I>(&mut self, iter: I) 
     where
         I : IntoIterator<Item = Box<dyn Drawable>>
     {
