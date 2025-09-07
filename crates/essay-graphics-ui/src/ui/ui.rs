@@ -14,7 +14,6 @@ use crate::{
         Response, UiRender, Update, View
     }, 
     util::Id, widget2::Text, 
-    widgets::{Radio, SelectableLabel}, 
 };
 
 use super::alloc::{Alloc, AllocDirection};
@@ -286,63 +285,6 @@ impl<'a> Ui<'a> {
     #[inline]
     pub fn label(&mut self, label: impl Into<Text>) -> Response {
         self.draw_widget(label.into())
-    }
-
-    /*
-    #[inline]
-    pub fn menu_button<R>(
-        &mut self, 
-        label: &str, 
-        add_content: impl FnOnce(&mut Ui) -> R
-    ) -> ResponseValue<Option<R>> {
-        let (button, _popup) = {
-            MenuButton::new(label).ui(self, add_content)
-        };
-
-        ResponseValue::new(None, button)
-    }
-    */
-
-    #[must_use="Check for input with ui.selectable_label(...).clicked()"]
-    pub fn selectable_label(&mut self, is_checked: bool, text: &str) -> Response {
-        self.draw_widget(SelectableLabel::new(text, is_checked))
-    }
-
-    pub fn selectable_value<V: PartialEq>(
-        &mut self, 
-        var: &mut V,
-        value: V,
-        text: &str, 
-    ) -> Response {
-        let response = self.draw_widget(SelectableLabel::new(text, *var == value));
-
-        if response.clicked(self) && *var != value {
-            *var = value;
-            // response.mark_changed();
-        }
-
-        response
-    }
-
-    #[must_use="Check for input with ui.radio(...).clicked()"]
-    pub fn radio(&mut self, is_checked: bool, text: &str) -> Response {
-        self.draw_widget(Radio::new(text, is_checked))
-    }
-
-    pub fn radio_value<V: PartialEq>(
-        &mut self, 
-        var: &mut V,
-        value: V,
-        text: &str, 
-    ) -> Response {
-        let response = self.draw_widget(Radio::new(text, *var == value));
-
-        if response.clicked(self) && *var != value {
-            *var = value;
-            // response.mark_changed();
-        }
-
-        response
     }
 
     pub fn draw_size(&mut self, size: impl Into<Size<Length>>, draw: impl Drawable + 'static) -> Response {

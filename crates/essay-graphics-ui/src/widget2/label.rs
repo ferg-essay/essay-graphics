@@ -1,6 +1,6 @@
 use essay_graphics_api::renderer::Renderer;
 
-use crate::ui::{DrawWidget, Response, ResponseValue, Shell, Ui, Widget};
+use crate::ui::{DrawWidget, Response, ResponseValue, Ui};
 
 pub struct Label {
     label: String,
