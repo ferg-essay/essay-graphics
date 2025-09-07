@@ -41,13 +41,6 @@ impl DrawWidget for Radio {
 
         let pos = response.rect(ui);
 
-        //let bounds = bounds.round_ui();
-
-        // let pos = Point(bounds.xmin() + margin, bounds.ymin() + margin);
-
-        // let inner = bounds - Margin::from_pair(corner, corner);
-        // println!("Size {:?} Bounds {:?} {:?}", size, bounds, inner);
-
         let ui_style = ui.style();
 
         let (background, foreground) = {
@@ -60,8 +53,6 @@ impl DrawWidget for Radio {
             }
         };
         
-        //style.edge_color(ui.style()[state].edge);
-
         let label = self.label.clone();
         let style = ui.style().button.clone();
 
@@ -97,23 +88,6 @@ impl DrawWidget for Radio {
             Ok(())
         });
 
-        /*
-        if self.press ^ press_one { 
-            style.edge_color(ui.style()[State::Active].foreground);
-            style.face_color(ui.style()[State::Active].foreground);
-        } else {
-            style.edge_color(ui.style()[State::Inactive].foreground);
-            style.face_color(ui.style()[State::Inactive].foreground);
-        }
-        */
-
-        //ui.painter_mut().add(|ui: &mut dyn Renderer| {
-        //    ui.draw_text(pos, &self.label, 0., &style, &button_text)
-        //});
-
-        //ui.renderer().draw_text(pos, &self.label, 0., &style, &button_text).unwrap();
-
-        //Response::default().with_onclick(press_one)
         response
     }
 }

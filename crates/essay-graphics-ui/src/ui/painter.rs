@@ -1,6 +1,6 @@
 use essay_graphics_api::renderer::{self, Drawable, Renderer};
 
-use crate::ui::{Context, UiRender};
+use crate::ui::{UiRender};
 
 pub struct Painter<'a> {
     render: &'a mut UiRender,

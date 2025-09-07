@@ -2,11 +2,19 @@ use core::hash;
 use std::{ops, sync::Arc};
 
 use essay_graphics_api::{
-    input::Input, output::Output, renderer::{self, Canvas, Drawable, Renderer}, Bounds, Length, Padding, Rectangle, Size, TextStyle
+    input::Input, output::Output, 
+    renderer::{self, Canvas, Drawable, Renderer}, 
+    Bounds, Length, Padding, Rectangle, Size, TextStyle
 };
 
 use crate::{
-    style::UiStyle, ui::{widget::DrawWidget, AllocSize, AppState, Context, Painter, RenderPass, Response, UiRender, Update, View}, util::Id, widget2::Text, widgets::{Button, Label, Radio, SelectableLabel}, windows::MenuButton
+    style::UiStyle, 
+    ui::{
+        widget::DrawWidget, AllocSize, AppState, Context, Painter, RenderPass, 
+        Response, UiRender, Update, View
+    }, 
+    util::Id, widget2::Text, 
+    widgets::{Radio, SelectableLabel}, 
 };
 
 use super::alloc::{Alloc, AllocDirection};
@@ -280,6 +288,7 @@ impl<'a> Ui<'a> {
         self.draw_widget(label.into())
     }
 
+    /*
     #[inline]
     pub fn menu_button<R>(
         &mut self, 
@@ -292,6 +301,7 @@ impl<'a> Ui<'a> {
 
         ResponseValue::new(None, button)
     }
+    */
 
     #[must_use="Check for input with ui.selectable_label(...).clicked()"]
     pub fn selectable_label(&mut self, is_checked: bool, text: &str) -> Response {

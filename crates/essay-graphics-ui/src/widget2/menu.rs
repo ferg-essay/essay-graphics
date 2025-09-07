@@ -1,68 +1,47 @@
 use essay_graphics_api::{renderer::Renderer, Padding, Point, Shapes, Size};
 
-use crate::{
-    ui::{Response, ResponseValue, Shell, Ui, Widget}, 
-    widget2::{text::Text, Element, WidgetFrame}
-};
+use crate::{ui::{Response, ResponseValue, Shell, Ui, Widget}, widget2::{Element, SelectableLabel, Text, WidgetFrame}};
 
-pub fn button<'a, Message>(
-    content: impl Into<Text>
-) -> Button<'a, Message> {
-    Button {
-        content: content.into(),
-        on_press: None,
-        press: false,
-    }
+pub fn menu_button<'a, Message>(
+    title: impl Into<Text>,
+    values: impl IntoIterator<Item = SelectableLabel<'a, Message>>,
+) -> MenuButton<'a, Message> {
+    MenuButton::new(title, values)
 }
 
-pub struct Button<'a, Message> {
-    content: Text,
+pub struct MenuButton<'a, Message> {
+    title: Text,
     on_press: Option<OnPress<'a, Message>>,
     press: bool,
+    values: Vec<SelectableLabel<'a, Message>>,
 }
 
-impl<'a, Message> Button<'a, Message> {
+impl<'a, Message> MenuButton<'a, Message> {
     pub fn new(
         content: impl Into<Text>,
+        values: impl IntoIterator<Item = SelectableLabel<'a, Message>>,
     ) -> Self {
         let content = content.into();
 
         Self {
-            content,
+            title: content,
             on_press: None,
             press: false,
+            values: values.into_iter().collect(),
         }
     }
 
-    #[must_use]
-    pub fn press(mut self, press: bool) -> Self {
-        self.press = press;
-        self
+    /*
+    #[inline]
+    pub fn from_button(button: Button) -> Self {
+        Self {
+            button
+        }
     }
-
-    #[must_use]
-    pub fn on_press(mut self, on_press: Message) -> Self {
-        self.on_press = Some(OnPress::Direct(on_press));
-        self
-    }
-
-    #[must_use]
-    pub fn on_press_maybe(mut self, on_press: Option<Message>) -> Self {
-        self.on_press = on_press.map(OnPress::Direct);
-        self
-    }
-
-    #[must_use]
-    pub fn on_press_with(
-        mut self,
-        on_press: impl Fn() -> Message + 'a,
-    ) -> Self {
-        self.on_press = Some(OnPress::Closure(Box::new(on_press)));
-        self
-    }
+    */
 }
 
-impl<'a, Message> Widget<Message> for Button<'a, Message>
+impl<'a, Message> Widget<Message> for MenuButton<'a, Message>
 where
     Message: Clone + 'a
 {
@@ -72,7 +51,7 @@ where
         shell: &mut Shell<Message>,
     ) -> Response {
         let button_text = ui.style().button_text.clone();
-        let size = ui.text_size(self.content.value(), &button_text);
+        let size = ui.text_size(self.title.value(), &button_text);
 
         let corner = ui.style().corner_radius;
         let pad = 10.;
@@ -134,7 +113,7 @@ where
 
         let border = background;
         let corner = ui_style.corner_radius;
-        let label = String::from(self.content.value());
+        let label = String::from(self.title.value());
 
         ui.painter().add(move |ui: &mut dyn Renderer| {
             let sz = 0.;
@@ -176,12 +155,12 @@ where
     }
 }
 
-impl<'a, Message> From<Button<'a, Message>> for Element<'a, Message>
+impl<'a, Message> From<MenuButton<'a, Message>> for Element<'a, Message>
 where
     Message: Clone + 'a,
 {
-    fn from(button: Button<'a, Message>) -> Self {
-        Self::new(button)
+    fn from(menu: MenuButton<'a, Message>) -> Self {
+        Self::new(menu)
     }
 }
 
@@ -190,4 +169,4 @@ enum OnPress<'a, Message> {
     Closure(Box<dyn Fn() -> Message + 'a>),
 }
 
-impl<'a, Message: Clone + 'a> WidgetFrame<'a, Message> for Button<'a, Message> {}
+impl<'a, Message: Clone + 'a> WidgetFrame<'a, Message> for MenuButton<'a, Message> {}
