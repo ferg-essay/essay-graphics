@@ -5,7 +5,6 @@ mod column;
 mod checkbox;
 mod menu;
 mod text;
-mod quad;
 mod radio;
 mod row;
 mod selectable_label;

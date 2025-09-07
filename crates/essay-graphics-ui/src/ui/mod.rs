@@ -22,5 +22,6 @@ pub use ui::{Ui, UiSize, ResponseValue, OnceView};
 
 pub use context::{Context};
 pub use memory::{Memory, MemoryData};
-pub use render_pass::{UiRender, RenderPass};
+pub use render_pass::{RenderPass};
+pub(crate) use render_pass::{UiRender};
 pub use widget::{DrawWidget, Shell, Widget, WidgetPos};

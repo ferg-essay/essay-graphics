@@ -9,7 +9,7 @@ use essay_graphics_api::{Bounds, Point};
 
 use crate::style::UiStyle;
 use crate::ui::ui::UiBuilder;
-use crate::ui::{GraphicsLayers, Memory, RenderPass, Ui, UiRender};
+use crate::ui::{Memory, RenderPass, Ui, UiRender};
 use crate::util::{Id, IdSet};
 
 #[derive(Clone)]

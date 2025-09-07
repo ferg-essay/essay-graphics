@@ -1,8 +1,8 @@
 use std::marker::PhantomData;
 
-use essay_graphics_api::{color::Grey, renderer::{Canvas, Renderer}, Bounds, Padding, Shapes, Size};
+use essay_graphics_api::{color::Grey, renderer::{Canvas, Renderer}, Bounds, Shapes, Size};
 
-use crate::{ui::{ui::MessageBase, DrawWidget, Response, ResponseValue, Shell, Ui, Widget}, widget2::{Element, Text}};
+use crate::{ui::{Response, ResponseValue, Shell, Ui, Widget}, widget2::{Element, Text}};
 
 pub fn radio_value<'a, Message, V: PartialEq>(
     label: impl Into<Text>,
@@ -99,7 +99,7 @@ impl<'a, Message: Clone, V: Clone> Widget<Message> for Radio<'a, Message, V> {
             if is_active {
                 (ui_style.button2_on.background, ui_style.button2_on.foreground)
             } else {
-                (Grey(0.90).into(), Grey(0.90).into())
+                (Grey(1.0).into(), Grey(0.90).into())
             }
         };
         
@@ -117,25 +117,6 @@ impl<'a, Message: Clone, V: Clone> Widget<Message> for Radio<'a, Message, V> {
         ui.painter().add(move |ui: &mut dyn Renderer| {
             ui.draw_text(pos.p0(), &label, 0., &style, &text_style)?;
 
-            let pos_center = radio_pos - Padding::from_all(6.);
-
-            /*
-            ui.draw_shape(&Shapes::rect(
-                radio_pos.p0(),
-                radio_pos.size(),
-                radio_pos.height() * 0.5,
-                background,
-            ))?;
-
-            if is_active {
-                ui.draw_shape(&Shapes::rect(
-                    pos_center.p0(),
-                    pos_center.size(),
-                    pos_center.height() * 0.5,
-                    foreground,
-                ))?;
-            }
-            */
             if is_active {
                 let r0 = radio_pos.height() * 0.5;
 
@@ -143,16 +124,20 @@ impl<'a, Message: Clone, V: Clone> Widget<Message> for Radio<'a, Message, V> {
                     radio_pos.p0(),
                     radio_pos.size(),
                     r0,
-                    foreground,
-                    r0 - 6.,
                     background,
+                    r0 - 6.,
+                    foreground,
                 ))?;
 
             } else {
-                ui.draw_shape(&Shapes::rect(
+                let r0 = radio_pos.height() * 0.5;
+
+                ui.draw_shape(&Shapes::quad(
                     radio_pos.p0(),
                     radio_pos.size(),
-                    radio_pos.height() * 0.5,
+                    r0,
+                    foreground,
+                    r0 - 2.,
                     background,
                 ))?;
             }
@@ -181,7 +166,6 @@ where
 enum OnPress<'a, Message, V> {
     None,
     Direct(Message),
-    Value(V),
     Closure(Box<dyn Fn(V) -> Message + 'a>),
 }
 
@@ -200,10 +184,6 @@ impl<'a, Message: Clone, V: Clone> OnPress<'a, Message, V> {
                 if let Some(value) = value {
                     shell.publish(on_press(value.clone()))
                 }
-            },
-            OnPress::Value(value) => {
-                // shell.publish(message.clone())
-                todo!()
             },
         }
     }

@@ -7,7 +7,7 @@ pub struct Painter<'a> {
 }
 
 impl<'a> Painter<'a> {
-    pub fn new(render: &'a mut UiRender) -> Self {
+    pub(crate) fn new(render: &'a mut UiRender) -> Self {
         Self {
             render,
         }
