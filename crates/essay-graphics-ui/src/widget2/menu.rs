@@ -119,13 +119,13 @@ where
             let sz = 0.;
             let r = corner;
             if sz > 0. { // border
-                ui.draw_shape(&Shapes::Rectangle(
+                ui.draw_shape(&Shapes::rect(
                     inner.p0() - Point::new(sz, sz), inner.size() + Size::new(2. * sz, 2. * sz), r + 1., 
                     border,
                 ))?;
             }
 
-            ui.draw_shape(&Shapes::Rectangle(
+            ui.draw_shape(&Shapes::rect(
                 inner.p0(), inner.size(), r, background,
             ))?;
             // ui.draw_path(&background, &style)?;

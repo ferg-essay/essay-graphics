@@ -6,16 +6,20 @@ struct VertexInput {
 struct StyleInput {
     @location(2) pos: vec2<f32>,
     @location(3) size: vec2<f32>,
-    @location(4) r0: f32,
-    @location(5) color: u32,
+    @location(4) r_outer: f32,
+    @location(5) color_outer: u32,
+    @location(6) r_inner: f32,
+    @location(7) color_inner: u32,
 }
 
 struct VertexOutput {
-    @location(1) color: vec4<f32>,
+    @location(1) xy: vec2<f32>,
     @location(2) uv: vec2<f32>,
-    @location(3) xy: vec2<f32>,
-    @location(4) corner: vec2<f32>,
-    @location(5) r: f32,
+    @location(3) size: vec2<f32>,
+    @location(4) r_outer: f32,
+    @location(5) color_outer: vec4<f32>,
+    @location(6) r_inner: f32,
+    @location(7) color_inner: vec4<f32>,
     @builtin(position) pos: vec4<f32>,
 };
 
@@ -44,11 +48,16 @@ fn vs_shape(
 
     var out: VertexOutput;
     out.pos = vec4<f32>(out_x, out_y, 0.0, 1.0);
+
     out.xy = vertex.pos * style.size;
-    out.corner = max(style.size - 2. * style.r0, vec2<f32>(0., 0.));
-    out.r = 2. * style.r0;
     out.uv = vertex.uv;
-    out.color = unpack_color(style.color);
+
+    out.size = style.size;
+
+    out.r_outer = 2. * style.r_outer;
+    out.color_outer = unpack_color(style.color_outer);
+    out.r_inner = 2. * style.r_inner;
+    out.color_inner = unpack_color(style.color_inner);
 
     return out;
 }
@@ -60,12 +69,17 @@ fn fs_shape(
     let sample = textureSample(t_texture, s_texture, in.uv);
 
     //let dist = max(max(d_x, d_y), dist_corner);
-    let d_xy = in.corner - abs(in.xy);
-    let dist_corner = in.r - length(d_xy);
+    //let d_xy = in.corner - abs(in.xy);
+    //let dist_corner = in.r_outer - length(d_xy);
 
-    let dist = max(dist_corner, max(d_xy[0], d_xy[1]));
+    //let dist = max(dist_corner, max(d_xy[0], d_xy[1]));
+    let d_outer = rect_sdf(in.xy, in.size, in.r_outer, 0.);
+    let d_inner = rect_sdf(in.xy, in.size, in.r_outer, in.r_outer - in.r_inner);
 
-    if dist > 0. {
+    let color_inner = mix(in.color_outer, in.color_inner, clamp(d_inner, 0., 1.));
+
+    return mix(vec4<f32>(0., 0., 0., 0.), color_inner, clamp(d_outer, 0., 1.));
+/*    if dist > 0. {
         return vec4<f32>(
             sample.r * in.color[0], 
             sample.g * in.color[1], 
@@ -75,6 +89,25 @@ fn fs_shape(
     } else {
         return vec4<f32>(1., 0.2, 0.1, 0.);
     }
+    */
+}
+
+fn rect_sdf(xy: vec2<f32>, size: vec2<f32>, r_outer: f32, border: f32) -> f32 {
+    let corner = size - r_outer;
+    let d_xy = corner - abs(xy);
+    let dist_corner = r_outer - border - length(d_xy);
+
+    return max(dist_corner, max(
+        min(d_xy[0], size[1] - abs(xy[1]) - border),
+        min(d_xy[1], size[0] - abs(xy[0]) - border)
+    ));
+    //    min(d_xy[1], border - abs(xy[0]))
+    //return max(
+    //    min(d_xy[0], border - abs(xy[1])),
+    //    min(d_xy[1], border - abs(xy[0]))
+    //);
+    //return max(dist_corner, max(d_xy[0], d_xy[1]));
+    //return dist_corner;
 }
 
 fn unpack_color(color: u32) -> vec4<f32> {

@@ -72,12 +72,12 @@ impl Frame {
                 // cheap shadow
                 let px = 5.;
 
-                ui.draw_shape(&Shapes::Rectangle(
+                ui.draw_shape(&Shapes::rect(
                     pos.p0() + Point::new(px, px), pos.size(), corner, shadow,
                 ))?;
             }
 
-            ui.draw_shape(&Shapes::Rectangle(
+            ui.draw_shape(&Shapes::rect(
                 pos.p0(), pos.size(), corner, background,
             ))
         });

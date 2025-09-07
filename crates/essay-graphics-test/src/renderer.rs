@@ -1,5 +1,5 @@
 use essay_graphics_api::{
-    form::{Form, FormId, Matrix4}, input::Input, path_style::MeshStyle, renderer::{Canvas, RenderErr, Renderer, Result}, BezierMesh2d, Bounds, FontStyle, FontTypeId, Mesh2d, Path, PathOpt, Point, Shapes, Size, TextStyle, TextureId
+    form::{Form, FormId, Matrix4}, input::Input, path_style::MeshStyle, renderer::{Canvas, RenderErr, Renderer, Result}, BezierMesh2d, Bounds, FontStyle, FontTypeId, Mesh2d, Path, PathOpt, Point, Quad, Shapes, Size, TextStyle, TextureId
 };
 use essay_tensor::tensor::Tensor;
 
@@ -194,10 +194,17 @@ impl Renderer for TestRenderer {
     ) -> Result<()> {
         match shape {
             Shapes::None => {},
-            Shapes::Rectangle(point, size, _, color) => {
+            Shapes::Quad(Quad {
+                pos,
+                size,
+                r_outer: _,
+                color_outer: color,
+                r_inner: _,
+                color_inner: _
+            }) => {
                 self.push(&format!(
                     "rect ({:.1},{:.1}) {:.1}x{:.1} #{:08x}",
-                    point.x, point.y,
+                    pos.x, pos.y,
                     size.width, size.height,
                     color.to_rgba()
                 ));

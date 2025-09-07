@@ -119,7 +119,8 @@ impl<'a, Message: Clone, V: Clone> Widget<Message> for Radio<'a, Message, V> {
 
             let pos_center = radio_pos - Padding::from_all(6.);
 
-            ui.draw_shape(&Shapes::Rectangle(
+            /*
+            ui.draw_shape(&Shapes::rect(
                 radio_pos.p0(),
                 radio_pos.size(),
                 radio_pos.height() * 0.5,
@@ -127,11 +128,32 @@ impl<'a, Message: Clone, V: Clone> Widget<Message> for Radio<'a, Message, V> {
             ))?;
 
             if is_active {
-                ui.draw_shape(&Shapes::Rectangle(
+                ui.draw_shape(&Shapes::rect(
                     pos_center.p0(),
                     pos_center.size(),
                     pos_center.height() * 0.5,
                     foreground,
+                ))?;
+            }
+            */
+            if is_active {
+                let r0 = radio_pos.height() * 0.5;
+
+                ui.draw_shape(&Shapes::quad(
+                    radio_pos.p0(),
+                    radio_pos.size(),
+                    r0,
+                    foreground,
+                    r0 - 6.,
+                    background,
+                ))?;
+
+            } else {
+                ui.draw_shape(&Shapes::rect(
+                    radio_pos.p0(),
+                    radio_pos.size(),
+                    radio_pos.height() * 0.5,
+                    background,
                 ))?;
             }
 

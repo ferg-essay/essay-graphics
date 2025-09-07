@@ -1,5 +1,5 @@
 use bytemuck_derive::{Zeroable, Pod};
-use essay_graphics_api::{renderer::Pos, Color, Point, Size, TextureId};
+use essay_graphics_api::{renderer::Pos, Color, Point, Quad, Size, TextureId};
 use wgpu::util::DeviceExt;
 
 use crate::{pipelines::{buffer::{VertexBuffer}, pipeline_canvas::FlushItem}, render::render::RenderWgpu};
@@ -77,17 +77,16 @@ impl ShapeRectRender {
     pub(super) fn draw(
         &mut self, 
         wgpu: &mut RenderWgpu,
-        pos: Point,
-        size: Size,
-        r1: f32,
+        quad: &Quad,
         texture: TextureId,
-        color: Color,
     ) -> FlushItem {
         let styles = [Style {
-            pos: [pos.x, pos.y],
-            size: [size.width, size.height],
-            r: r1,
-            color: color.to_lrgb_u32(),
+            pos: [quad.pos.x, quad.pos.y],
+            size: [quad.size.width, quad.size.height],
+            r_outer: quad.r_outer,
+            color_outer: quad.color_outer.to_lrgb_u32(),
+            r_inner: quad.r_inner,
+            color_inner: quad.color_inner.to_lrgb_u32(),
         }];
 
         if self.style.expand(wgpu, 1) {
@@ -168,17 +167,21 @@ impl Viewport {
 pub struct Style {
     pos: [f32; 2],
     size: [f32; 2],
-    r: f32,
-    color: u32,
+    r_outer: f32,
+    color_outer: u32,
+    r_inner: f32,
+    color_inner: u32,
 }
 
 impl Style {
-    const ATTRS: [wgpu::VertexAttribute; 4] =
+    const ATTRS: [wgpu::VertexAttribute; 6] =
         wgpu::vertex_attr_array![
             2 => Float32x2, 
             3 => Float32x2,
             4 => Float32,
             5 => Uint32,
+            6 => Float32,
+            7 => Uint32,
         ];
 
     pub(crate) fn desc() -> wgpu::VertexBufferLayout<'static> {

@@ -147,8 +147,12 @@ impl PipelineCanvas {
     ) -> Result<(), RenderErr> {
         let item = match shape {
             Shapes::None => { FlushItem::None },
-            Shapes::Rectangle(pos, size, r1, color) => {
-                self.shape_rect_render.draw(wgpu, *pos, *size, *r1, texture, *color)
+            Shapes::Quad(quad) => {
+                self.shape_rect_render.draw(
+                    wgpu, 
+                    quad,
+                    texture, 
+                )
             }
         };
 

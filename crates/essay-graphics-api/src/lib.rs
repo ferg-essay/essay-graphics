@@ -56,7 +56,7 @@ pub use path_opt::{
 
 pub use path_style::PathStyle;
 
-pub use shapes::Shapes;
+pub use shapes::{Shapes, Quad};
 
 pub use text::{
     TextStyle, VertAlign, HorizAlign, 

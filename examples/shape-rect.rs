@@ -1,4 +1,4 @@
-use essay_graphics_api::{renderer::{Canvas, Renderer}, CapStyle, Color, JoinStyle, Path, PathStyle, Point, Shapes, Size};
+use essay_graphics_api::{renderer::{Renderer}, CapStyle, Color, JoinStyle, Path, PathStyle, Point, Shapes, Size};
 use essay_graphics::layout::MainLoop;
 
 fn main() { 
@@ -8,7 +8,19 @@ fn main() {
 
         let size = Size::new(500., 500.);
         ui.draw_shape(
-            &Shapes::Rectangle(Point::new(50., 50.), size, 60., Color::from("azure")),
+            &Shapes::rect(Point::new(50., 50.), size, 60., Color::from("azure")),
+        )?;
+
+        let size = Size::new(500., 500.);
+        ui.draw_shape(
+            &Shapes::quad(
+                Point::new(50., 600.), 
+                size, 
+                60., 
+                Color::from("amber"),
+                50., 
+                Color::from("azure"),
+            ),
         )?;
 
         let size = Size::new(60., 60.);

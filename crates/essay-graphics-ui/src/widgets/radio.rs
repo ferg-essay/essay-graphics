@@ -69,7 +69,7 @@ impl DrawWidget for Radio {
 
             let pos_center = radio_pos - Padding::from_all(6.);
 
-            ui.draw_shape(&Shapes::Rectangle(
+            ui.draw_shape(&Shapes::rect(
                 radio_pos.p0(),
                 radio_pos.size(),
                 radio_pos.height() * 0.5,
@@ -77,7 +77,7 @@ impl DrawWidget for Radio {
             ))?;
 
             if is_active {
-                ui.draw_shape(&Shapes::Rectangle(
+                ui.draw_shape(&Shapes::rect(
                     pos_center.p0(),
                     pos_center.size(),
                     pos_center.height() * 0.5,
