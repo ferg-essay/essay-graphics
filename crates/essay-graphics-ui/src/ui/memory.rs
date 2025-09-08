@@ -33,6 +33,14 @@ impl Memory {
             }
         }
     }
+    
+    pub fn popup_close(&mut self, popup_id: Id) {
+        if let Some(open_popup) = &self.popup {
+            if open_popup.id == popup_id {
+                self.popup = None;
+            }
+        }
+    }
 }
 
 struct OpenPopup {

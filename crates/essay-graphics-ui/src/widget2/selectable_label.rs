@@ -19,6 +19,8 @@ pub struct SelectableLabel<'a, Message> {
 
     is_selected: bool,
 
+    on_press: OnPress<Message>,
+
     marker: PhantomData<&'a Message>,
 }
 
@@ -27,19 +29,28 @@ impl<'a, Message> SelectableLabel<'a, Message> {
         Self {
             label: label.into(),
             is_selected: false,
+            on_press: OnPress::None,
             marker: Default::default(),
         }
     }
+
+    #[must_use]
+    pub fn on_press(mut self, message: Message) -> Self {
+        self.on_press = OnPress::Message(message);
+
+        self
+    }
 }
 
-impl<'a, Message> Widget<Message> for SelectableLabel<'a, Message> {
+impl<'a, Message> Widget<Message> for SelectableLabel<'a, Message>
+where
+    Message: Clone
+{
     fn ui(
         &mut self, 
         ui: &mut Ui,
-        _shell: &mut Shell<Message>,
+        shell: &mut Shell<Message>,
     ) -> Response {
-        //let response = self.label.ui(ui, shell);
-
         let text_style = ui.theme().button_text.clone();
         let size = ui.text_size(&self.label.value(), &text_style);
 
@@ -66,6 +77,16 @@ impl<'a, Message> Widget<Message> for SelectableLabel<'a, Message> {
         // let mut style = ui.style().button.clone();
 
         // let ui_style = ui.style();
+        if response.clicked(ui) {
+            ui.close_popup();
+
+            match &self.on_press {
+                OnPress::None => {},
+                OnPress::Message(message) => {
+                    shell.publish(message.clone());
+                },
+            }
+        }
 
         let (background, foreground) = {
             let is_active = self.is_selected;
@@ -114,4 +135,9 @@ impl<'a, Message> Widget<Message> for SelectableLabel<'a, Message> {
 
         response
     }
+}
+
+enum OnPress<Message> {
+    None,
+    Message(Message),
 }

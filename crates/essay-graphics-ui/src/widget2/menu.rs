@@ -68,29 +68,17 @@ where
         // println!("Size {:?} Bounds {:?} {:?}", size, bounds, inner);
 
         let mut style = ui.theme().button.clone();
+        let popup_id = response.id().with("popup");
 
         if response.clicked(ui) {
             ui.context().memory_mut(|mem| {
-                mem.popup_toggle(ui.stable_id())
+                mem.popup_toggle(popup_id)
             });
-            /*
-            match &self.on_press {
-                Some(OnPress::Direct(message)) => {
-                    shell.publish(message.clone());
-                },
-                Some(OnPress::Closure(fun)) => {
-                    shell.publish(fun());
-                },
-                None => {}
-            }
-            */
         }
 
         let is_press = ui.context().memory_mut(|mem| {
-            mem.popup_open(ui.stable_id())
+            mem.popup_open(popup_id)
         });
-
-        // let ui_style = ui.theme();
 
         let (background, foreground) = {
             let is_active = is_press; // self.press ^ press_one;
@@ -110,10 +98,7 @@ where
             }
         };
         
-        //style.edge_color(ui.style()[state].edge);
         style.color(background);
-
-        //let label = self.label.clone();
 
         let border = background;
         let corner = OnStyle.corner_radius(ui);
@@ -139,34 +124,16 @@ where
         });
 
         if is_press {
-            let id = ui.stable_id().with("popup");
-
             let rect = response.rect(ui);
             let pos = Point::new(rect.xmin(), rect.ymax());
 
-            ui.popup(id, UiBuilder::default().max_bounds(pos), |ui| {
+            ui.popup(popup_id, UiBuilder::default().max_bounds(pos), |ui| {
                 for child in &mut self.values {
                     child.ui(ui, shell);
                 }    
             });
         }
-        /*
-        if self.press ^ press_one { 
-            style.edge_color(ui.style()[State::Active].foreground);
-            style.face_color(ui.style()[State::Active].foreground);
-        } else {
-            style.edge_color(ui.style()[State::Inactive].foreground);
-            style.face_color(ui.style()[State::Inactive].foreground);
-        }
-        */
 
-        //ui.painter_mut().add(|ui: &mut dyn Renderer| {
-        //    ui.draw_text(pos, &self.label, 0., &style, &button_text)
-        //});
-
-        //ui.renderer().draw_text(pos, &self.label, 0., &style, &button_text).unwrap();
-
-        //Response::default().with_onclick(press_one)
         response
     }
 }

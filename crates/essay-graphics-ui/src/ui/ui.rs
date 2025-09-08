@@ -10,8 +10,7 @@ use essay_graphics_api::{
 use crate::{
     style::UiTheme, 
     ui::{
-        widget::DrawWidget, AllocSize, AppState, Context, Painter, RenderPass, 
-        Response, UiRender, Update, View
+        widget::DrawWidget, AllocSize, AppState, Context, Layer, Painter, RenderPass, Response, UiRender, Update, View
     }, 
     util::Id, widget2::Text, 
 };
@@ -25,8 +24,11 @@ pub struct Ui<'a> {
     
     alloc: Alloc,
 
+    layer: Layer,
     render: &'a mut UiRender,
     style: Arc<UiTheme>,
+
+    stack: Option<&'a UiStack<'a>>,
 }
 
 impl<'a> Ui<'a> {
@@ -64,8 +66,8 @@ impl<'a> Ui<'a> {
     }
 
     #[inline]
-    pub fn painter(&mut self) -> Painter {
-        Painter::new(&mut self.render)
+    pub fn painter<'b>(&'b mut self) -> Painter<'b> {
+        Painter::new(self.layer, &mut self.render)
     }
 
     #[inline]
@@ -79,10 +81,6 @@ impl<'a> Ui<'a> {
     }
     
     pub(crate) fn render(&self) -> &UiRender {
-        self.render
-    }
-    
-    pub(crate) fn render_mut(&'a mut self) -> &'a mut UiRender {
         self.render
     }
 
@@ -108,8 +106,12 @@ impl<'a> Ui<'a> {
             id,
             next_auto_id_salt: id.with("auto").value(),
             alloc,
+
+            layer: Layer::Main,
             style: ctx.style(),
             render,
+
+            stack: None,
         };
 
         let start_rect = Rectangle::ZERO;
@@ -166,8 +168,12 @@ impl<'a> Ui<'a> {
             id: child_id,
             next_auto_id_salt,
             alloc,
+
+            layer: self.layer,
             style: self.style.clone(),
             render: self.render,
+
+            stack: self.stack,
         };
 
         let result = (add_content)(&mut child);
@@ -220,13 +226,21 @@ impl<'a> Ui<'a> {
         let alloc_cache = self.last_pass().alloc_map.get(&id).cloned();
         let alloc = Alloc::new(bounds, update, alloc_cache.clone());
 
+        let stack = UiStack {
+            parent: self.stack,
+            popup_id: id,
+        };
+
         let mut popup_ui = Ui {
             stable_id: id,
             id,
             next_auto_id_salt: id.with("auto").value(),
             alloc,
+            layer: Layer::Popup,
             style: self.style.clone(),
             render: self.render,
+
+            stack: Some(&stack),
         };
 
         let result = (add_content)(&mut popup_ui);
@@ -242,6 +256,18 @@ impl<'a> Ui<'a> {
         let response = self.insert_widget(id, bounds);
 
         ResponseValue::new(result, response)
+    }
+
+    pub fn close_popup(&mut self) {
+        let mut ui_stack = self.stack;
+
+        while let Some(stack) = ui_stack {
+            self.context().memory_mut(|mem| {
+                mem.popup_close(stack.popup_id);
+            });
+
+            ui_stack = stack.parent;
+        }
     }
 
     pub fn available_bounds(&self) -> Bounds<Canvas> {
@@ -272,7 +298,8 @@ impl<'a> Ui<'a> {
     }
 
     pub(crate) fn insert_widget(&mut self, id: Id, pos: impl Into<Rectangle>) -> Response {
-        let widget = self.pass_mut().widgets.insert(id, pos);
+        let layer = self.layer;
+        let widget = self.pass_mut().widgets.insert(id, layer, pos);
 
         Response::new(widget)
     }
@@ -453,6 +480,11 @@ impl From<Size<Length>> for UiBuilder {
     }
 }
 
+pub(crate) struct UiStack<'a> {
+    parent: Option<&'a UiStack<'a>>,
+
+    popup_id: Id,
+}
 #[derive(Copy, Clone, Debug)]
 pub enum UiSize {
     Canvas(f32, f32),

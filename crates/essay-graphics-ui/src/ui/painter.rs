@@ -1,14 +1,16 @@
 use essay_graphics_api::renderer::{self, Drawable, Renderer};
 
-use crate::ui::{UiRender};
+use crate::ui::{Layer, UiRender};
 
 pub struct Painter<'a> {
+    layer: Layer,
     render: &'a mut UiRender,
 }
 
 impl<'a> Painter<'a> {
-    pub(crate) fn new(render: &'a mut UiRender) -> Self {
+    pub(crate) fn new(layer: Layer, render: &'a mut UiRender) -> Self {
         Self {
+            layer,
             render,
         }
     }
@@ -21,7 +23,7 @@ impl<'a> Painter<'a> {
 
     #[inline]
     fn paint<R>(&mut self, paint: impl FnOnce(&mut PaintList) -> R) -> R {
-        paint(&mut self.render.layers.paint_list)
+        paint(&mut self.render.layers.layers[self.layer.index()])
     }
 
     pub fn add(&mut self, draw: impl Drawable + 'static) -> PaintIndex {
@@ -52,26 +54,40 @@ impl<'a> Painter<'a> {
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct PaintIndex(usize);
 
-#[derive(Default)]
-pub struct GraphicsLayers {
-    paint_list: PaintList,
+pub struct PainterLayers {
+    layers: Vec<PaintList>,
 }
 
-impl GraphicsLayers {
-    pub fn draw(&mut self, draw: impl Drawable + Send + 'static) {
-        self.paint_list.0.push(Box::new(draw));
+impl Default for PainterLayers {
+    fn default() -> Self {
+        let mut layers = Vec::new();
+        layers.resize_with(Layer::ORDER.len(), Default::default);
+
+        Self { 
+            layers,
+        }
+    }
+}
+
+impl PainterLayers {
+    pub fn draw(&mut self, level: Layer, draw: impl Drawable + Send + 'static) {
+        self.layers[level.index()].0.push(Box::new(draw));
     }
 
     pub(crate) fn render(&mut self, ui: &mut dyn Renderer) -> renderer::Result<()> {
-        for mut draw in self.paint_list.0.drain(..) {
-            draw.draw(ui)?;
+        for layer in &mut self.layers {
+            for mut draw in layer.0.drain(..) {
+                draw.draw(ui)?;
+            }
         }
 
         Ok(())
     }
 
     pub(crate) fn clear(&mut self) {
-        self.paint_list.clear();
+        for layer in &mut self.layers {
+            layer.clear();
+        }
     }
 }
 

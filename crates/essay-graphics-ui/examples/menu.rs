@@ -1,4 +1,4 @@
-use essay_graphics_ui::{main_loop::MainLoop, widget2::{menu_button, selectable_label, Element}};
+use essay_graphics_ui::{main_loop::MainLoop, widget2::{button, column, menu_button, selectable_label, Element}};
 
 fn main() { 
     // let mut var = Values::None;
@@ -20,26 +20,40 @@ fn main() {
 struct State {
     a: bool,
     b: bool,
+    c: bool,
 }
 
 impl State {
     fn update(&mut self, message: Message) {
         match message {
-            Message::A => {
-                self.a = !self.a;
-            }
-            Message::B => {
-                self.b = !self.b;
-            }
+            Message::A => { self.a = !self.a; }
+            Message::B => { self.b = !self.b; }
+            Message::C => { self.c = !self.c; }
         }
     }
 
     fn view(&self) -> impl Into<Element<'_, Message>> {
-        menu_button("Menu", vec![
-            selectable_label("A"),
-            selectable_label("B"),
-            selectable_label("C"),
-        ])
+        let mut vec = Vec::new();
+
+        vec.push(menu_button("Menu", vec![
+            selectable_label("A").on_press(Message::A),
+            selectable_label("B").on_press(Message::B),
+            selectable_label("C").on_press(Message::C),
+        ]).into());
+
+        if self.a {
+            vec.push(button("Button A").into());
+        }
+
+        if self.b {
+            vec.push(button("Button B").into());
+        }
+
+        if self.c {
+            vec.push(button("Button C").into());
+        }
+
+        column(vec)
     }
 }
 
@@ -47,4 +61,5 @@ impl State {
 enum Message {
     A,
     B,
+    C,
 }

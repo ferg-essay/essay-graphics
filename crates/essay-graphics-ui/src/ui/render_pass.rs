@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use essay_graphics_api::{input::Input, output::Output};
 
-use crate::{style::UiTheme, ui::{context::{UiState}, widget::WidgetRects, AllocSize, Context, GraphicsLayers}, util::IdMap};
+use crate::{style::UiTheme, ui::{context::{UiState}, widget::WidgetRects, AllocSize, Context, PainterLayers}, util::IdMap};
 
 pub(crate) struct UiRender {
     pub state: UiState,
@@ -10,7 +10,7 @@ pub(crate) struct UiRender {
     pub context: Context,
     pub theme: Arc<UiTheme>,
     
-    pub layers: GraphicsLayers,
+    pub layers: PainterLayers,
 
     pub input: Input,
     pub output: Option<Output>,

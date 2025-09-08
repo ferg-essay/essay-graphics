@@ -1,3 +1,4 @@
+mod level;
 mod alloc;
 mod application;
 mod context;
@@ -13,7 +14,8 @@ mod widget;
 pub use alloc::{AllocSize};
 pub use application::{View, Update, AppState};
 pub use frame::Frame;
-pub use painter::{Painter, PaintList, GraphicsLayers};
+pub use level::Layer;
+pub use painter::{Painter, PaintList, PainterLayers};
 pub use response::{Response, Flags};
 //pub use panel::{CentralPanel};
 pub use tabs::Tabs;
