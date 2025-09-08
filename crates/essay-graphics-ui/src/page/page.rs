@@ -1,8 +1,7 @@
 use std::sync::{Arc, Mutex};
 
 use essay_graphics_api::{
-    renderer::{Canvas, Drawable, Renderer, Result}, 
-    Bounds, Coord, Size
+    renderer::{Canvas, Drawable, Renderer, Result}, Bounds, Coord, Length, Size
 };
 
 use crate::ui::{Tabs, Ui, UiSize};
@@ -258,7 +257,7 @@ impl PageBuilder2 {
         let result = (f)(&mut sub);
 
         self.children.push(Box::new(PageHoriz {
-            size: UiSize::View(size, size),
+            size: Size::new(Length::View(size), Length::View(size)),
             children: sub.children,
         }));
 
@@ -284,7 +283,7 @@ impl PageBuilder2 {
         let result = (add_content)(&mut sub);
 
         self.children.push(Box::new(PageVert {
-            size: UiSize::View(size, size),
+            size: Size::new(Length::View(size), Length::View(size)),
             children: sub.children,
         }));
 
@@ -320,7 +319,7 @@ impl BuildTabs {
         let result = (add_content)(&mut content);
 
         self.tabs.push((label, Box::new(PageVert { 
-            size: UiSize::View(1., 1.),
+            size: Size::new(Length::Fill, Length::Fill),
             children: content.children 
         })));
 
@@ -478,38 +477,32 @@ impl PageDraw for _PageUi {
 }
 
 struct PageHoriz {
-    size: UiSize,
+    size: Size<Length>,
     children: Vec<Box<dyn PageDraw>>,
 }
 
 impl PageDraw for PageHoriz {
     fn draw(&mut self, ui: &mut Ui) {
-        /*
-        ui.row_size(self.size, |ui| {
+        ui.row_with(self.size, |ui| {
             for child in &mut self.children {
                 child.draw(ui);
             }
         });
-        */
-        todo!()
     }
 }
 
 struct PageVert {
-    size: UiSize,
+    size: Size<Length>,
     children: Vec<Box<dyn PageDraw>>,
 }
 
 impl PageDraw for PageVert {
     fn draw(&mut self, ui: &mut Ui) {
-        /*
-        ui.column_size(self.size, |ui| {
+        ui.column_with(self.size, |ui| {
             for child in &mut self.children {
                 child.draw(ui);
             }
         });
-        */
-        todo!();
     }
 }
 
