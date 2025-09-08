@@ -8,7 +8,7 @@ use essay_graphics_api::{
 };
 
 use crate::{
-    style::UiStyle, 
+    style::UiTheme, 
     ui::{
         widget::DrawWidget, AllocSize, AppState, Context, Painter, RenderPass, 
         Response, UiRender, Update, View
@@ -26,7 +26,7 @@ pub struct Ui<'a> {
     alloc: Alloc,
 
     render: &'a mut UiRender,
-    style: Arc<UiStyle>,
+    style: Arc<UiTheme>,
 }
 
 impl<'a> Ui<'a> {
@@ -39,7 +39,7 @@ impl<'a> Ui<'a> {
     }
 
     #[inline]
-    pub fn style(&self) -> &UiStyle {
+    pub fn theme(&self) -> &UiTheme {
         &self.render.theme
      }
 

@@ -7,7 +7,7 @@ use essay_graphics_api::output::{Output};
 use essay_graphics_api::renderer::{self, Canvas, FontSetMetrics, GraphicsContext, Renderer};
 use essay_graphics_api::{Bounds, Point};
 
-use crate::style::UiStyle;
+use crate::style::UiTheme;
 use crate::ui::ui::UiBuilder;
 use crate::ui::{Memory, RenderPass, Ui, UiRender};
 use crate::util::{Id, IdSet};
@@ -109,7 +109,7 @@ impl Context {
     */
 
     #[inline]
-    pub fn style(&self) -> Arc<UiStyle> {
+    pub fn style(&self) -> Arc<UiTheme> {
         self.read(|cxt| cxt.style.clone())
     }
 
@@ -253,7 +253,7 @@ pub(crate) struct ContextInner {
 
     memory: Memory,
 
-    style: Arc<UiStyle>,
+    style: Arc<UiTheme>,
 }
 
 impl ContextInner {

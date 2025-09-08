@@ -76,7 +76,7 @@ impl<'a, Message: Clone, V: Clone> Widget<Message> for Radio<'a, Message, V> {
         ui: &mut Ui,
         shell: &mut Shell<Message>,
     ) -> Response {
-        let text_style = ui.style().button_text.clone();
+        let text_style = ui.theme().button_text.clone();
         let size = ui.text_size(self.label.value(), &text_style);
 
         let height = size.height;
@@ -91,7 +91,7 @@ impl<'a, Message: Clone, V: Clone> Widget<Message> for Radio<'a, Message, V> {
 
         let pos = response.rect(ui);
 
-        let ui_style = ui.style();
+        let ui_style = ui.theme();
 
         let is_active = self.is_selected;
 
@@ -104,7 +104,7 @@ impl<'a, Message: Clone, V: Clone> Widget<Message> for Radio<'a, Message, V> {
         };
         
         let label = String::from(self.label.value());
-        let style = ui.style().button.clone();
+        let style = ui.theme().button.clone();
 
         // let is_active = self.is_selected;
 

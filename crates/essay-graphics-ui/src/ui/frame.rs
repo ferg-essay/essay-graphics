@@ -16,7 +16,7 @@ impl Frame {
         Self {
             inner_margin: Padding::from_all(6.),
             outer_margin: Padding::from_all(0.),
-            background: ui.style().background,
+            background: ui.theme().background,
             is_shadow: false,
         }
     }
@@ -41,7 +41,7 @@ impl Frame {
     }
 
     pub fn show<R>(self, ui: &mut Ui, add_contents: impl FnOnce(&mut Ui) -> R) -> ResponseValue<R> {
-        let corner_margin = Padding::from_all(ui.style().corner_radius);
+        let corner_margin = Padding::from_all(ui.theme().corner_radius);
 
         let index = ui.painter().add(Shapes::None);
 
@@ -60,10 +60,10 @@ impl Frame {
         let pos = rect.pos; //  + self.inner_margin + corner_margin;
 
         let background = self.background;
-        let corner = ui.style().corner_radius;
-        let _border = ui.style().border;
+        let corner = ui.theme().corner_radius;
+        let _border = ui.theme().border;
         let is_shadow = self.is_shadow;
-        let shadow = ui.style().shadow;
+        let shadow = ui.theme().shadow;
 
         ui.painter().set(index, move |ui: &mut dyn Renderer| {
             let pos = pos.snap();

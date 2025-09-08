@@ -14,7 +14,7 @@ mod task;
 pub mod element;
 mod widget;
 
-pub use button::{button, Button};
+pub use button::{button, Button, OnStyle, OffStyle};
 pub use column::{column, Column};
 pub use element::Element;
 pub use frame::{frame, Frame};

@@ -1,6 +1,6 @@
 use essay_graphics_api::{renderer::Renderer, Padding, Point, Shapes, Size};
 
-use crate::{ui::{Response, ResponseValue, Shell, Ui, Widget}, widget2::{Element, SelectableLabel, Text, WidgetFrame}};
+use crate::{style::UiStyle, ui::{ui::UiBuilder, Response, ResponseValue, Shell, Ui, Widget}, widget2::{Element, OffStyle, OnStyle, SelectableLabel, Text, WidgetFrame}};
 
 pub fn menu_button<'a, Message>(
     title: impl Into<Text>,
@@ -11,8 +11,6 @@ pub fn menu_button<'a, Message>(
 
 pub struct MenuButton<'a, Message> {
     title: Text,
-    on_press: Option<OnPress<'a, Message>>,
-    press: bool,
     values: Vec<SelectableLabel<'a, Message>>,
 }
 
@@ -25,8 +23,6 @@ impl<'a, Message> MenuButton<'a, Message> {
 
         Self {
             title: content,
-            on_press: None,
-            press: false,
             values: values.into_iter().collect(),
         }
     }
@@ -50,10 +46,10 @@ where
         ui: &mut Ui,
         shell: &mut Shell<Message>,
     ) -> Response {
-        let button_text = ui.style().button_text.clone();
+        let button_text = ui.theme().button_text.clone();
         let size = ui.text_size(self.title.value(), &button_text);
 
-        let corner = ui.style().corner_radius;
+        let corner = ui.theme().corner_radius;
         let pad = 10.;
         let margin = pad + corner;
 
@@ -71,9 +67,13 @@ where
         let inner = bounds - Padding::from_pair(corner, corner);
         // println!("Size {:?} Bounds {:?} {:?}", size, bounds, inner);
 
-        let mut style = ui.style().button.clone();
+        let mut style = ui.theme().button.clone();
 
         if response.clicked(ui) {
+            ui.context().memory_mut(|mem| {
+                mem.popup_toggle(ui.stable_id())
+            });
+            /*
             match &self.on_press {
                 Some(OnPress::Direct(message)) => {
                     shell.publish(message.clone());
@@ -83,25 +83,29 @@ where
                 },
                 None => {}
             }
+            */
         }
 
-        let ui_style = ui.style();
+        let is_press = ui.context().memory_mut(|mem| {
+            mem.popup_open(ui.stable_id())
+        });
+
+        // let ui_style = ui.theme();
 
         let (background, foreground) = {
-            let is_active = self.press; // self.press ^ press_one;
+            let is_active = is_press; // self.press ^ press_one;
 
-            if ui.input().cursor
-                .map_or(false, |p| bounds.contains(p)) {
+            if response.is_hover(ui) {
                 if is_active {
-                    (ui_style.button2_on.hover_background, ui_style.button2_on.hover_foreground)
+                    (OnStyle.hover_background(ui), OnStyle.hover_foreground(ui))
                 } else {
-                    (ui_style.button2_off.hover_background, ui_style.button2_off.hover_foreground)
+                    (OffStyle.hover_background(ui), OffStyle.hover_foreground(ui))
                 }
             } else {
                 if is_active {
-                    (ui_style.button2_on.background, ui_style.button2_on.foreground)
+                    (OnStyle.background(ui), OnStyle.foreground(ui))
                 } else {
-                    (ui_style.button2_off.background, ui_style.button2_off.foreground)
+                    (OffStyle.background(ui), OffStyle.foreground(ui))
                 }
             }
         };
@@ -112,7 +116,7 @@ where
         //let label = self.label.clone();
 
         let border = background;
-        let corner = ui_style.corner_radius;
+        let corner = OnStyle.corner_radius(ui);
         let label = String::from(self.title.value());
 
         ui.painter().add(move |ui: &mut dyn Renderer| {
@@ -134,6 +138,18 @@ where
             ui.draw_text(pos, &label, 0., &style, &button_text)
         });
 
+        if is_press {
+            let id = ui.stable_id().with("popup");
+
+            let rect = response.rect(ui);
+            let pos = Point::new(rect.xmin(), rect.ymax());
+
+            ui.popup(id, UiBuilder::default().max_bounds(pos), |ui| {
+                for child in &mut self.values {
+                    child.ui(ui, shell);
+                }    
+            });
+        }
         /*
         if self.press ^ press_one { 
             style.edge_color(ui.style()[State::Active].foreground);
@@ -162,11 +178,6 @@ where
     fn from(menu: MenuButton<'a, Message>) -> Self {
         Self::new(menu)
     }
-}
-
-enum OnPress<'a, Message> {
-    Direct(Message),
-    Closure(Box<dyn Fn() -> Message + 'a>),
 }
 
 impl<'a, Message: Clone + 'a> WidgetFrame<'a, Message> for MenuButton<'a, Message> {}

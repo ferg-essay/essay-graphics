@@ -37,6 +37,8 @@ impl State {
     fn view(&self) -> impl Into<Element<'_, Message>> {
         menu_button("Menu", vec![
             selectable_label("A"),
+            selectable_label("B"),
+            selectable_label("C"),
         ])
     }
 }

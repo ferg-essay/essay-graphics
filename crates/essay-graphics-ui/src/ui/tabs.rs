@@ -25,7 +25,7 @@ impl<'a, T: PartialEq + Into<String>> Tabs<'a, T> {
 
 impl<T: PartialEq + Clone + Into<String>> Tabs<'_, T> {
     pub fn show(mut self, ui: &mut Ui) -> Option<T> {
-        let style_text = ui.style().label_text.clone();
+        let style_text = ui.theme().label_text.clone();
         let margin = 10.;
 
         let tab_style = PathStyle::new();
@@ -67,10 +67,10 @@ impl<T: PartialEq + Clone + Into<String>> Tabs<'_, T> {
                     let label: String = item.label();
 
                     if is_selected {
-                        let accent = ui.style()[State::Active].accent;
+                        let accent = ui.theme()[State::Active].accent;
                         let mut tab_style = tab_style.clone();
-                        tab_style.edge_color(ui.style()[State::Active].edge);
-                        tab_style.face_color(ui.style()[State::Active].background);
+                        tab_style.edge_color(ui.theme()[State::Active].edge);
+                        tab_style.face_color(ui.theme()[State::Active].background);
 
                         ui.painter().add(move |ui: &mut dyn Renderer| {
                             let path = Path::move_to(pos.xmin(), pos.ymin())
@@ -98,8 +98,8 @@ impl<T: PartialEq + Clone + Into<String>> Tabs<'_, T> {
                         selected = Some(item.key);
                     } else if response.is_hover(ui) {
                         let mut tab_style = tab_style.clone();
-                        tab_style.edge_color(ui.style()[State::Hover].edge);
-                        tab_style.face_color(ui.style()[State::Hover].background);
+                        tab_style.edge_color(ui.theme()[State::Hover].edge);
+                        tab_style.face_color(ui.theme()[State::Hover].background);
 
                         ui.painter().add(move |ui: &mut dyn Renderer| {
                             let path = Path::from(pos);
@@ -107,8 +107,8 @@ impl<T: PartialEq + Clone + Into<String>> Tabs<'_, T> {
                         });
                     } else {
                         let mut tab_style = tab_style.clone();
-                        tab_style.edge_color(ui.style()[State::Inactive].edge);
-                        tab_style.face_color(ui.style()[State::Inactive].background);
+                        tab_style.edge_color(ui.theme()[State::Inactive].edge);
+                        tab_style.face_color(ui.theme()[State::Inactive].background);
 
                         ui.painter().add(move |ui: &mut dyn Renderer| {
                             let path = Path::from(pos);

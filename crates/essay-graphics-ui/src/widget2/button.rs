@@ -1,6 +1,9 @@
-use essay_graphics_api::{renderer::Renderer, Padding, Point, Shapes, Size};
+use essay_graphics_api::{
+    renderer::{Canvas, Renderer}, 
+    Bounds, Color, HorizAlign, Padding, PathStyle, Point, Shapes, Size, TextStyle};
 
 use crate::{
+    style::{UiStyle},
     ui::{Response, ResponseValue, Shell, Ui, Widget}, 
     widget2::{text::Text, Element, WidgetFrame}
 };
@@ -60,6 +63,52 @@ impl<'a, Message> Button<'a, Message> {
         self.on_press = Some(OnPress::Closure(Box::new(on_press)));
         self
     }
+
+    fn draw(
+        &mut self,
+        ui: &mut Ui,
+        pos: Point,
+        inner: Bounds<Canvas>,
+        style: impl UiStyle,
+        is_hover: bool,
+    ) {
+        let (background, foreground) = {
+            if is_hover {
+                (style.hover_background(ui), style.hover_foreground(ui))
+            } else {
+                (style.background(ui), style.foreground(ui))
+            }
+        };
+
+        //let label = self.label.clone();
+
+        let border = background;
+        let corner = style.corner_radius(ui);
+        let label = String::from(self.content.value());
+
+        ui.painter().add(move |ui: &mut dyn Renderer| {
+            let sz = 0.;
+            let r = corner;
+            if sz > 0. { // border
+                ui.draw_shape(&Shapes::rect(
+                    inner.p0() - Point::new(sz, sz), inner.size() + Size::new(2. * sz, 2. * sz), r + 1., 
+                    border,
+                ))?;
+            }
+
+            ui.draw_shape(&Shapes::rect(
+                inner.p0(), inner.size(), r, background,
+            ))?;
+            // ui.draw_path(&background, &style)?;
+            let mut style = PathStyle::new();
+            let mut button_text = TextStyle::new();
+            button_text.halign(HorizAlign::Left);
+            //button_text.valign(VertAlign::Top);
+            style.edge_color(foreground);
+            style.face_color(foreground);
+            ui.draw_text(pos, &label, 0., &style, &button_text)
+        });
+    }
 }
 
 impl<'a, Message> Widget<Message> for Button<'a, Message>
@@ -71,10 +120,10 @@ where
         ui: &mut Ui,
         shell: &mut Shell<Message>,
     ) -> Response {
-        let button_text = ui.style().button_text.clone();
+        let button_text = ui.theme().button_text.clone();
         let size = ui.text_size(self.content.value(), &button_text);
 
-        let corner = ui.style().corner_radius;
+        let corner = OnStyle.corner_radius(ui);
         let pad = 10.;
         let margin = pad + corner;
 
@@ -92,8 +141,6 @@ where
         let inner = bounds - Padding::from_pair(corner, corner);
         // println!("Size {:?} Bounds {:?} {:?}", size, bounds, inner);
 
-        let mut style = ui.style().button.clone();
-
         if response.clicked(ui) {
             match &self.on_press {
                 Some(OnPress::Direct(message)) => {
@@ -106,72 +153,14 @@ where
             }
         }
 
-        let ui_style = ui.style();
+        let is_hover = response.is_hover(ui);
 
-        let (background, foreground) = {
-            let is_active = self.press; // self.press ^ press_one;
-
-            if ui.input().cursor
-                .map_or(false, |p| bounds.contains(p)) {
-                if is_active {
-                    (ui_style.button2_on.hover_background, ui_style.button2_on.hover_foreground)
-                } else {
-                    (ui_style.button2_off.hover_background, ui_style.button2_off.hover_foreground)
-                }
-            } else {
-                if is_active {
-                    (ui_style.button2_on.background, ui_style.button2_on.foreground)
-                } else {
-                    (ui_style.button2_off.background, ui_style.button2_off.foreground)
-                }
-            }
-        };
-        
-        //style.edge_color(ui.style()[state].edge);
-        style.color(background);
-
-        //let label = self.label.clone();
-
-        let border = background;
-        let corner = ui_style.corner_radius;
-        let label = String::from(self.content.value());
-
-        ui.painter().add(move |ui: &mut dyn Renderer| {
-            let sz = 0.;
-            let r = corner;
-            if sz > 0. { // border
-                ui.draw_shape(&Shapes::rect(
-                    inner.p0() - Point::new(sz, sz), inner.size() + Size::new(2. * sz, 2. * sz), r + 1., 
-                    border,
-                ))?;
-            }
-
-            ui.draw_shape(&Shapes::rect(
-                inner.p0(), inner.size(), r, background,
-            ))?;
-            // ui.draw_path(&background, &style)?;
-            style.edge_color(foreground);
-            style.face_color(foreground);
-            ui.draw_text(pos, &label, 0., &style, &button_text)
-        });
-
-        /*
-        if self.press ^ press_one { 
-            style.edge_color(ui.style()[State::Active].foreground);
-            style.face_color(ui.style()[State::Active].foreground);
+        if self.press {
+            self.draw(ui, pos, inner, OnStyle, is_hover);
         } else {
-            style.edge_color(ui.style()[State::Inactive].foreground);
-            style.face_color(ui.style()[State::Inactive].foreground);
+            self.draw(ui, pos, inner, OffStyle, is_hover);
         }
-        */
 
-        //ui.painter_mut().add(|ui: &mut dyn Renderer| {
-        //    ui.draw_text(pos, &self.label, 0., &style, &button_text)
-        //});
-
-        //ui.renderer().draw_text(pos, &self.label, 0., &style, &button_text).unwrap();
-
-        //Response::default().with_onclick(press_one)
         response
     }
 }
@@ -191,3 +180,76 @@ enum OnPress<'a, Message> {
 }
 
 impl<'a, Message: Clone + 'a> WidgetFrame<'a, Message> for Button<'a, Message> {}
+
+pub struct OnStyle;
+
+impl UiStyle for OnStyle {
+    fn background(&self, ui: &Ui) -> Color {
+        ui.theme().button2_on.background
+    }
+
+    fn foreground(&self, ui: &Ui) -> Color {
+        ui.theme().button2_on.foreground
+    }
+
+    fn border(&self, _ui: &Ui) -> Color {
+        Color(0)
+    }
+
+    fn border_width(&self, _ui: &Ui) -> f32 {
+        0.
+    }
+
+    fn corner_radius(&self, ui: &Ui) -> f32 {
+        ui.theme().corner_radius
+    }
+
+    fn hover_background(&self, ui: &Ui) -> Color {
+        ui.theme().button2_on.hover_background
+    }
+
+    fn hover_foreground(&self, ui: &Ui) -> Color {
+        ui.theme().button2_on.hover_foreground
+    }
+
+    fn hover_border(&self, _ui: &Ui) -> Color {
+        Color(0)
+    }
+}
+
+
+pub struct OffStyle;
+
+impl UiStyle for OffStyle {
+    fn background(&self, ui: &Ui) -> Color {
+        ui.theme().button2_off.background
+    }
+
+    fn foreground(&self, ui: &Ui) -> Color {
+        ui.theme().button2_off.foreground
+    }
+
+    fn border(&self, _ui: &Ui) -> Color {
+        Color(0)
+    }
+
+    fn border_width(&self, _ui: &Ui) -> f32 {
+        0.
+    }
+
+    fn corner_radius(&self, ui: &Ui) -> f32 {
+        ui.theme().corner_radius
+    }
+
+    fn hover_background(&self, ui: &Ui) -> Color {
+        ui.theme().button2_off.hover_background
+    }
+
+    fn hover_foreground(&self, ui: &Ui) -> Color {
+        ui.theme().button2_off.hover_foreground
+    }
+
+    fn hover_border(&self, _ui: &Ui) -> Color {
+        Color(0)
+    }
+}

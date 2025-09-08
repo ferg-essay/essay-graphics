@@ -31,8 +31,8 @@ impl<'a, Message> Widget<Message> for Text {
         ui: &mut crate::ui::Ui,
         _shell: &mut Shell<Message>,
     ) -> Response {
-        let style = ui.style().label.clone();
-        let style_text = ui.style().label_text.clone();
+        let style = ui.theme().label.clone();
+        let style_text = ui.theme().label_text.clone();
         let size = ui.text_size(&self.content, &style_text);
         
         let ResponseValue { 
@@ -61,8 +61,8 @@ impl DrawWidget for Text {
         &mut self,
         ui: &mut crate::ui::Ui,
     ) -> Response {
-        let style = ui.style().label.clone();
-        let style_text = ui.style().label_text.clone();
+        let style = ui.theme().label.clone();
+        let style_text = ui.theme().label_text.clone();
         let size = ui.text_size(&self.content, &style_text);
         
         let ResponseValue { 

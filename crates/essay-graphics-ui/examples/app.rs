@@ -35,7 +35,7 @@ impl State {
             button("button A").press(self.a).on_press(Message::A).tooltip("Tooltip A"),
             button("button B").press(self.b).on_press(Message::B).tooltip("Tooltip B"),
             text("text")
-        ].frame().padding(Padding::from_all(6.)).background("red")
+        ].frame().padding(Padding::from_all(6.)).background("amber")
     }
 }
 

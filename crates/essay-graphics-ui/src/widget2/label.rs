@@ -19,8 +19,8 @@ impl DrawWidget for Label {
         &mut self, 
         ui: &mut Ui, 
     ) -> Response {
-        let style = ui.style().label.clone();
-        let style_text = ui.style().label_text.clone();
+        let style = ui.theme().label.clone();
+        let style_text = ui.theme().label_text.clone();
         let size = ui.text_size(&self.label, &style_text);
         
         let ResponseValue { 

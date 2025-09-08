@@ -61,7 +61,7 @@ where
         ui: &mut Ui,
         shell: &mut Shell<Message>,
     ) -> Response {
-        let corner_margin = Padding::from_all(ui.style().corner_radius);
+        let corner_margin = Padding::from_all(ui.theme().corner_radius);
 
         let index = ui.painter().add(Shapes::None);
 
@@ -79,10 +79,10 @@ where
         let pos = rect.pos; //  + self.inner_margin + corner_margin;
 
         let background = self.background.unwrap_or(Color(0));
-        let corner = ui.style().corner_radius;
-        let _border = ui.style().border;
+        let corner = ui.theme().corner_radius;
+        let _border = ui.theme().border;
         let is_shadow = self.is_shadow;
-        let shadow = ui.style().shadow;
+        let shadow = ui.theme().shadow;
 
         ui.painter().set(index, move |ui: &mut dyn Renderer| {
             let pos = pos.snap();

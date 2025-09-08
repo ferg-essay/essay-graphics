@@ -1,8 +1,12 @@
 use std::marker::PhantomData;
 
-use essay_graphics_api::{renderer::{Canvas, Renderer}, Color, Padding, Path, Point, Shapes, Size};
+use essay_graphics_api::{renderer::{Renderer}, Padding, PathStyle, Point, Shapes, Size};
 
-use crate::{style::State, ui::{ui::MessageBase, DrawWidget, Response, ResponseValue, Shell, Ui, Widget}, widget2::{Element, Text}};
+use crate::{
+    style::{UiStyle}, 
+    ui::{Response, ResponseValue, Shell, Ui, Widget}, 
+    widget2::{OffStyle, OnStyle, Text}
+};
 
 pub fn selectable_label<'a, Message>(
     content: impl Into<Text>
@@ -11,13 +15,19 @@ pub fn selectable_label<'a, Message>(
 }
 
 pub struct SelectableLabel<'a, Message> {
-    label: Element<'a, Message>,
+    label: Text,
+
+    is_selected: bool,
+
+    marker: PhantomData<&'a Message>,
 }
 
 impl<'a, Message> SelectableLabel<'a, Message> {
-    pub fn new(label: impl Into<Element<'a, Message>>) -> Self {
+    pub fn new(label: impl Into<Text>) -> Self {
         Self {
             label: label.into(),
+            is_selected: false,
+            marker: Default::default(),
         }
     }
 }
@@ -26,15 +36,16 @@ impl<'a, Message> Widget<Message> for SelectableLabel<'a, Message> {
     fn ui(
         &mut self, 
         ui: &mut Ui,
-        shell: &mut Shell<Message>,
+        _shell: &mut Shell<Message>,
     ) -> Response {
-        let response = self.label.ui(ui, shell);
+        //let response = self.label.ui(ui, shell);
 
-        /*
-        let text_style = ui.style().button_text.clone();
-        let size = ui.text_size(&self.label, &text_style);
+        let text_style = ui.theme().button_text.clone();
+        let size = ui.text_size(&self.label.value(), &text_style);
 
-        let corner = ui.style().corner_radius;
+        let style = OnStyle;
+
+        let corner = style.corner_radius(ui);
         let pad = 4.;
         let margin = pad + corner;
 
@@ -52,56 +63,55 @@ impl<'a, Message> Widget<Message> for SelectableLabel<'a, Message> {
         let inner = bounds - Padding::from_pair(corner, corner);
         // println!("Size {:?} Bounds {:?} {:?}", size, bounds, inner);
 
-        let mut style = ui.style().button.clone();
+        // let mut style = ui.style().button.clone();
 
-        let ui_style = ui.style();
+        // let ui_style = ui.style();
 
         let (background, foreground) = {
             let is_active = self.is_selected;
 
-            if ui.input().cursor
-                .map_or(false, |p| bounds.contains(p)) {
-                if is_active {
-                    (ui_style.button2_on.hover_background, ui_style.button2_on.hover_foreground)
+            if is_active {
+                if response.is_hover(ui) {
+                    (OnStyle.hover_background(ui), OnStyle.hover_foreground(ui))
                 } else {
-                    (ui_style.button2_off.hover_background, ui_style.button2_off.hover_foreground)
+                    (OnStyle.background(ui), OnStyle.foreground(ui))
                 }
             } else {
-                if is_active {
-                    (ui_style.button2_on.background, ui_style.button2_on.foreground)
+                if response.is_hover(ui) {
+                    (OffStyle.hover_background(ui), OffStyle.hover_foreground(ui))
                 } else {
-                    (ui_style.button2_off.background, ui_style.button2_off.foreground)
+                    (OffStyle.background(ui), OffStyle.foreground(ui))
                 }
             }
         };
         
         //style.edge_color(ui.style()[state].edge);
-        style.color(background);
 
-        let label = self.label.clone();
+        let label = String::from(self.label.value());
 
         let border = background;
-        let corner = ui_style.corner_radius;
+        let corner = OnStyle.corner_radius(ui);
 
         ui.painter().add(move |ui: &mut dyn Renderer| {
+            let mut style = PathStyle::new();
+
             let sz = 0.;
             let r = corner;
             if sz > 0. { // border
-                ui.draw_shape(&Shapes::Rectangle(
+                ui.draw_shape(&Shapes::rect(
                     inner.p0() - Point::new(sz, sz), inner.size() + Size::new(2. * sz, 2. * sz), r + 1., 
                     border,
                 ))?;
             }
 
-            ui.draw_shape(&Shapes::Rectangle(
+            ui.draw_shape(&Shapes::rect(
                 inner.p0(), inner.size(), r, background,
             ))?;
             // ui.draw_path(&background, &style)?;
-            style.edge_color(foreground);
-            style.face_color(foreground);
+            style.color(foreground);
             ui.draw_text(pos, &label, 0., &style, &text_style)
         });
-        */
+
         response
     }
 }

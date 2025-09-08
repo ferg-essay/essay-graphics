@@ -2,13 +2,13 @@ use std::sync::Arc;
 
 use essay_graphics_api::{input::Input, output::Output};
 
-use crate::{style::UiStyle, ui::{context::{UiState}, widget::WidgetRects, AllocSize, Context, GraphicsLayers}, util::IdMap};
+use crate::{style::UiTheme, ui::{context::{UiState}, widget::WidgetRects, AllocSize, Context, GraphicsLayers}, util::IdMap};
 
 pub(crate) struct UiRender {
     pub state: UiState,
 
     pub context: Context,
-    pub theme: Arc<UiStyle>,
+    pub theme: Arc<UiTheme>,
     
     pub layers: GraphicsLayers,
 
