@@ -206,7 +206,8 @@ impl PipelineCanvas {
         )
     }
 
-    pub(crate) fn flush(&mut self, wgpu: &mut RenderWgpu) {
+    pub(crate) fn flush(&mut self, wgpu: &mut RenderWgpu) -> bool {
+        let mut is_valid = true;
         //self.bezier_mesh_render.flush(wgpu);
         //self.mesh2d_render.flush(wgpu, &self.texture_store);
         //self.mesh2d_color_render.flush(wgpu);
@@ -227,6 +228,7 @@ impl PipelineCanvas {
                     FlushItem::None => {},
                     FlushItem::Redraw => {
                         println!("PipelineCanvas:: flush with redraw");
+                        is_valid = false;
                     }, // panic!("Redraw should not allow flush()"),
                     FlushItem::Mesh2d(item) => {
                         self.mesh2d_render.flush_item(
@@ -263,6 +265,8 @@ impl PipelineCanvas {
         self.mesh2d_color_render.clear();
 
         self.shape_rect_render.clear();
+
+        is_valid
      }
 }
 

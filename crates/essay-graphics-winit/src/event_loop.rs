@@ -1,7 +1,7 @@
 use std::{sync::{Arc, Mutex}, time::Instant};
 
 use essay_graphics_api::{
-    input::Input, output::Command, renderer
+    input::Input, output::Command, renderer::{self, RenderErr}
 };
 use winit::{
     event::{self, StartCause, WindowEvent }, 
@@ -43,6 +43,10 @@ pub fn run_event_loop(
                                 },
                             }
                         }
+                    }
+                    Err(RenderErr::RedrawRequired) => {
+                        handle.request_redraw();
+                        wait_until = None;
                     }
                     Err(err) => {
                         result_handle.lock().unwrap().err = Some(err);

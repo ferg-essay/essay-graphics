@@ -31,15 +31,21 @@ impl<'a, 'b> PlotRenderer<'a, 'b> {
 
         let result = (draw)(&mut renderer)?;
 
-        renderer.flush_inner();
+        renderer.flush_inner()?;
 
         Ok(result)
     }
 
-    fn flush_inner(&mut self) {
+    fn flush_inner(&mut self) -> Result<()> {
         self.canvas.flush(self.wgpu);
-        self.canvas.pipeline.flush(self.wgpu);
+        let result = self.canvas.pipeline.flush(self.wgpu);
         self.wgpu.flush();
+
+        if result {
+            Ok(())
+        } else {
+            Err(RenderErr::RedrawRequired)
+        }
     }
 
     fn get_scissor(&self) -> Option<(u32, u32, u32, u32)> {

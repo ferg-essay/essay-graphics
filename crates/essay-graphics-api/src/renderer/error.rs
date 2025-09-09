@@ -4,6 +4,7 @@ pub type Result<T, E=RenderErr> = std::result::Result<T, E>;
 #[derive(Debug)]
 pub enum RenderErr {
     NotImplemented,
+    RedrawRequired,
     Message(String),
 }
 

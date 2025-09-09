@@ -245,7 +245,7 @@ impl WgpuViewport {
             }
             */
             draw
-        ).unwrap();
+        )?;
 
         frame.present();
 
