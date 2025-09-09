@@ -81,11 +81,24 @@ pub enum Length {
     View(f32),
 }
 
+impl Size<Length> {
+    pub const FILL: Self = Self::new(Length::Fill, Length::Fill);
+}
+
 impl From<Size> for Size<Length> {
     fn from(value: Size) -> Self {
         Size::new(
             Length::Pixels(value.width),
             Length::Pixels(value.height),
+        )
+    }
+}
+
+impl From<Length> for Size<Length> {
+    fn from(value: Length) -> Self {
+        Size::new(
+            value,
+            value,
         )
     }
 }

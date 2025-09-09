@@ -316,8 +316,16 @@ impl<'a> Ui<'a> {
 
     pub fn draw_size(&mut self, size: impl Into<Size<Length>>, draw: impl Drawable + 'static) -> Response {
         let ResponseValue { response, .. } = self.allocate(size);
+
+        let pos = response.rect(self);
+
+        let mut draw = Box::new(draw);
         
-        self.painter().add(draw);
+        self.painter().add(move |ui: &mut dyn Renderer| {
+            ui.draw_with_clip(pos.into(), Box::new(|ui| {
+                draw.draw(ui)
+            }))
+        });
 
         response
     }

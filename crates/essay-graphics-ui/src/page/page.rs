@@ -204,6 +204,7 @@ impl Page2 {
     }
 
     pub fn draw_ui(&mut self, ui: &mut Ui) {
+        println!("draw_ui");
         for item in &mut self.children {
             item.draw(ui);
         }
@@ -435,6 +436,7 @@ impl ViewItem {
     fn draw(&mut self, renderer: &mut dyn Renderer) -> Result<()> {
         let pos = self.pos(renderer);
 
+        println!("Draw_Clip {:?}", pos);
         renderer.draw_with_clip(pos, Box::new(|ui| 
             self.view.draw(ui)
         ))
@@ -453,8 +455,13 @@ struct PageDrawable {
 impl PageDraw for PageDrawable {
     fn draw(&mut self, ui: &mut Ui) {
         let draw = self.draw.clone();
+
+        let size = Size::<Length>::new(
+            Length::View(self.size.width),
+            Length::View(self.size.height),
+        );
         
-        ui.draw_size(self.size, move |ui: &mut dyn Renderer| {
+        ui.draw_size(size, move |ui: &mut dyn Renderer| {
             (draw.lock().unwrap()).draw(ui)
         });
     }
@@ -483,6 +490,7 @@ struct PageHoriz {
 
 impl PageDraw for PageHoriz {
     fn draw(&mut self, ui: &mut Ui) {
+        println!("Horiz {:?}", self.size);
         ui.row_with(self.size, |ui| {
             for child in &mut self.children {
                 child.draw(ui);

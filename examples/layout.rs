@@ -19,13 +19,15 @@ fn main() {
     let page = Page::build(|ui| {
         ui.horizontal(|ui| {
             ui.view(PathView::new(path_a.clone(), "teal"));
-            ui.view(PathView::new(path_b.clone(), "orange"));
+            //ui.view(PathView::new(path_b.clone(), "orange"));
+            ui.view(|ui: &mut dyn Renderer| Ok(()));
         });
-
+        /*
         ui.horizontal_size(3., |ui| {
             ui.view_size([3., 3.], PathView::new(path_a.clone(), "red"));
             ui.view(view.drawable());
         });
+        */
     });
 
     // builder.view(view_a);
@@ -66,6 +68,7 @@ impl Drawable for PathView {
 
         let mut style = PathStyle::new();
         style.color(self.color);
+        println!("Draw {:?} {:?}", self.color, renderer.pos());
 
         renderer.draw_path(&path, &style)
     }

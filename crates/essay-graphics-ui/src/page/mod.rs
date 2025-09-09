@@ -10,7 +10,7 @@ pub use page::{
 };
 
 pub use view::{
-    View, ViewArc, PosView,
+    View, ViewArc, ViewArcDraw, PosView,
 };
 
 pub use main_loop::MainLoop;
