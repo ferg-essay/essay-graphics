@@ -1,4 +1,4 @@
-use std::ops;
+use std::{any::Any, ops, sync::Arc};
 
 use essay_tensor::tensor::Tensor;
 
@@ -73,6 +73,18 @@ pub trait Renderer {
         style: &[MeshStyle],
     ) -> Result<()>;
 
+    fn create_mesh2d_buffer(
+        &mut self,
+        mesh: &Mesh2d,
+    ) -> Result<Mesh2dBuffer>;
+
+    fn draw_mesh2d_buffer(
+        &mut self,
+        mesh: &Mesh2dBuffer,
+        texture: TextureId,
+        style: &[MeshStyle],
+    ) -> Result<()>;
+
     fn draw_bezier_mesh(
         &mut self,
         mesh: &BezierMesh2d,
@@ -142,4 +154,13 @@ pub trait Renderer {
         &mut self,
         bounds: Bounds<Canvas>
     );
+}
+
+#[derive(Clone)]
+pub struct Mesh2dBuffer(pub Arc<Box<dyn Any + Send + Sync>>);
+
+impl Mesh2dBuffer {
+    pub fn new(value: impl Any + Send + Sync) -> Mesh2dBuffer {
+        Self(Arc::new(Box::new(value)))
+    }
 }

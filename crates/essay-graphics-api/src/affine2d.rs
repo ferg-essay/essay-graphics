@@ -136,10 +136,10 @@ impl Affine2d {
     }
 
     #[inline]
-    pub fn transform_point(&self, point: Point) -> Point {
+    pub fn transform_point(&self, point: impl Into<Point>) -> Point {
         let mat = self.mat;
 
-        let Point { x, y } = point;
+        let Point { x, y } = point.into();
 
         Point::new(
             x * mat[0] + y * mat[1] + mat[2],

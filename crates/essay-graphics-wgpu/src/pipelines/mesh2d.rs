@@ -1,7 +1,10 @@
-use bytemuck_derive::{Zeroable, Pod};
-use essay_graphics_api::{path_style::MeshStyle, Affine2d, Color, Mesh2d, TextureId};
+use core::fmt;
+use std::{any::Any, mem, sync::Arc};
 
-use crate::{pipelines::{buffer::{VertexBuffer}, pipeline_canvas::FlushItem}, render::render::RenderWgpu};
+use bytemuck_derive::{Zeroable, Pod};
+use essay_graphics_api::{path_style::MeshStyle, renderer::{Mesh2dBuffer, Result}, Affine2d, Color, Mesh2d, TextureId};
+
+use crate::{pipelines::{buffer::{create_vertex_buffer_init, VertexBuffer}, pipeline_canvas::FlushItem}, render::render::RenderWgpu};
 use super::{texture_store::TextureStore};
 
 pub(super) struct Mesh2dRender {
@@ -52,12 +55,7 @@ impl Mesh2dRender {
             return FlushItem::Redraw;
         }
 
-        let vec: Vec<Vertex> = mesh.as_slice().iter().map(|src| {
-            Vertex {
-                position: [src[0], src[1]],
-                uv: [src[2], src[3]],
-            }
-        }).collect();
+        let vec = Vertex::from_mesh(mesh);
 
         let (v_start, v_end) = self.vertex.write(wgpu, &vec);
 
@@ -70,6 +68,48 @@ impl Mesh2dRender {
         FlushItem::Mesh2d(Mesh2dFlush {
             v_start,
             v_end,
+
+            s_start,
+            s_end,
+
+            texture,
+        })
+    }
+    
+    pub(crate) fn create_buffer(
+        &self, 
+        wgpu: &mut RenderWgpu, 
+        mesh: &Mesh2d
+    ) -> Result<Mesh2dBuffer> {
+        let vertices = Vertex::from_mesh(mesh);
+
+        let buffer = create_vertex_buffer_init(wgpu, &vertices);
+
+        Ok(Mesh2dBuffer::new(Mesh2dBufferItem {
+            buffer,
+            n_vertex: vertices.len() as u32,
+        }))
+    }
+
+    pub(super) fn draw_buffer(
+        &mut self, 
+        wgpu: &mut RenderWgpu,
+        buffer: &Mesh2dBuffer,
+        texture: TextureId,
+        style: &[MeshStyle],
+    ) -> FlushItem {
+        if self.style.expand(wgpu, style.len()) {
+            return FlushItem::Redraw;
+        }
+
+        let data: Vec<Style> = style.iter().map(|src| {
+            Style::new(&src.affine, src.color)
+        }).collect();
+
+        let (s_start, s_end) = self.style.write(wgpu, &data);
+
+        FlushItem::Mesh2dBuffer(Mesh2dBufferFlush {
+            vertices: buffer.clone(),
 
             s_start,
             s_end,
@@ -90,17 +130,44 @@ impl Mesh2dRender {
         rpass.set_vertex_buffer(0, self.vertex.buffer_slice(item.v_start, item.v_end));
 
         rpass.set_vertex_buffer(1, self.style.buffer_slice(item.s_start, item.s_end));
-
         rpass.draw(
             0..(item.v_end - item.v_start) as u32,
             0..(item.s_end - item.s_start) as u32,
         )
     }
 
+    pub(super) fn flush_buffer_item(
+        &mut self, 
+        rpass: &mut wgpu::RenderPass,
+        textures: &TextureStore,
+        item: Mesh2dBufferFlush,
+    ) {
+        let buffer_item = item.vertices.0.downcast_ref::<Mesh2dBufferItem>().unwrap();
+    
+        rpass.set_pipeline(&self.pipeline);
+        rpass.set_bind_group(0, textures.texture_bind_group(item.texture), &[]);
+
+        rpass.set_vertex_buffer(0, buffer_item.buffer.slice(..));
+
+        rpass.set_vertex_buffer(1, self.style.buffer_slice(item.s_start, item.s_end));
+
+        rpass.draw(
+            0..buffer_item.n_vertex as u32,
+            0..(item.s_end - item.s_start) as u32,
+        )
+
+
+    }
+
     pub fn clear(&mut self) {
         self.vertex.clear();
         self.style.clear();
     }
+}
+
+struct Mesh2dBufferItem {
+    buffer: wgpu::Buffer,
+    n_vertex: u32,
 }
 
 #[repr(C)]
@@ -120,6 +187,15 @@ impl Vertex {
             step_mode: wgpu::VertexStepMode::Vertex,
             attributes: &Self::ATTRS,
         }
+    }
+
+    fn from_mesh(mesh: &Mesh2d) -> Vec<Self> {
+        mesh.as_slice().iter().map(|src| {
+            Vertex {
+                position: [src[0], src[1]],
+                uv: [src[2], src[3]],
+            }
+        }).collect()
     }
 }
 
@@ -167,6 +243,25 @@ pub struct Mesh2dFlush {
     s_end: usize,
 
     texture: TextureId,
+}
+
+pub struct Mesh2dBufferFlush {
+    vertices: Mesh2dBuffer,
+
+    s_start: usize,
+    s_end: usize,
+
+    texture: TextureId,
+}
+
+impl fmt::Debug for Mesh2dBufferFlush {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Mesh2dBufferFlush")
+            .field("s_start", &self.s_start)
+            .field("s_end", &self.s_end)
+            .field("texture", &self.texture)
+            .finish()
+    }
 }
 
 fn create_shape2d_pipeline(

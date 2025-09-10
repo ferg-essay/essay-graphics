@@ -1,7 +1,7 @@
 use std::{mem, num::NonZero};
 
 use essay_graphics_api::{
-    form::{Form, FormId, Matrix4}, input::Input, path_style::MeshStyle, renderer::{Canvas, GraphicsContext, Pos, RenderErr, Renderer, Result}, Affine2d, BezierMesh2d, Bounds, CapStyle, Color, FontStyle, FontTypeId, HorizAlign, JoinStyle, LineStyle, Mesh2d, Mesh2dColor, Path, PathCode, PathOpt, Point, Shapes, Size, TextStyle, TextureId, VertAlign
+    form::{Form, FormId, Matrix4}, input::Input, path_style::MeshStyle, renderer::{Canvas, GraphicsContext, Mesh2dBuffer, Pos, RenderErr, Renderer, Result}, Affine2d, BezierMesh2d, Bounds, CapStyle, Color, FontStyle, FontTypeId, HorizAlign, JoinStyle, LineStyle, Mesh2d, Mesh2dColor, Path, PathCode, PathOpt, Point, Shapes, Size, TextStyle, TextureId, VertAlign
 };
 use essay_tensor::tensor::Tensor;
 use wgpu::util::StagingBelt;
@@ -350,6 +350,29 @@ impl<'a, 'b> Renderer for PlotRenderer<'a, 'b> {
         }).collect();
 
         self.canvas.pipeline.draw_mesh2d(self.wgpu, mesh, texture, style.as_slice())
+    }
+    
+    fn create_mesh2d_buffer(
+        &mut self,
+        mesh: &Mesh2d,
+    ) -> Result<Mesh2dBuffer> {
+        self.canvas.pipeline.create_mesh2d_buffer(self.wgpu, mesh)
+    }
+    
+    fn draw_mesh2d_buffer(
+        &mut self,
+        mesh: &Mesh2dBuffer,
+        texture: TextureId,
+        style: &[MeshStyle],
+    ) -> Result<()> {
+        let style: Vec<MeshStyle> = style.iter().map(|marker| {
+            MeshStyle {
+                color: marker.color,
+                affine: marker.affine.compose(&self.canvas.to_gpu),
+            }
+        }).collect();
+
+        self.canvas.pipeline.draw_mesh2d_buffer(self.wgpu, mesh, texture, style.as_slice())
     }
     
     fn draw_mesh2d_color(

@@ -1,6 +1,7 @@
 use std::{marker::PhantomData, mem, num::NonZero};
 
 use bytemuck::Pod;
+use wgpu::util::DeviceExt;
 
 use crate::render::render::RenderWgpu;
 
@@ -47,17 +48,6 @@ impl<T: Pod> VertexBuffer<T> {
 
         let stride = mem::size_of::<T>();
 
-        /*
-        if let Some(mut view) = wgpu.queue.write_buffer_with(
-            &mut self.buffer,
-            (offset * stride) as u64,
-            NonZero::new((data.len() * stride) as u64).unwrap(),
-        ) {
-            view.copy_from_slice(
-                bytemuck::cast_slice(data)
-            );
-        }
-        */
         wgpu.write(
             &self.buffer, 
             bytemuck::cast_slice(data),
@@ -68,12 +58,16 @@ impl<T: Pod> VertexBuffer<T> {
         (offset, offset + data.len())
     }
 
-    pub fn buffer_slice(&self, start: usize, end: usize) -> wgpu::BufferSlice {
+    pub fn buffer_slice<'a>(&'a self, start: usize, end: usize) -> wgpu::BufferSlice<'a> {
         let stride = mem::size_of::<T>();
 
         self.buffer.slice(
             (stride * start) as u64..(stride * end) as u64
         )
+    }
+
+    pub fn buffer(&self) -> &wgpu::Buffer {
+        &self.buffer
     }
 
     pub fn clear(&mut self) {
@@ -94,6 +88,24 @@ fn create_vertex_buffer<T>(
         size,
         mapped_at_creation: false,
     })
+}
+
+pub(super) fn create_vertex_buffer_init<T: Pod>(
+    wgpu: &mut RenderWgpu,
+    data: &[T],
+) -> wgpu::Buffer {
+    let buffer = create_vertex_buffer::<T>(wgpu.device, data.len());
+
+    let stride = mem::size_of::<T>();
+
+    wgpu.write(
+        &buffer, 
+        bytemuck::cast_slice(data),
+        0,
+        NonZero::new((data.len() * stride) as u64).expect("write with zero len"),
+    );
+
+    buffer
 }
 
 pub(super) fn write_buffer<T: Pod>(

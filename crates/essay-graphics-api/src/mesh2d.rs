@@ -1,5 +1,6 @@
-use crate::{Color, Point};
+use crate::{Affine2d, Color, Point};
 
+#[derive(Clone)]
 pub struct Mesh2d {
     pub vertices: Vec<[f32; 4]>,
 }
@@ -68,6 +69,18 @@ impl Mesh2d {
     #[inline]
     pub fn as_slice(&self) -> &[[f32; 4]] {
         self.vertices.as_slice()
+    }
+
+    pub fn transform(&self, affine: &Affine2d) -> Self {
+        let vertices = self.vertices.iter().map(|vertex| {
+            let Point { x, y } = affine.transform_point(Point::new(vertex[0], vertex[1]));
+
+            [x, y, vertex[2], vertex[3]]
+        }).collect();
+
+        Self {
+            vertices,
+        }
     }
 }
 

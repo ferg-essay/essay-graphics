@@ -15,4 +15,4 @@ pub use error::{
     Result, RenderErr,
 };
 
-pub use renderer::Renderer;
+pub use renderer::{Renderer, Mesh2dBuffer};

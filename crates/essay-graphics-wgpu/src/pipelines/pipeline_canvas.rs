@@ -1,14 +1,14 @@
 use essay_graphics_api::{
     form::{Form, FormId, Matrix4}, 
     path_style::MeshStyle, 
-    renderer::{self, Canvas, RenderErr, Result}, 
+    renderer::{self, Canvas, Mesh2dBuffer, RenderErr, Result}, 
     Affine2d, BezierMesh2d, Bounds, Color, Mesh2d, Mesh2dColor, 
     Shapes, Size, TextureId
 };
 use essay_tensor::tensor::Tensor;
 
 use crate::{
-    pipelines::{bezier_mesh::BezierFlush, mesh2d::Mesh2dFlush, mesh2d_color::Mesh2dColorItem, 
+    pipelines::{bezier_mesh::BezierFlush, mesh2d::{Mesh2dBufferFlush, Mesh2dFlush}, mesh2d_color::Mesh2dColorItem, 
         shape_rect::{ShapeRectFlush, ShapeRectRender}
     }, 
     render::render::RenderWgpu
@@ -124,6 +124,26 @@ impl PipelineCanvas {
         self.push_flush(item)
     }
 
+    pub(crate) fn create_mesh2d_buffer(
+        &mut self, 
+        wgpu: &mut RenderWgpu,
+        mesh: &Mesh2d,
+    ) -> Result<Mesh2dBuffer, RenderErr> {
+        self.mesh2d_render.create_buffer(wgpu, mesh)
+    }
+
+    pub(crate) fn draw_mesh2d_buffer(
+        &mut self, 
+        wgpu: &mut RenderWgpu,
+        mesh: &Mesh2dBuffer,
+        texture: TextureId,
+        style: &[MeshStyle],
+    ) -> Result<(), RenderErr> {
+        let item = self.mesh2d_render.draw_buffer(wgpu, mesh, texture, style);
+
+        self.push_flush(item)
+    }
+
     pub(crate) fn draw_mesh2d_color(
         &mut self, 
         wgpu: &mut RenderWgpu,
@@ -227,11 +247,17 @@ impl PipelineCanvas {
                 match item {
                     FlushItem::None => {},
                     FlushItem::Redraw => {
-                        println!("PipelineCanvas:: flush with redraw");
                         is_valid = false;
                     }, // panic!("Redraw should not allow flush()"),
                     FlushItem::Mesh2d(item) => {
                         self.mesh2d_render.flush_item(
+                            rpass, 
+                            &self.texture_store, 
+                            item
+                        );
+                    },
+                    FlushItem::Mesh2dBuffer(item) => {
+                        self.mesh2d_render.flush_buffer_item(
                             rpass, 
                             &self.texture_store, 
                             item
@@ -275,6 +301,7 @@ pub enum FlushItem {
     None,
     Redraw, // force skipping of flush and redraw
     Mesh2d(Mesh2dFlush),
+    Mesh2dBuffer(Mesh2dBufferFlush),
     Bezier(BezierFlush),
     Mesh2dColor(Mesh2dColorItem),
 
