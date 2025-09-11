@@ -58,13 +58,15 @@ impl BezierMeshRender {
             }
         }).collect();
 
-        let (v_start, v_end) = self.vertex.write(wgpu, &vec);
+        //let (v_start, v_end) = self.vertex.write(wgpu, &vec);
+        let (v_start, v_end) = self.vertex.stage(wgpu, &vec);
 
         let vec: Vec<Style> = style.iter().map(|src| {
             Style::new(&src.affine, src.color)
         }).collect();
 
-        let (s_start, s_end) = self.style.write(wgpu, &vec);
+        //let (s_start, s_end) = self.style.write(wgpu, &vec);
+        let (s_start, s_end) = self.style.stage(wgpu, &vec);
 
         FlushItem::Bezier(BezierFlush {
             v_start,
@@ -75,6 +77,14 @@ impl BezierMeshRender {
 
             // texture,
         })
+    }
+
+    pub(super) fn write_stage(
+        &mut self,
+        wgpu: &mut RenderWgpu
+    ) {
+        self.vertex.write_stage(wgpu);
+        self.style.write_stage(wgpu);
     }
 
     pub(super) fn flush_item(
@@ -100,7 +110,7 @@ impl BezierMeshRender {
 }
 
 #[repr(C)]
-#[derive(Copy, Clone, Debug, Pod, Zeroable)]
+#[derive(Copy, Clone, Debug, Pod, Zeroable, Default)]
 struct Vertex {
     position: [f32; 2],
     uv: [f32; 2],
@@ -121,7 +131,7 @@ impl Vertex {
 }
 
 #[repr(C)]
-#[derive(Copy, Clone, Debug, Pod, Zeroable)]
+#[derive(Copy, Clone, Debug, Pod, Zeroable, Default)]
 struct Style {
     affine_0: [f32; 4],
     affine_1: [f32; 4],

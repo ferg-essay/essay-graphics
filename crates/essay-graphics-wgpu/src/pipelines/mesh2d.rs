@@ -57,13 +57,15 @@ impl Mesh2dRender {
 
         let vec = Vertex::from_mesh(mesh);
 
-        let (v_start, v_end) = self.vertex.write(wgpu, &vec);
+        //let (v_start, v_end) = self.vertex.write(wgpu, &vec);
+        let (v_start, v_end) = self.vertex.stage(wgpu, &vec);
 
         let data: Vec<Style> = style.iter().map(|src| {
             Style::new(&src.affine, src.color)
         }).collect();
 
-        let (s_start, s_end) = self.style.write(wgpu, &data);
+        //let (s_start, s_end) = self.style.write(wgpu, &data);
+        let (s_start, s_end) = self.style.stage(wgpu, &data);
 
         FlushItem::Mesh2d(Mesh2dFlush {
             v_start,
@@ -106,7 +108,8 @@ impl Mesh2dRender {
             Style::new(&src.affine, src.color)
         }).collect();
 
-        let (s_start, s_end) = self.style.write(wgpu, &data);
+        //let (s_start, s_end) = self.style.write(wgpu, &data);
+        let (s_start, s_end) = self.style.stage(wgpu, &data);
 
         FlushItem::Mesh2dBuffer(Mesh2dBufferFlush {
             vertices: buffer.clone(),
@@ -116,6 +119,11 @@ impl Mesh2dRender {
 
             texture,
         })
+    }
+
+    pub(super) fn write_stage(&mut self, wgpu: &mut RenderWgpu) {
+        self.vertex.write_stage(wgpu);
+        self.style.write_stage(wgpu);
     }
 
     pub(super) fn flush_item(
@@ -171,7 +179,7 @@ struct Mesh2dBufferItem {
 }
 
 #[repr(C)]
-#[derive(Copy, Clone, Debug, Pod, Zeroable)]
+#[derive(Copy, Clone, Debug, Pod, Zeroable, Default)]
 pub struct Vertex {
     position: [f32; 2],
     uv: [f32; 2],
@@ -200,7 +208,7 @@ impl Vertex {
 }
 
 #[repr(C)]
-#[derive(Copy, Clone, Debug, Pod, Zeroable)]
+#[derive(Copy, Clone, Debug, Pod, Zeroable, Default)]
 pub struct Style {
     affine_0: [f32; 4],
     affine_1: [f32; 4],
@@ -243,6 +251,20 @@ pub struct Mesh2dFlush {
     s_end: usize,
 
     texture: TextureId,
+}
+impl Mesh2dFlush {
+    pub(crate) fn merge(&mut self, next: &Mesh2dFlush) -> bool {
+        if self.texture == next.texture
+        && self.v_end == next.v_start
+        && self.s_end == next.s_start {
+            self.v_end = next.v_end;
+            self.s_end = next.s_end;
+
+            true
+        } else {
+            false
+        } 
+    }
 }
 
 pub struct Mesh2dBufferFlush {

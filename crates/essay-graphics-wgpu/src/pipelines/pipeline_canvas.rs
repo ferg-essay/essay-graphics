@@ -198,12 +198,7 @@ impl PipelineCanvas {
     }
 
     fn push_flush(&mut self, item: FlushItem) -> renderer::Result<()> {
-        match item {
-            FlushItem::None => {}
-            _ => {
-                self.flush_items.push(item);
-            }
-        }
+        self.flush_items.push(item);
 
         Ok(())
     }
@@ -228,9 +223,9 @@ impl PipelineCanvas {
 
     pub(crate) fn flush(&mut self, wgpu: &mut RenderWgpu) -> bool {
         let mut is_valid = true;
-        //self.bezier_mesh_render.flush(wgpu);
-        //self.mesh2d_render.flush(wgpu, &self.texture_store);
-        //self.mesh2d_color_render.flush(wgpu);
+
+        self.mesh2d_render.write_stage(wgpu);
+        self.bezier_mesh_render.write_stage(wgpu);
         self.form3d_render.flush(wgpu, &self.texture_store);
 
         wgpu.render_pass(|rpass| {
@@ -307,4 +302,3 @@ pub enum FlushItem {
 
     ShapeRect(ShapeRectFlush),
 }
-

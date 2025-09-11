@@ -98,7 +98,7 @@ impl Mesh2dColorRender {
 }
 
 #[repr(C)]
-#[derive(Copy, Clone, Debug, Pod, Zeroable)]
+#[derive(Copy, Clone, Debug, Pod, Zeroable, Default)]
 pub struct Vertex {
     position: [f32; 2],
     color: u32,
@@ -127,7 +127,7 @@ pub struct Mesh2dColorItem {
 }
 
 #[repr(C)]
-#[derive(Copy, Clone, Debug, Pod, Zeroable)]
+#[derive(Copy, Clone, Debug, Pod, Zeroable, Default)]
 pub struct Style {
     affine_0: [f32; 4],
     affine_1: [f32; 4],

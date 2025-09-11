@@ -31,18 +31,12 @@ impl<'a, 'b> PlotRenderer<'a, 'b> {
 
         let result = (draw)(&mut renderer)?;
 
-        renderer.flush_inner()?;
+        renderer.canvas.flush(renderer.wgpu);
+        let flush_result = renderer.canvas.pipeline.flush(renderer.wgpu);
+        renderer.wgpu.flush();
 
-        Ok(result)
-    }
-
-    fn flush_inner(&mut self) -> Result<()> {
-        self.canvas.flush(self.wgpu);
-        let result = self.canvas.pipeline.flush(self.wgpu);
-        self.wgpu.flush();
-
-        if result {
-            Ok(())
+        if flush_result {
+            Ok(result)
         } else {
             Err(RenderErr::RedrawRequired)
         }
@@ -160,11 +154,19 @@ impl<'a, 'b> PlotRenderer<'a, 'b> {
 
         let descent = 0.;
 
+        /*
         let dy = match valign {
             VertAlign::Top => - size - descent,
             VertAlign::Center => - 0.5 * (size + descent),
             VertAlign::BaselineBottom => 0.,
             VertAlign::Bottom => - descent,
+        };
+        */
+        let dy = match valign {
+            VertAlign::Top => 0.,
+            VertAlign::Center => - 0.5 * (size + descent),
+            VertAlign::BaselineBottom => -size,
+            VertAlign::Bottom => - (size + descent),
         };
 
         let mut affine = Affine2d::eye();
@@ -734,14 +736,6 @@ impl<'a> RenderWgpu<'a> {
         }
     }
 }
-
-/*
-impl Drop for PlotRenderer<'_, '_> {
-    fn drop(&mut self) {
-        self.flush_inner();
-    }
-}
-    */
 
 // transform and normalize path
 fn transform_solid_path(path: &Path<Canvas>) -> Path<Canvas> {

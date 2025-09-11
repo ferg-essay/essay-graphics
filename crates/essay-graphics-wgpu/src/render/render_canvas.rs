@@ -11,7 +11,7 @@ pub struct RenderCanvas {
     scale_factor: f32,
     input: Input,
 
-    pub pipeline: PipelineCanvas,
+    pub(crate) pipeline: PipelineCanvas,
 
     pub text_cache: TextCache,
     pub font_context: WgpuGraphicsContext,
@@ -72,7 +72,7 @@ impl RenderCanvas {
         self.is_request_redraw = is_redraw;
     }
 
-    pub fn resize(&mut self, wgpu: &mut RenderWgpu, pos: Pos) -> bool {
+    pub(crate) fn resize(&mut self, wgpu: &mut RenderWgpu, pos: Pos) -> bool {
         if self.cache_pos == pos || pos.width() == 0. {
             return false;
         }
@@ -120,7 +120,7 @@ impl RenderCanvas {
         }
     }
 
-    pub fn flush(
+    pub(crate) fn flush(
         &mut self,
         wgpu: &RenderWgpu,
     ) {

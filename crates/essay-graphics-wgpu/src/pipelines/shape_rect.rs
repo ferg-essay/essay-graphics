@@ -129,7 +129,7 @@ impl ShapeRectRender {
 }
 
 #[repr(C)]
-#[derive(Copy, Clone, Debug, Pod, Zeroable)]
+#[derive(Copy, Clone, Debug, Pod, Zeroable, Default)]
 pub struct Vertex {
     pos: [f32; 2],
     uv: [f32; 2],
@@ -163,7 +163,7 @@ impl Viewport {
 }
 
 #[repr(C)]
-#[derive(Copy, Clone, Debug, Pod, Zeroable)]
+#[derive(Copy, Clone, Debug, Pod, Zeroable, Default)]
 pub struct Style {
     pos: [f32; 2],
     size: [f32; 2],

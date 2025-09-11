@@ -119,6 +119,8 @@ pub struct WgpuViewport {
     surface: wgpu::Surface<'static>,
     window: Arc<Window>,
 
+    staging: Option<StagingBelt>,
+
     canvas: RenderCanvas,
     input: Input,
 }
@@ -157,6 +159,8 @@ impl WgpuViewport {
             config: device.config,
             window: device.window,
 
+            staging: None,
+
             canvas,
             // app,
             input,
@@ -192,6 +196,7 @@ impl WgpuViewport {
             .texture
             .create_view(&wgpu::TextureViewDescriptor::default());
     
+        /*
         let mut encoder =
             self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
     
@@ -218,8 +223,12 @@ impl WgpuViewport {
         }
     
         self.queue.submit(Some(encoder.finish()));
+        */
     
-        let staging = StagingBelt::new(2048 * 128);
+        let staging = match self.staging.take() {
+            Some(staging) => staging,
+            None => StagingBelt::new(2048 * 128),
+        };
 
         let mut wgpu = RenderWgpu {
             device: &self.device,
@@ -238,16 +247,12 @@ impl WgpuViewport {
             &mut wgpu,
             &mut self.canvas,
             &self.input,
-            /*
-            |ui| {
-                //self.app.render(ui)
-                app.render(ui)
-            }
-            */
             draw
         )?;
 
         frame.present();
+
+        self.staging = Some(wgpu.staging);
 
         Ok(Some(result))
     }

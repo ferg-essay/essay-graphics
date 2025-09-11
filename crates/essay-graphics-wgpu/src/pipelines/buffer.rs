@@ -10,15 +10,21 @@ pub struct VertexBuffer<T: Pod> {
     len: usize,
     offset: usize,
 
+    stage: Vec<T>,
+
     marker: PhantomData<T>,
 }
 
-impl<T: Pod> VertexBuffer<T> {
+impl<T: Pod + Default> VertexBuffer<T> {
     pub fn new(device: &wgpu::Device, len: usize) -> Self {
+        let mut vec = Vec::new();
+        vec.resize(len, T::default());
+
         Self {
             buffer: create_vertex_buffer::<T>(device, len),
             len,
             offset: 0,
+            stage: vec,
             marker: Default::default(),
         }
     }
@@ -36,6 +42,8 @@ impl<T: Pod> VertexBuffer<T> {
         self.buffer = create_vertex_buffer::<T>(wgpu.device, new_len);
         self.len = new_len;
         self.offset = 0;
+
+        self.stage.resize(new_len, T::default());
 
         true
     }
@@ -56,6 +64,30 @@ impl<T: Pod> VertexBuffer<T> {
         );
 
         (offset, offset + data.len())
+    }
+
+    pub fn stage(&mut self, wgpu: &mut RenderWgpu, data: &[T]) -> (usize, usize) {
+        assert!(self.offset + data.len() < self.len, "expand not implemented");
+
+        let offset = self.offset;
+        self.offset += data.len();
+
+        self.stage[offset..self.offset].copy_from_slice(data);
+
+        (offset, offset + data.len())
+    }
+
+    pub fn write_stage(&mut self, wgpu: &mut RenderWgpu) {
+        let stride = mem::size_of::<T>();
+
+        if self.offset > 0 {
+            wgpu.write(
+                &self.buffer, 
+                bytemuck::cast_slice(&self.stage[0..self.offset]),
+                0,
+                NonZero::new((self.offset * stride) as u64).expect("write with zero len"),
+            );
+        }
     }
 
     pub fn buffer_slice<'a>(&'a self, start: usize, end: usize) -> wgpu::BufferSlice<'a> {
