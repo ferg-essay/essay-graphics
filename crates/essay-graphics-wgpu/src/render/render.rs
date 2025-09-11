@@ -611,7 +611,7 @@ impl<'a> RenderWgpu<'a> {
         if self.state == State::PreInit {
             self.state = State::Initialized;
 
-            self.clear_screen(self.view);
+            // self.clear_screen(self.view);
         }
     }
 
@@ -671,6 +671,26 @@ impl<'a> RenderWgpu<'a> {
         if let Some(encoder) = &mut self.encoder {
             let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: None,
+                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                    view: self.view,
+                    resolve_target: None,
+                    ops: wgpu::Operations {
+                        load: wgpu::LoadOp::Clear(wgpu::Color {
+                            r: 1.0,
+                            g: 1.0,
+                            b: 1.0,
+                            a: 1.0,
+                        }),
+                        store: wgpu::StoreOp::Store,
+                    }
+                })],
+                depth_stencil_attachment: None,
+                timestamp_writes: None,
+                occlusion_query_set: None,
+            });
+            /*
+            let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                label: None,
                     color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                         view: self.view,
                         resolve_target: None,
@@ -683,6 +703,7 @@ impl<'a> RenderWgpu<'a> {
                     timestamp_writes: None,
                     occlusion_query_set: None,
             });
+            */
 
             rpass.set_viewport(
                 self.bounds.xmin(),

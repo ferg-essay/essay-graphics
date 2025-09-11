@@ -242,6 +242,15 @@ impl<const N: usize, M: Coord> From<[PathCode; N]> for Path<M> {
     }
 }
 
+impl<M: Coord> From<Vec<PathCode>> for Path<M> {
+    fn from(codes: Vec<PathCode>) -> Self {
+        Self {
+            codes,
+            marker: PhantomData,
+        }
+    }
+}
+
 impl<M: Coord> From<&[[f32; 2]]> for Path<M> {
     fn from(value: &[[f32; 2]]) -> Self {
         let mut codes = Vec::<PathCode>::new();
@@ -251,6 +260,8 @@ impl<M: Coord> From<&[[f32; 2]]> for Path<M> {
             if is_first {
                 codes.push(PathCode::MoveTo(point.into()));
                 is_first = false;
+            } else {
+                codes.push(PathCode::LineTo(point.into()));
             }
         }
 
