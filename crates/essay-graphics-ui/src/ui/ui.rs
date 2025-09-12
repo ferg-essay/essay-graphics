@@ -10,7 +10,7 @@ use essay_graphics_api::{
 use crate::{
     style::UiTheme, 
     ui::{
-        widget::DrawWidget, AllocSize, AppState, Context, Layer, Painter, RenderPass, Response, UiRender, Update, View
+        alloc::AllocPair, widget::DrawWidget, AllocSize, AppState, Context, Layer, Painter, RenderPass, Response, UiRender, Update, View
     }, 
     util::Id, widget2::Text, 
 };
@@ -99,7 +99,7 @@ impl<'a> Ui<'a> {
         let bounds = max_bounds.unwrap_or_else(|| ctx.screen_pos());
 
         let alloc_cache = render.state.last_pass.alloc_map.get(&id).cloned();
-        let alloc = Alloc::new(bounds, AllocDirection::Vertical, alloc_cache.clone());
+        let alloc = Alloc::new(bounds, AllocDirection::Column, alloc_cache.clone());
 
         let mut ui = Ui {
             stable_id: id,
@@ -118,8 +118,13 @@ impl<'a> Ui<'a> {
         ui.insert_widget(ui.id, start_rect);
     
         let result = (add_content)(&mut ui);
+
+        let new_alloc = AllocPair {
+            outer: ui.alloc.alloc_size.clone(),
+            inner: ui.alloc.alloc_size.clone(),
+        };
     
-        let response = ui.end(&alloc_cache);
+        let response = ui.end(&alloc_cache, new_alloc);
 
         ResponseValue::new(result, response)
     }
@@ -178,23 +183,23 @@ impl<'a> Ui<'a> {
 
         let result = (add_content)(&mut child);
 
-        self.alloc.merge_child(&mut child.alloc, size);
+        let alloc_child = self.alloc.merge_child(&mut child.alloc, size);
 
-        let response = child.end(&alloc_cache);
+        let response = child.end(&alloc_cache, alloc_child);
 
         ResponseValue::new(result, response)
     }
 
     fn end(
         &mut self, 
-        alloc_cache: &Option<AllocSize>,
+        _old_alloc: &Option<AllocPair>,
+        new_alloc: AllocPair,
     ) -> Response {
         let bounds = self.alloc.alloc + self.alloc.margin;
 
-        let new_alloc = self.alloc.alloc_size.clone();
-        if new_alloc.is_changed(&alloc_cache) {
-            println!("AllocChange")
-        }
+        //if new_alloc.is_changed(&old_alloc) {
+        //    println!("AllocChange")
+        //}
 
         let id = self.id;
         self.pass_mut().alloc_map.insert(id, new_alloc);
@@ -247,10 +252,15 @@ impl<'a> Ui<'a> {
 
         let bounds = popup_ui.alloc.alloc + margin;
 
-        let new_alloc = popup_ui.alloc.alloc_size.clone();
-        if new_alloc.is_changed(&alloc_cache) {
-            println!("AllocChange")
-        }
+        //let new_alloc = popup_ui.alloc.alloc_size.clone();
+        //if new_alloc.is_changed(&alloc_cache) {
+        //    println!("AllocChange")
+        //}
+
+        let new_alloc = AllocPair {
+            outer: popup_ui.alloc.alloc_size.clone(),
+            inner: popup_ui.alloc.alloc_size.clone(),
+        };
 
         self.pass_mut().alloc_map.insert(id, new_alloc);
         let response = self.insert_widget(id, bounds);
@@ -332,7 +342,7 @@ impl<'a> Ui<'a> {
 
     pub fn row<R>(&mut self, add_content: impl FnOnce(&mut Ui) -> R) -> ResponseValue<R> {
         self.child(UiBuilder::default()
-            .update(AllocDirection::Horizontal),
+            .update(AllocDirection::Row),
             add_content
         )
     }
@@ -343,14 +353,14 @@ impl<'a> Ui<'a> {
         add_content: impl FnOnce(&mut Ui) -> R
     ) -> ResponseValue<R> {
         self.child(builder.into()
-            .update(AllocDirection::Horizontal),
+            .update(AllocDirection::Row),
             add_content
         )
     }
 
     pub fn column<R>(&mut self, add_content: impl FnOnce(&mut Ui) -> R) -> ResponseValue<R> {
         self.child(UiBuilder::default()
-            .update(AllocDirection::Vertical),
+            .update(AllocDirection::Column),
             add_content
         )
     }
@@ -361,7 +371,7 @@ impl<'a> Ui<'a> {
         add_content: impl FnOnce(&mut Ui) -> R
     ) -> ResponseValue<R> {
         self.child(builder.into()
-            .update(AllocDirection::Vertical),
+            .update(AllocDirection::Column),
             add_content
         )
     }
@@ -375,7 +385,7 @@ impl<'a> Ui<'a> {
         self.child(
             UiBuilder::default()
                 .size(size)
-                .update(AllocDirection::Vertical),
+                .update(AllocDirection::Column),
             add_content
         )
     }
@@ -485,6 +495,12 @@ impl From<Padding> for UiBuilder {
 impl From<Size<Length>> for UiBuilder {
     fn from(size: Size<Length>) -> Self {
         UiBuilder::default().size(size)
+    }
+}
+
+impl From<Length> for UiBuilder {
+    fn from(length: Length) -> Self {
+        UiBuilder::default().size(Size::from(length))
     }
 }
 

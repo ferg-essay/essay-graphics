@@ -1,4 +1,4 @@
-use essay_graphics_api::{renderer::Renderer};
+use essay_graphics_api::{renderer::Renderer, VertAlign};
 
 use crate::{ui::{DrawWidget, Response, ResponseValue, Shell, Widget}, widget2::{Element, WidgetFrame}};
 
@@ -32,8 +32,10 @@ impl<'a, Message> Widget<Message> for Text {
         _shell: &mut Shell<Message>,
     ) -> Response {
         let style = ui.theme().label.clone();
-        let style_text = ui.theme().label_text.clone();
+        let mut style_text = ui.theme().label_text.clone();
         let size = ui.text_size(&self.content, &style_text);
+
+        style_text.valign(VertAlign::Top);
         
         let ResponseValue { 
             value, 
@@ -62,8 +64,10 @@ impl DrawWidget for Text {
         ui: &mut crate::ui::Ui,
     ) -> Response {
         let style = ui.theme().label.clone();
-        let style_text = ui.theme().label_text.clone();
+        let mut style_text = ui.theme().label_text.clone();
         let size = ui.text_size(&self.content, &style_text);
+
+        style_text.valign(VertAlign::Top);
         
         let ResponseValue { 
             value, 

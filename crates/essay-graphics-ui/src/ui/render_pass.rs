@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use essay_graphics_api::{input::Input, output::Output};
 
-use crate::{style::UiTheme, ui::{context::{UiState}, widget::WidgetRects, AllocSize, Context, PainterLayers}, util::IdMap};
+use crate::{style::UiTheme, ui::{alloc::AllocPair, context::UiState, widget::WidgetRects, AllocSize, Context, PainterLayers}, util::IdMap};
 
 pub(crate) struct UiRender {
     pub state: UiState,
@@ -21,7 +21,7 @@ pub struct RenderPass {
     pub widgets: WidgetRects,
 
     // view_size: ViewSizeCache,
-    pub alloc_map: IdMap<AllocSize>,
+    pub alloc_map: IdMap<AllocPair>,
 
     // pub output: Option<Output>,
 }

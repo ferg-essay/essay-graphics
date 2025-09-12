@@ -1,6 +1,7 @@
+use core::fmt;
 use std::ops;
 
-#[derive(Clone, Copy, Debug, Default)]
+#[derive(Clone, Copy, Default)]
 pub struct Size<T = f32> {
     pub width: T,
     pub height: T
@@ -14,7 +15,7 @@ impl<T> Size<T> {
 
 impl Size {
     pub const ZERO: Size = Size::new(0., 0.);
-    pub const UNIT: Size = Size::new(1., 0.);
+    pub const UNIT: Size = Size::new(1., 1.);
     pub const INFINITE: Size = Size::new(f32::INFINITY, f32::INFINITY);
 
     #[inline]
@@ -34,6 +35,12 @@ impl Size {
 impl PartialEq for Size {
     fn eq(&self, other: &Self) -> bool {
         self.width == other.width && self.height == other.height
+    }
+}
+
+impl<T: fmt::Debug> fmt::Debug for Size<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Size[{:?} x {:?}]", self.width, self.height)
     }
 }
 

@@ -189,6 +189,19 @@ impl<T: Default> From<Point<T>> for Rectangle<T> {
     }
 }
 
+impl<T> From<[T; 4]> for Rectangle<T> {
+    fn from(value: [T; 4]) -> Self {
+        let [x, y, width, height] = value;
+
+        Self {
+            x,
+            y,
+            width,
+            height,
+        }
+    }
+}
+
 impl<T: Copy> Copy for Rectangle<T> {}
 
 impl<T: PartialEq> PartialEq for Rectangle<T> {

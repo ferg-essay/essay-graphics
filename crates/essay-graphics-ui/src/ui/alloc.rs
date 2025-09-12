@@ -18,11 +18,14 @@ impl Alloc {
     pub(super) fn new(
         bounds: Bounds<Canvas>,
         update: AllocDirection,
-        cache: Option<AllocSize>,
+        cache: Option<AllocPair>,
     ) -> Self {
         let point = Point::new(bounds.xmin(), bounds.ymin());
 
-        let bounds_cache = cache.unwrap_or_else(AllocSize::default);
+        let bounds_cache = cache.unwrap_or_else(AllocPair::default);
+
+        let _outer_bounds = bounds_cache.outer;
+        let inner_bounds = bounds_cache.inner;
 
         Self {
             alloc_dir: update,
@@ -30,8 +33,8 @@ impl Alloc {
             bounds: bounds.into(),
             margin: Padding::ZERO,
 
-            view_width: bounds_cache.view_width(bounds.width()),
-            view_height: bounds_cache.view_height(bounds.height()),
+            view_width: inner_bounds.view_width(bounds.width()),
+            view_height: inner_bounds.view_height(bounds.height()),
 
             alloc: point.into(),
             alloc_size: AllocSize::default(),
@@ -43,27 +46,31 @@ impl Alloc {
         parent_free: Pos,
         margin: Padding,
         alloc_dir: AllocDirection,
-        cache: Option<AllocSize>
+        cache: Option<AllocPair>
     ) -> Self {
-        let bounds_cache = cache.unwrap_or_else(AllocSize::default);
+        let bounds_cache = cache.unwrap_or_else(AllocPair::default);
+
+        let outer_bounds = bounds_cache.outer;
+        let inner_bounds = bounds_cache.inner;
 
         let view_bounds = match self.alloc_dir {
-            AllocDirection::Vertical => {
+            AllocDirection::Column => {
                 match alloc_dir {
-                    AllocDirection::Vertical => {
-                        let height = bounds_cache.init_height(self.view_height);
+                    AllocDirection::Column => {
+                        let height = outer_bounds.init_height(self.view_height);
+
                         ViewBounds {
                             width: parent_free.width(),
                             height: height,
                             view_width: parent_free.width(),
-                            view_height: bounds_cache.view_height(height - margin.height()),
+                            view_height: inner_bounds.view_height(height - margin.height()),
                         }
                     },
-                    AllocDirection::Horizontal => {
+                    AllocDirection::Row => {
                         ViewBounds {
                             width: parent_free.width(),
                             height: self.view_height,
-                            view_width: bounds_cache.view_width(
+                            view_width: inner_bounds.view_width(
                                 parent_free.width() - margin.width(),
                             ),
                             view_height: self.view_height,
@@ -71,25 +78,25 @@ impl Alloc {
                     },
                 }
             }
-            AllocDirection::Horizontal => {
+            AllocDirection::Row => {
                 match alloc_dir {
-                    AllocDirection::Vertical => {
+                    AllocDirection::Column => {
                         ViewBounds {
                             width: self.view_width,
                             height: parent_free.height(),
                             view_width: self.view_width,
-                            view_height: bounds_cache.view_height(
+                            view_height: inner_bounds.view_height(
                                 parent_free.height() - margin.height(),
                             ),
                         }
                     },
-                    AllocDirection::Horizontal => {
-                        let width = bounds_cache.init_width(self.view_width);
+                    AllocDirection::Row => {
+                        let width = outer_bounds.init_width(self.view_width);
 
                         ViewBounds {
                             width,
                             height: parent_free.height(),
-                            view_width: bounds_cache.view_width(width - margin.width()),
+                            view_width: inner_bounds.view_width(width - margin.width()),
                             view_height: parent_free.height(),
                         }
                     },
@@ -130,13 +137,13 @@ impl Alloc {
     // returns the boundary box for available layout
     pub(super) fn available(&self) -> Bounds<Canvas> {
         match self.alloc_dir {
-            AllocDirection::Vertical => {
+            AllocDirection::Column => {
                 Bounds::from([
                     [self.bounds.x0(), self.alloc.y1()],
                     [self.bounds.x1(), self.bounds.y1()],
                 ])
             },
-            AllocDirection::Horizontal => {
+            AllocDirection::Row => {
                 Bounds::from([
                     [self.alloc.x1(), self.bounds.y0()],
                     [self.bounds.x1(), self.bounds.y1()],
@@ -152,7 +159,7 @@ impl Alloc {
         let (height, f_height, v_height) = self.height(size.height);
 
         match self.alloc_dir {
-            AllocDirection::Vertical => {
+            AllocDirection::Column => {
                 let alloc = Rectangle::new(
                     self.bounds.x0(), 
                     self.alloc.y1(),
@@ -170,7 +177,7 @@ impl Alloc {
 
                 alloc
             },
-            AllocDirection::Horizontal => {
+            AllocDirection::Row => {
                 let alloc = Rectangle::new(
                     self.alloc.x1(), 
                     self.bounds.y0(),
@@ -223,29 +230,31 @@ impl Alloc {
         &mut self, 
         child: &mut Self, 
         size: Option<Size<Length>>,
-    ) {
+    ) -> AllocPair {
         self.alloc = self.alloc.union(child.bounds + child.margin);
         
         let view = self.alloc_size.view;
         let fixed = self.alloc_size.fixed;
 
         // top-down size overrides accumulated size
-        if let Some(size) = size {
-            child.alloc_size = size.into();
+        let outer_size: AllocSize = if let Some(size) = size {
+            size.into()
+        } else {
+            child.alloc_size.clone()
         };
 
-        let c_view = child.alloc_size.view;
-        let c_fixed = child.alloc_size.fixed;
+        let c_view = outer_size.view;
+        let c_fixed = outer_size.fixed;
 
         match self.alloc_dir {
-            AllocDirection::Vertical => {
+            AllocDirection::Column => {
                 self.alloc_size.view.width = view.width.max(c_view.width).min(1.);
                 self.alloc_size.view.height = view.height + c_view.height;
 
                 self.alloc_size.fixed.width = fixed.width.max(c_fixed.width);
                 self.alloc_size.fixed.height = fixed.height + c_fixed.height;
             },
-            AllocDirection::Horizontal => {
+            AllocDirection::Row => {
                 self.alloc_size.view.width = view.width + c_view.width;
                 self.alloc_size.view.height = view.height.max(c_view.height).min(1.);
 
@@ -253,13 +262,18 @@ impl Alloc {
                 self.alloc_size.fixed.height = fixed.height.max(c_fixed.height);
             },
         };
+
+        AllocPair {
+            outer: outer_size,
+            inner: child.alloc_size.clone(),
+        }
     }
 }
 
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub(crate) enum AllocDirection {
-    Vertical,
-    Horizontal,
+    Column,
+    Row,
 }
 
 impl AllocDirection {
@@ -271,6 +285,18 @@ pub(crate) struct ViewBounds {
     height: f32,
     view_width: f32,
     view_height: f32,
+}
+
+#[derive(Clone, Default, Debug, PartialEq)]
+pub struct AllocPair {
+    pub outer: AllocSize,
+    pub inner: AllocSize,
+}
+
+impl AllocPair {
+    pub(crate) fn is_changed(&self, _old_alloc: &Option<AllocPair>) -> bool {
+        false
+    }
 }
 
 #[derive(Clone, Default, Debug, PartialEq)]
@@ -340,6 +366,7 @@ impl From<Size<Length>> for AllocSize {
 
 #[cfg(test)]
 mod test {
+    use essay_graphics_api::Length;
     use essay_graphics_test::{TestGraphicsContext, TestRenderer};
 
     use crate::ui::{Context, Frame};
@@ -420,7 +447,7 @@ text (0.0,53.3) 'C'");
     // Two views stacked vertically that contain labels
     //
     #[test]
-    fn vertical_view_label() {
+    fn column_view_label() {
         let mut test = TestRenderer::new([1200., 1200.]);
         let ctx = Context::new(Box::new(TestGraphicsContext::new()));
 
@@ -438,7 +465,7 @@ text (0.0,600.0) 'B'");
     }
 
     #[test]
-    fn vertical_view_frame_text() {
+    fn column_view_frame_text() {
         let mut test = TestRenderer::new([1200., 1200.]);
         let ctx = Context::new(Box::new(TestGraphicsContext::new()));
 
@@ -455,7 +482,7 @@ text (16.0,16.0) 'A'");
     }
 
     #[test]
-    fn horizontal_view_frame() {
+    fn row_view_frame() {
         let mut test = TestRenderer::new([1200., 1200.]);
         let ctx = Context::new(Box::new(TestGraphicsContext::new()));
 
@@ -471,7 +498,7 @@ text (16.0,16.0) 'A'");
     }
 
     #[test]
-    fn vertical_view_frame_inner_frame() {
+    fn col_view_frame_inner_frame() {
         let mut test = TestRenderer::new([1200., 1200.]);
         let ctx = Context::new(Box::new(TestGraphicsContext::new()));
 
@@ -490,7 +517,91 @@ rect (16.0,16.0) 1168.0x1168.0 #ff0000ff");
     }
 
     #[test]
-    fn vertical_view_frame() {
+    fn col_2_view() {
+        let mut test = TestRenderer::new([1200., 1200.]);
+        let ctx = Context::new(Box::new(TestGraphicsContext::new()));
+
+        ctx.run(&mut test, |ui| {
+            Frame::group(ui).show(ui, |ui| {
+                ui.view(|ui| {
+                });
+            });
+            Frame::group(ui).show(ui, |ui| {
+                ui.view(|ui| {
+                });
+            });
+        }).unwrap();
+
+        assert_eq!(test.take(), "rect (0.0,0.0) 1200.0x600.0 #ffffffff
+rect (0.0,600.0) 1200.0x600.0 #ffffffff");
+    }
+
+    #[test]
+    fn default_col_2_view() {
+        let mut test = TestRenderer::new([1200., 1200.]);
+        let ctx = Context::new(Box::new(TestGraphicsContext::new()));
+
+        ctx.run(&mut test, |ui| {
+            ui.column(|ui| {
+                Frame::group(ui).show(ui, |ui| {
+                    ui.view(|ui| {
+                    });
+                });
+                Frame::group(ui).show(ui, |ui| {
+                    ui.view(|ui| {
+                    });
+                });
+            });
+        }).unwrap();
+
+        assert_eq!(test.take(), "rect (0.0,0.0) 1200.0x600.0 #ffffffff
+rect (0.0,600.0) 1200.0x600.0 #ffffffff");
+    }
+
+    #[test]
+    fn col_size_2_view_label() {
+        let mut test = TestRenderer::new([1200., 1200.]);
+        let ctx = Context::new(Box::new(TestGraphicsContext::new()));
+
+        ctx.run(&mut test, |ui| {
+            ui.column_with(Length::Fill, |ui| {
+                ui.view(|ui| {
+                    ui.label("a");
+                });
+                ui.view(|ui| {
+                    ui.label("b");
+                });
+            });
+        }).unwrap();
+
+        assert_eq!(test.take(), "text (0.0,0.0) 'a'
+text (0.0,600.0) 'b'");
+    }
+
+    #[test]
+    fn col_size_2_view_frame() {
+        let mut test = TestRenderer::new([1200., 1200.]);
+        let ctx = Context::new(Box::new(TestGraphicsContext::new()));
+
+        ctx.run(&mut test, |ui| {
+            ui.column_with(Length::Fill, |ui| {
+                Frame::group(ui).show(ui, |ui| {
+                    ui.view(|ui| {
+                    });
+                });
+                Frame::group(ui).show(ui, |ui| {
+                    ui.view(|ui| {
+                    });
+                });
+            });
+        }).unwrap();
+
+        assert_eq!(test.take(), "rect (0.0,0.0) 1200.0x600.0 #ffffffff
+rect (0.0,600.0) 1200.0x600.0 #ffffffff");
+    }
+
+    #[test]
+    fn col_view_frame() {
         let mut test = TestRenderer::new([1200., 1200.]);
         let ctx = Context::new(Box::new(TestGraphicsContext::new()));
 
@@ -587,7 +698,7 @@ text (16.0,816.0) 'D'");
     }
 
     #[test]
-    fn horiz_vert1_vert2() {
+    fn row_col1_col2() {
         let mut test = TestRenderer::new([1200., 1200.]);
         let ctx = Context::new(Box::new(TestGraphicsContext::new()));
 
