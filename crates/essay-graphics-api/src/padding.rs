@@ -65,12 +65,27 @@ impl Padding {
 impl ops::Add<Padding> for Padding {
     type Output = Padding;
 
+    #[inline]
     fn add(self, rhs: Padding) -> Self::Output {
         Padding {
             left: self.left + rhs.left,
             bottom: self.bottom + rhs.bottom,
             right: self.right + rhs.right,
             top: self.top + rhs.top,
+        }
+    }
+}
+
+impl ops::Add<f32> for Padding {
+    type Output = Padding;
+
+    #[inline]
+    fn add(self, rhs: f32) -> Self::Output {
+        Padding {
+            left: self.left + rhs,
+            bottom: self.bottom + rhs,
+            right: self.right + rhs,
+            top: self.top + rhs,
         }
     }
 }

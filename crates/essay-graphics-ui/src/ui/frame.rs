@@ -1,6 +1,6 @@
-use essay_graphics_api::{renderer::Renderer, Color, Padding, Point, Shapes};
+use essay_graphics_api::{renderer::Renderer, Color, Padding, Point, Rectangle, Shapes};
 
-use crate::{ui::ui::{ResponseValue, Ui, UiBuilder}};
+use crate::ui::{painter::PaintIndex, ui::{ResponseValue, Ui, UiBuilder}};
 
 pub struct Frame {
     pub inner_margin: Padding,
@@ -11,8 +11,16 @@ pub struct Frame {
 }
 
 impl Frame {
-    pub fn group(ui: &Ui) -> Self {
+    pub fn new() -> Self {
+        Self {
+            inner_margin: Padding::from_all(6.),
+            outer_margin: Padding::from_all(0.),
+            background: Color::white(),
+            is_shadow: false,
+        }
+    }
 
+    pub fn group(ui: &Ui) -> Self {
         Self {
             inner_margin: Padding::from_all(6.),
             outer_margin: Padding::from_all(0.),
@@ -39,8 +47,18 @@ impl Frame {
     pub fn total_margin(&self) -> Padding {
         self.inner_margin + self.outer_margin
     }
+    
+    pub(crate) fn padding(&self, ui: &mut Ui) -> Padding {
+        let inner_margin = Padding::from_all(6.);
+        let corner = ui.theme().corner_radius;
+
+        inner_margin + corner
+    }
 
     pub fn show<R>(self, ui: &mut Ui, add_contents: impl FnOnce(&mut Ui) -> R) -> ResponseValue<R> {
+        if true {
+            return ui.child(self, add_contents);
+        }
         let corner_margin = Padding::from_all(ui.theme().corner_radius);
 
         let index = ui.painter().add(Shapes::None);
@@ -59,6 +77,8 @@ impl Frame {
 
         let pos = rect.pos; //  + self.inner_margin + corner_margin;
 
+        self.draw(ui, pos, index);
+        /*
         let background = self.background;
         let corner = ui.theme().corner_radius;
         let _border = ui.theme().border;
@@ -81,8 +101,45 @@ impl Frame {
                 pos.p0(), pos.size(), corner, background,
             ))
         });
+        */
 
         ResponseValue::new(value, response)
+    }
+
+    pub fn draw(self, ui: &mut Ui, pos: Rectangle, index: PaintIndex) {
+        let background = self.background;
+        let corner = ui.theme().corner_radius;
+        let _border = ui.theme().border;
+        let is_shadow = self.is_shadow;
+        let shadow = ui.theme().shadow;
+
+        ui.painter().set(index, move |ui: &mut dyn Renderer| {
+            let pos = pos.snap();
+
+            if is_shadow {
+                // cheap shadow
+                let px = 5.;
+
+                ui.draw_shape(&Shapes::rect(
+                    pos.p0() + Point::new(px, px), pos.size(), corner, shadow,
+                ))?;
+            }
+
+            ui.draw_shape(&Shapes::rect(
+                pos.p0(), pos.size(), corner, background,
+            ))
+        });
+    }
+}
+
+impl Default for Frame {
+    fn default() -> Self {
+        Self { 
+            inner_margin: Default::default(), 
+            outer_margin: Default::default(), 
+            background: Color::none(),
+            is_shadow: Default::default() 
+        }
     }
 }
 

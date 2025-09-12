@@ -1,11 +1,11 @@
-use essay_graphics_api::{renderer::{Canvas, Pos}, Bounds, Length, Padding, Point, Rectangle, Size};
+use essay_graphics_api::{renderer::{Canvas}, Bounds, Length, Padding, Point, Rectangle, Size};
 
 #[derive(Debug)]
 pub struct Alloc {
     pub alloc_dir: AllocDirection,
 
     pub bounds: Bounds<Canvas>, // extent of the canvas managed by the cursor
-    pub margin: Padding,
+    // pub margin: Padding,
 
     view_width: f32,
     view_height: f32,
@@ -31,7 +31,7 @@ impl Alloc {
             alloc_dir: update,
 
             bounds: bounds.into(),
-            margin: Padding::ZERO,
+            // margin: Padding::ZERO,
 
             view_width: inner_bounds.view_width(bounds.width()),
             view_height: inner_bounds.view_height(bounds.height()),
@@ -43,8 +43,8 @@ impl Alloc {
 
     pub(super) fn child(
         &self, 
-        parent_free: Pos,
-        margin: Padding,
+        max_bounds: Bounds<Canvas>,
+        padding: Padding,
         alloc_dir: AllocDirection,
         cache: Option<AllocPair>
     ) -> Self {
@@ -60,20 +60,22 @@ impl Alloc {
                         let height = outer_bounds.init_height(self.view_height);
 
                         ViewBounds {
-                            width: parent_free.width(),
+                            width: max_bounds.width(),
                             height: height,
-                            view_width: parent_free.width(),
-                            view_height: inner_bounds.view_height(height - margin.height()),
+                            view_width: max_bounds.width(),
+                            view_height: inner_bounds.view_height(height - padding.height()),
                         }
                     },
                     AllocDirection::Row => {
+                        let height = outer_bounds.init_height(self.view_height);
+
                         ViewBounds {
-                            width: parent_free.width(),
-                            height: self.view_height,
+                            width: max_bounds.width(),
+                            height,
                             view_width: inner_bounds.view_width(
-                                parent_free.width() - margin.width(),
+                                max_bounds.width() - padding.width(),
                             ),
-                            view_height: self.view_height,
+                            view_height: inner_bounds.view_height(height - padding.height()),
                         }
                     },
                 }
@@ -81,12 +83,14 @@ impl Alloc {
             AllocDirection::Row => {
                 match alloc_dir {
                     AllocDirection::Column => {
+                        let width = outer_bounds.init_width(self.view_width);
+
                         ViewBounds {
-                            width: self.view_width,
-                            height: parent_free.height(),
-                            view_width: self.view_width,
+                            width: width,
+                            height: max_bounds.height(),
+                            view_width: inner_bounds.view_width(width - padding.width()),
                             view_height: inner_bounds.view_height(
-                                parent_free.height() - margin.height(),
+                                max_bounds.height() - padding.height(),
                             ),
                         }
                     },
@@ -95,9 +99,9 @@ impl Alloc {
 
                         ViewBounds {
                             width,
-                            height: parent_free.height(),
-                            view_width: inner_bounds.view_width(width - margin.width()),
-                            view_height: parent_free.height(),
+                            height: max_bounds.height(),
+                            view_width: inner_bounds.view_width(width - padding.width()),
+                            view_height: max_bounds.height(),
                         }
                     },
                 }
@@ -105,13 +109,13 @@ impl Alloc {
         };
 
         let mut bounds = Bounds::new0(
-            parent_free.x0(),
-            parent_free.y0(),
+            max_bounds.x0(),
+            max_bounds.y0(),
             view_bounds.width, 
             view_bounds.height,
         );
 
-        bounds = bounds - margin;
+        bounds = bounds - padding;
 
         let view_width = view_bounds.view_width;
         let view_height = view_bounds.view_height;
@@ -124,7 +128,7 @@ impl Alloc {
             alloc_dir,
 
             bounds,
-            margin,
+            // margin: padding,
 
             view_width,
             view_height,
@@ -229,9 +233,10 @@ impl Alloc {
     pub(super) fn merge_child(
         &mut self, 
         child: &mut Self, 
+        padding: Padding,
         size: Option<Size<Length>>,
     ) -> AllocPair {
-        self.alloc = self.alloc.union(child.bounds + child.margin);
+        self.alloc = self.alloc.union(child.bounds + padding);
         
         let view = self.alloc_size.view;
         let fixed = self.alloc_size.fixed;
@@ -267,6 +272,10 @@ impl Alloc {
             outer: outer_size,
             inner: child.alloc_size.clone(),
         }
+    }
+    
+    pub(crate) fn alloc_bounds(&self, padding: Padding) -> Bounds<Canvas> {
+        self.bounds.union(self.alloc) + padding
     }
 }
 
@@ -306,10 +315,6 @@ pub struct AllocSize {
 }
 
 impl AllocSize {
-    pub(crate) fn is_changed(&self, _alloc_cache: &Option<AllocSize>) -> bool {
-        false
-    }
-
     fn view_width(&self, width: f32) -> f32 {
         ((width - self.fixed.width) / self.view.width.max(1.)).floor()
     }
@@ -366,7 +371,7 @@ impl From<Size<Length>> for AllocSize {
 
 #[cfg(test)]
 mod test {
-    use essay_graphics_api::Length;
+    use essay_graphics_api::{Length, Size};
     use essay_graphics_test::{TestGraphicsContext, TestRenderer};
 
     use crate::ui::{Context, Frame};
@@ -482,15 +487,28 @@ text (16.0,16.0) 'A'");
     }
 
     #[test]
+    fn column_view_frame2() {
+        let mut test = TestRenderer::new([1200., 1200.]);
+        let ctx = Context::new(Box::new(TestGraphicsContext::new()));
+
+        ctx.run(&mut test, |ui| {
+            ui.view_with(Frame::new(), |ui| {
+                ui.label("A");
+            });
+        }).unwrap();
+
+        assert_eq!(test.take(), "rect (0.0,0.0) 1200.0x1200.0 #ffffffff
+text (16.0,16.0) 'A'");
+    }
+
+    #[test]
     fn row_view_frame() {
         let mut test = TestRenderer::new([1200., 1200.]);
         let ctx = Context::new(Box::new(TestGraphicsContext::new()));
 
         ctx.run(&mut test, |ui| {
             ui.row(|ui| {
-                Frame::group(ui).show(ui, |ui| {
-                    ui.view(|_| {});
-                })
+                ui.view_with(Frame::new(), |_| {});
             });
         }).unwrap();
 
@@ -522,14 +540,8 @@ rect (16.0,16.0) 1168.0x1168.0 #ff0000ff");
         let ctx = Context::new(Box::new(TestGraphicsContext::new()));
 
         ctx.run(&mut test, |ui| {
-            Frame::group(ui).show(ui, |ui| {
-                ui.view(|ui| {
-                });
-            });
-            Frame::group(ui).show(ui, |ui| {
-                ui.view(|ui| {
-                });
-            });
+            ui.view_with(Frame::new(), |_| {});
+            ui.view_with(Frame::new(), |_| {});
         }).unwrap();
 
         assert_eq!(test.take(), "rect (0.0,0.0) 1200.0x600.0 #ffffffff
@@ -543,14 +555,8 @@ rect (0.0,600.0) 1200.0x600.0 #ffffffff");
 
         ctx.run(&mut test, |ui| {
             ui.column(|ui| {
-                Frame::group(ui).show(ui, |ui| {
-                    ui.view(|ui| {
-                    });
-                });
-                Frame::group(ui).show(ui, |ui| {
-                    ui.view(|ui| {
-                    });
-                });
+                ui.view_with(Frame::new(), |_| {});
+                ui.view_with(Frame::new(), |_| {});
             });
         }).unwrap();
 
@@ -585,19 +591,49 @@ text (0.0,600.0) 'b'");
 
         ctx.run(&mut test, |ui| {
             ui.column_with(Length::Fill, |ui| {
-                Frame::group(ui).show(ui, |ui| {
-                    ui.view(|ui| {
-                    });
-                });
-                Frame::group(ui).show(ui, |ui| {
-                    ui.view(|ui| {
-                    });
-                });
+                ui.view_with(Frame::new(), |_| {});
+                ui.view_with(Frame::new(), |_| {});
             });
         }).unwrap();
 
         assert_eq!(test.take(), "rect (0.0,0.0) 1200.0x600.0 #ffffffff
 rect (0.0,600.0) 1200.0x600.0 #ffffffff");
+    }
+
+    #[test]
+    fn col_size_0_5() {
+        let mut test = TestRenderer::new([1200., 1200.]);
+        let ctx = Context::new(Box::new(TestGraphicsContext::new()));
+
+        ctx.run(&mut test, |ui| {
+            ui.column_with(Size::new(Length::Shrink, Length::View(0.5)), |ui| {
+                ui.view_with(Frame::new(), |_| {});
+            });
+            ui.column(|ui| {
+                ui.view_with(Frame::new(), |_| {});
+            });
+        }).unwrap();
+
+        assert_eq!(test.take(), "rect (0.0,0.0) 1200.0x400.0 #ffffffff
+rect (0.0,400.0) 1200.0x800.0 #ffffffff");
+    }
+
+    #[test]
+    fn row_size_0_5() {
+        let mut test = TestRenderer::new([1200., 1200.]);
+        let ctx = Context::new(Box::new(TestGraphicsContext::new()));
+
+        ctx.run(&mut test, |ui| {
+            ui.row_with(Size::new(Length::Shrink, Length::View(0.5)), |ui| {
+                ui.view_with(Frame::new(), |_| {});
+            });
+            ui.row(|ui| {
+                ui.view_with(Frame::new(), |_| {});
+            });
+        }).unwrap();
+
+        assert_eq!(test.take(), "rect (0.0,0.0) 1200.0x400.0 #ffffffff
+rect (0.0,400.0) 1200.0x800.0 #ffffffff");
     }
 
     #[test]
@@ -609,10 +645,8 @@ rect (0.0,600.0) 1200.0x600.0 #ffffffff");
             ui.view(|ui| {
                 ui.label("A");
             });
-            Frame::group(ui).show(ui, |ui| {
-                ui.view(|ui| {
-                    ui.label("B");
-                });
+            ui.view_with(Frame::new(), |ui| {
+                ui.label("B");
             });
             ui.view(|ui| {
                 ui.label("C");
@@ -626,15 +660,13 @@ text (0.0,800.0) 'C'");
     }
 
     #[test]
-    fn vertical_view_frames_sub_view_vertical() {
+    fn col_view_frames_sub_view_col() {
         let mut test = TestRenderer::new([1200., 1200.]);
         let ctx = Context::new(Box::new(TestGraphicsContext::new()));
 
         ctx.run(&mut test, |ui| {
-            Frame::group(ui).show(ui, |ui| {
-                ui.view(|ui| {
-                    ui.label("A");
-                });
+            ui.view_with(Frame::new(), |ui| {
+                ui.label("A");
             });
             Frame::group(ui).show(ui, |ui| {
                 ui.view(|ui| {
@@ -644,10 +676,8 @@ text (0.0,800.0) 'C'");
                     ui.label("C");
                 });
             });
-            Frame::group(ui).show(ui, |ui| {
-                ui.view(|ui| {
-                    ui.label("D");
-                });
+            ui.view_with(Frame::new(), |ui| {
+                ui.label("D");
             });
         }).unwrap();
 
@@ -666,10 +696,8 @@ text (16.0,916.0) 'D'");
         let ctx = Context::new(Box::new(TestGraphicsContext::new()));
 
         ctx.run(&mut test, |ui| {
-            Frame::group(ui).show(ui, |ui| {
-                ui.view(|ui| {
-                    ui.label("A");
-                });
+            ui.view_with(Frame::new(), |ui| {
+                ui.label("A");
             });
             Frame::group(ui).show(ui, |ui| {
                 ui.row(|ui| {
@@ -681,10 +709,8 @@ text (16.0,916.0) 'D'");
                     });
                 });
             });
-            Frame::group(ui).show(ui, |ui| {
-                ui.view(|ui| {
-                    ui.label("D");
-                });
+            ui.view_with(Frame::new(), |ui| {
+                ui.label("D");
             });
         }).unwrap();
 
@@ -705,17 +731,11 @@ text (16.0,816.0) 'D'");
         ctx.run(&mut test, |ui| {
             ui.row(|ui| {
                 ui.column(|ui| {
-                    Frame::group(ui).show(ui, |ui| {
-                        ui.view(|_| {});
-                    });
+                    ui.view_with(Frame::new(), |_| {});
                 });
                 ui.column(|ui| {
-                    Frame::group(ui).show(ui, |ui| {
-                        ui.view(|_| {});
-                    });
-                    Frame::group(ui).show(ui, |ui| {
-                        ui.view(|_| {});
-                    });
+                    ui.view_with(Frame::new(), |_| {});
+                    ui.view_with(Frame::new(), |_| {});
                 });
             });
         }).unwrap();
@@ -733,17 +753,11 @@ rect (600.0,600.0) 600.0x600.0 #ffffffff");
         ctx.run(&mut test, |ui| {
             ui.column(|ui| {
                 ui.row(|ui| {
-                    Frame::group(ui).show(ui, |ui| {
-                        ui.view(|_| {});
-                    });
+                    ui.view_with(Frame::new(), |_| {});
                 });
                 ui.row(|ui| {
-                    Frame::group(ui).show(ui, |ui| {
-                        ui.view(|_| {});
-                    });
-                    Frame::group(ui).show(ui, |ui| {
-                        ui.view(|_| {});
-                    });
+                    ui.view_with(Frame::new(), |_| {});
+                    ui.view_with(Frame::new(), |_| {});
                 });
             });
         }).unwrap();

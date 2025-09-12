@@ -2,15 +2,13 @@ use core::hash;
 use std::{ops, sync::Arc};
 
 use essay_graphics_api::{
-    input::Input, output::Output, 
-    renderer::{self, Canvas, Drawable, Renderer}, 
-    Bounds, Length, Padding, Rectangle, Size, TextStyle
+    input::Input, output::Output, renderer::{self, Canvas, Drawable, Renderer}, Bounds, Color, Length, Padding, Rectangle, Shapes, Size, TextStyle
 };
 
 use crate::{
     style::UiTheme, 
     ui::{
-        alloc::AllocPair, widget::DrawWidget, AllocSize, AppState, Context, Layer, Painter, RenderPass, Response, UiRender, Update, View
+        alloc::AllocPair, widget::DrawWidget, AllocSize, AppState, Context, Frame, Layer, Painter, RenderPass, Response, UiRender, Update, View
     }, 
     util::Id, widget2::Text, 
 };
@@ -124,7 +122,7 @@ impl<'a> Ui<'a> {
             inner: ui.alloc.alloc_size.clone(),
         };
     
-        let response = ui.end(&alloc_cache, new_alloc);
+        let response = ui.end(Padding::default(), &alloc_cache, new_alloc);
 
         ResponseValue::new(result, response)
     }
@@ -137,8 +135,9 @@ impl<'a> Ui<'a> {
         let UiBuilder {
             id_salt,
             max_bounds,
-            view: size,
-            margin,
+            size,
+            margin: padding,
+            frame,
             update: alloc_update,
         } = builder.into();
         
@@ -152,18 +151,24 @@ impl<'a> Ui<'a> {
             self.alloc.available()
         });
 
+        let padding = match &frame {
+            Some(frame) => frame.padding(self),
+            None => Padding::ZERO,
+        };
+
         let update = alloc_update.unwrap_or_else(|| self.alloc.alloc_dir);
 
         let pos = Rectangle::ZERO;
-
         self.insert_widget(child_id, pos);
+
+        let frame_index = self.painter().add(Shapes::None);
 
         let alloc_cache = self.last_pass()
             .alloc_map.get(&child_id).cloned();
 
         let alloc = self.alloc.child(
             max_bounds,
-            margin,
+            padding,
             update,
             alloc_cache.clone()
         );
@@ -183,23 +188,28 @@ impl<'a> Ui<'a> {
 
         let result = (add_content)(&mut child);
 
-        let alloc_child = self.alloc.merge_child(&mut child.alloc, size);
+        let alloc_child = self.alloc.merge_child(&mut child.alloc, padding, size);
 
-        let response = child.end(&alloc_cache, alloc_child);
+        let response = child.end(padding, &alloc_cache, alloc_child);
+
+        if let Some(frame) = frame {
+            frame.draw(self, response.rect(self), frame_index);
+        }
 
         ResponseValue::new(result, response)
     }
 
     fn end(
         &mut self, 
-        _old_alloc: &Option<AllocPair>,
+        padding: Padding,
+        old_alloc: &Option<AllocPair>,
         new_alloc: AllocPair,
     ) -> Response {
-        let bounds = self.alloc.alloc + self.alloc.margin;
+        let bounds = self.alloc.alloc_bounds(padding);
 
-        //if new_alloc.is_changed(&old_alloc) {
-        //    println!("AllocChange")
-        //}
+        if new_alloc.is_changed(&old_alloc) {
+            println!("AllocChange")
+        }
 
         let id = self.id;
         self.pass_mut().alloc_map.insert(id, new_alloc);
@@ -215,8 +225,9 @@ impl<'a> Ui<'a> {
         let UiBuilder {
             id_salt: _id_salt,
             max_bounds,
-            view: _size,
+            size: _size,
             margin,
+            frame,
             update: alloc_update,
         } = builder.into();
         
@@ -384,8 +395,24 @@ impl<'a> Ui<'a> {
 
         self.child(
             UiBuilder::default()
-                .size(size)
-                .update(AllocDirection::Column),
+                .size(size),
+            add_content
+        )
+    }
+
+    pub fn view_with<R>(
+        &mut self, 
+        builder: impl Into<UiBuilder>,
+        add_content: impl FnOnce(&mut Ui) -> R
+    ) -> ResponseValue<R> {
+        let mut builder = builder.into();
+
+        if builder.size.is_none() {
+            builder.size = Some(Size::new(Length::Fill, Length::Fill));
+        }
+
+        self.child(
+            builder,
             add_content
         )
     }
@@ -432,8 +459,9 @@ pub enum MessageBase {}
 pub struct UiBuilder {
     id_salt: Option<Id>,
     max_bounds: Option<Bounds<Canvas>>,
-    view: Option<Size<Length>>,
+    size: Option<Size<Length>>,
     margin: Padding,
+    frame: Option<Frame>,
     update: Option<AllocDirection>,
 }
 
@@ -460,6 +488,13 @@ impl UiBuilder {
     }
 
     #[inline]
+    pub fn frame(mut self, frame: impl Into<Frame>) -> Self {
+        self.frame = Some(frame.into());
+
+        self
+    }
+
+    #[inline]
     pub(crate) fn update(mut self, update: AllocDirection) -> Self {
         self.update = Some(update);
 
@@ -470,7 +505,7 @@ impl UiBuilder {
     pub fn view(mut self, size: impl Into<Size>) -> Self {
         let size = size.into();
 
-        self.view = Some(Size::new(
+        self.size = Some(Size::new(
             Length::View(size.width),
             Length::View(size.height),
         ));
@@ -480,7 +515,7 @@ impl UiBuilder {
 
     #[inline]
     pub fn size(mut self, size: impl Into<Size<Length>>) -> Self {
-        self.view = Some(size.into());
+        self.size = Some(size.into());
 
         self
     }
@@ -501,6 +536,18 @@ impl From<Size<Length>> for UiBuilder {
 impl From<Length> for UiBuilder {
     fn from(length: Length) -> Self {
         UiBuilder::default().size(Size::from(length))
+    }
+}
+
+impl From<Frame> for UiBuilder {
+    fn from(frame: Frame) -> Self {
+        UiBuilder::default().frame(frame)
+    }
+}
+
+impl From<Color> for UiBuilder {
+    fn from(color: Color) -> Self {
+        UiBuilder::default().frame(Frame::new().background(color))
     }
 }
 
