@@ -1,4 +1,5 @@
-use essay_graphics_ui::{main_loop::MainLoop, ui::{Frame, Ui}};
+use essay_graphics_api::Color;
+use essay_graphics_ui::{main_loop::MainLoop, ui::{Frame}};
 
 fn main() { 
     MainLoop::new().show(move |ui| {
@@ -25,15 +26,13 @@ fn main() {
                     }).response.on_hover_ui(ui, |ui| {
                         ui.label("Tooltip for Label A"); 
                     });
-                    Frame::group(ui).background("amber").show(ui, |ui| {
+                    ui.column_with(Color::from("amber"), |ui| {
                         ui.view(|ui| {
                             ui.label("B")
                         });
                         ui.view(|ui| {
-                            Frame::group(ui).show(ui, |ui| {
-                                ui.view(|ui| {
-                                    ui.label("C")
-                                });
+                            ui.view_with(Frame::group(), |ui| {
+                                ui.label("C")
                             });
                         });
                     });
@@ -45,28 +44,13 @@ fn main() {
                     ui.view(|ui| {
                         ui.label("1")
                     });
-                    Frame::group(ui).background("azure").show(ui, |ui| {
-                        ui.view(|ui| {
-                            ui.label("2")
-                        });
+                    ui.view_with(Color::from("azure"), |ui| {
+                        ui.label("2")
                     });
                     ui.view(|ui| {
                         ui.label("3");
                     });
                 });
-                /*
-                ui.vertical(|ui| {
-                    ui.view(|ui| {
-                        ui.label("1")
-                    });
-                        ui.view(|ui| {
-                            ui.label("2")
-                        });
-                    ui.view(|ui| {
-                        ui.label("3");
-                    });
-                });
-                */
             });
     });
 }

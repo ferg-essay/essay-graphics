@@ -1,6 +1,10 @@
 use essay_graphics_api::{renderer::Renderer, Padding, Point, Shapes, Size};
 
-use crate::{style::UiStyle, ui::{ui::UiBuilder, Response, ResponseValue, Shell, Ui, Widget}, widget2::{Element, OffStyle, OnStyle, SelectableLabel, Text, WidgetFrame}};
+use crate::{
+    style::{Style, UiStyle}, 
+    ui::{ui::Props, Response, ResponseValue, Shell, Ui, Widget}, 
+    widget2::{Element, SelectableLabel, Text, WidgetFrame}
+};
 
 pub fn menu_button<'a, Message>(
     title: impl Into<Text>,
@@ -67,7 +71,6 @@ where
         let inner = bounds - Padding::from_pair(corner, corner);
         // println!("Size {:?} Bounds {:?} {:?}", size, bounds, inner);
 
-        let mut style = ui.theme().button.clone();
         let popup_id = response.id().with("popup");
 
         if response.clicked(ui) {
@@ -80,31 +83,27 @@ where
             mem.popup_open(popup_id)
         });
 
-        let (background, foreground) = {
-            let is_active = is_press; // self.press ^ press_one;
+        let is_active = is_press; // self.press ^ press_one;
 
+        let style = if is_active { Style::ButtonOn } else { Style::ButtonOff };
+
+        let (background, foreground) = {
             if response.is_hover(ui) {
-                if is_active {
-                    (OnStyle.hover_background(ui), OnStyle.hover_foreground(ui))
-                } else {
-                    (OffStyle.hover_background(ui), OffStyle.hover_foreground(ui))
-                }
+                (style.hover_background(ui), style.hover_foreground(ui))
             } else {
-                if is_active {
-                    (OnStyle.background(ui), OnStyle.foreground(ui))
-                } else {
-                    (OffStyle.background(ui), OffStyle.foreground(ui))
-                }
+                (style.background(ui), style.foreground(ui))
             }
         };
         
-        style.color(background);
-
         let border = background;
-        let corner = OnStyle.corner_radius(ui);
+        let corner = style.corner_radius(ui);
         let label = String::from(self.title.value());
 
+        let mut path_style = ui.theme().button.clone();
+        path_style.color(background);
+
         ui.painter().add(move |ui: &mut dyn Renderer| {
+
             let sz = 0.;
             let r = corner;
             if sz > 0. { // border
@@ -118,16 +117,16 @@ where
                 inner.p0(), inner.size(), r, background,
             ))?;
             // ui.draw_path(&background, &style)?;
-            style.edge_color(foreground);
-            style.face_color(foreground);
-            ui.draw_text(pos, &label, 0., &style, &button_text)
+            path_style.edge_color(foreground);
+            path_style.face_color(foreground);
+            ui.draw_text(pos, &label, 0., &path_style, &button_text)
         });
 
         if is_press {
             let rect = response.rect(ui);
             let pos = Point::new(rect.xmin(), rect.ymax());
 
-            ui.popup(popup_id, UiBuilder::default().max_bounds(pos), |ui| {
+            ui.popup(popup_id, Props::default().max_bounds(pos), |ui| {
                 for child in &mut self.values {
                     child.ui(ui, shell);
                 }    

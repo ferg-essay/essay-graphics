@@ -1,9 +1,9 @@
 use essay_graphics_api::{
     renderer::{Canvas, Renderer}, 
-    Bounds, Color, HorizAlign, Padding, PathStyle, Point, Shapes, Size, TextStyle};
+    Bounds, HorizAlign, Padding, PathStyle, Point, Shapes, Size, TextStyle, VertAlign};
 
 use crate::{
-    style::{UiStyle},
+    style::{Style, UiStyle},
     ui::{Response, ResponseValue, Shell, Ui, Widget}, 
     widget2::{text::Text, Element, WidgetFrame}
 };
@@ -72,23 +72,28 @@ impl<'a, Message> Button<'a, Message> {
         style: impl UiStyle,
         is_hover: bool,
     ) {
-        let (background, foreground) = {
-            if is_hover {
-                (style.hover_background(ui), style.hover_foreground(ui))
-            } else {
-                (style.background(ui), style.foreground(ui))
-            }
-        };
+        let background = style.background_on_hover(ui, is_hover);
+        let foreground = style.foreground_on_hover(ui, is_hover);
+        let border = style.border_on_hover(ui, is_hover);
 
-        //let label = self.label.clone();
-
-        let border = background;
         let corner = style.corner_radius(ui);
+        let border_width = style.border_width(ui);
         let label = String::from(self.content.value());
 
         ui.painter().add(move |ui: &mut dyn Renderer| {
-            let sz = 0.;
+            let sz = border_width;
             let r = corner;
+
+            ui.draw_shape(&Shapes::quad(
+                inner.p0(), 
+                inner.size(), 
+                r + sz, 
+                border,
+                r,
+                background,
+            ))?;
+
+            /*
             if sz > 0. { // border
                 ui.draw_shape(&Shapes::rect(
                     inner.p0() - Point::new(sz, sz), inner.size() + Size::new(2. * sz, 2. * sz), r + 1., 
@@ -99,13 +104,13 @@ impl<'a, Message> Button<'a, Message> {
             ui.draw_shape(&Shapes::rect(
                 inner.p0(), inner.size(), r, background,
             ))?;
+            */
             // ui.draw_path(&background, &style)?;
             let mut style = PathStyle::new();
             let mut button_text = TextStyle::new();
             button_text.halign(HorizAlign::Left);
-            //button_text.valign(VertAlign::Top);
-            style.edge_color(foreground);
-            style.face_color(foreground);
+            button_text.valign(VertAlign::Top);
+            style.color(foreground);
             ui.draw_text(pos, &label, 0., &style, &button_text)
         });
     }
@@ -123,7 +128,7 @@ where
         let button_text = ui.theme().button_text.clone();
         let size = ui.text_size(self.content.value(), &button_text);
 
-        let corner = OnStyle.corner_radius(ui);
+        let corner = Style::ButtonOn.corner_radius(ui);
         let pad = 10.;
         let margin = pad + corner;
 
@@ -156,9 +161,9 @@ where
         let is_hover = response.is_hover(ui);
 
         if self.press {
-            self.draw(ui, pos, inner, OnStyle, is_hover);
+            self.draw(ui, pos, inner, Style::ButtonOn, is_hover);
         } else {
-            self.draw(ui, pos, inner, OffStyle, is_hover);
+            self.draw(ui, pos, inner, Style::ButtonOff, is_hover);
         }
 
         response
@@ -180,76 +185,3 @@ enum OnPress<'a, Message> {
 }
 
 impl<'a, Message: Clone + 'a> WidgetFrame<'a, Message> for Button<'a, Message> {}
-
-pub struct OnStyle;
-
-impl UiStyle for OnStyle {
-    fn background(&self, ui: &Ui) -> Color {
-        ui.theme().button2_on.background
-    }
-
-    fn foreground(&self, ui: &Ui) -> Color {
-        ui.theme().button2_on.foreground
-    }
-
-    fn border(&self, _ui: &Ui) -> Color {
-        Color(0)
-    }
-
-    fn border_width(&self, _ui: &Ui) -> f32 {
-        0.
-    }
-
-    fn corner_radius(&self, ui: &Ui) -> f32 {
-        ui.theme().corner_radius
-    }
-
-    fn hover_background(&self, ui: &Ui) -> Color {
-        ui.theme().button2_on.hover_background
-    }
-
-    fn hover_foreground(&self, ui: &Ui) -> Color {
-        ui.theme().button2_on.hover_foreground
-    }
-
-    fn hover_border(&self, _ui: &Ui) -> Color {
-        Color(0)
-    }
-}
-
-
-pub struct OffStyle;
-
-impl UiStyle for OffStyle {
-    fn background(&self, ui: &Ui) -> Color {
-        ui.theme().button2_off.background
-    }
-
-    fn foreground(&self, ui: &Ui) -> Color {
-        ui.theme().button2_off.foreground
-    }
-
-    fn border(&self, _ui: &Ui) -> Color {
-        Color(0)
-    }
-
-    fn border_width(&self, _ui: &Ui) -> f32 {
-        0.
-    }
-
-    fn corner_radius(&self, ui: &Ui) -> f32 {
-        ui.theme().corner_radius
-    }
-
-    fn hover_background(&self, ui: &Ui) -> Color {
-        ui.theme().button2_off.hover_background
-    }
-
-    fn hover_foreground(&self, ui: &Ui) -> Color {
-        ui.theme().button2_off.hover_foreground
-    }
-
-    fn hover_border(&self, _ui: &Ui) -> Color {
-        Color(0)
-    }
-}

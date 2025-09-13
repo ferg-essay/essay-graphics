@@ -4,7 +4,7 @@ fn main() {
     let mut state = State::default();
 
     MainLoop::new().show(move |ui| {
-        Frame::group(ui).show(ui, |ui| {
+        Frame::group().show(ui, |ui| {
             ui.app(&mut state, State::view, State::update);
         });
     });

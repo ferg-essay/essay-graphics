@@ -6,9 +6,9 @@ use essay_graphics_api::{
 };
 
 use crate::{
-    style::UiTheme, 
+    style::{Style, UiTheme}, 
     ui::{
-        alloc::AllocPair, widget::DrawWidget, AllocSize, AppState, Context, Frame, Layer, Painter, RenderPass, Response, UiRender, Update, View
+        alloc::AllocPair, widget::DrawWidget, AppState, Context, Frame, Layer, Painter, RenderPass, Response, UiRender, Update, View
     }, 
     util::Id, widget2::Text, 
 };
@@ -86,13 +86,13 @@ impl<'a> Ui<'a> {
         ctx: &Context,
         render: &mut UiRender,
         id: Id,
-        builder: UiBuilder,
+        props: Props,
         add_content: impl FnOnce(&mut Ui) -> R
     ) -> ResponseValue<R> {
-        let UiBuilder {
+        let Props {
             max_bounds,
             ..
-        } = builder;
+        } = props;
 
         let bounds = max_bounds.unwrap_or_else(|| ctx.screen_pos());
 
@@ -129,17 +129,17 @@ impl<'a> Ui<'a> {
     
     pub(crate) fn child<R>(
         &mut self,
-        builder: impl Into<UiBuilder>,
+        props: impl Into<Props>,
         add_content: impl FnOnce(&mut Ui) -> R
     ) -> ResponseValue<R> {
-        let UiBuilder {
+        let Props {
             id_salt,
             max_bounds,
             size,
             margin: padding,
             frame,
             update: alloc_update,
-        } = builder.into();
+        } = props.into();
         
         let id_salt = id_salt.unwrap_or_else(|| Id::from("child"));
         let stable_id = self.stable_id.with(id_salt);
@@ -150,6 +150,11 @@ impl<'a> Ui<'a> {
         let max_bounds = max_bounds.unwrap_or_else(|| {
             self.alloc.available()
         });
+
+        let total_margin = match &frame {
+            Some(frame) => frame.total_margin(self),
+            None => Padding::ZERO,
+        };
 
         let padding = match &frame {
             Some(frame) => frame.padding(self),
@@ -168,7 +173,7 @@ impl<'a> Ui<'a> {
 
         let alloc = self.alloc.child(
             max_bounds,
-            padding,
+            total_margin,
             update,
             alloc_cache.clone()
         );
@@ -188,8 +193,9 @@ impl<'a> Ui<'a> {
 
         let result = (add_content)(&mut child);
 
-        let alloc_child = self.alloc.merge_child(&mut child.alloc, padding, size);
+        let alloc_child = self.alloc.merge_child(&mut child.alloc, total_margin, size);
 
+        //let response = child.end(total_margin, &alloc_cache, alloc_child);
         let response = child.end(padding, &alloc_cache, alloc_child);
 
         if let Some(frame) = frame {
@@ -219,17 +225,17 @@ impl<'a> Ui<'a> {
     pub(crate) fn popup<R>(
         &mut self,
         id: Id,
-        builder: impl Into<UiBuilder>,
+        props: impl Into<Props>,
         add_content: impl FnOnce(&mut Ui) -> R
     ) -> ResponseValue<R> {
-        let UiBuilder {
+        let Props {
             id_salt: _id_salt,
             max_bounds,
             size: _size,
             margin,
             frame,
             update: alloc_update,
-        } = builder.into();
+        } = props.into();
         
         let bounds = max_bounds.unwrap_or_else(|| self.context().screen_pos());
 
@@ -352,7 +358,7 @@ impl<'a> Ui<'a> {
     }
 
     pub fn row<R>(&mut self, add_content: impl FnOnce(&mut Ui) -> R) -> ResponseValue<R> {
-        self.child(UiBuilder::default()
+        self.child(Props::default()
             .update(AllocDirection::Row),
             add_content
         )
@@ -360,17 +366,17 @@ impl<'a> Ui<'a> {
 
     pub fn row_with<R>(
         &mut self, 
-        builder: impl Into<UiBuilder>,
+        props: impl Into<Props>,
         add_content: impl FnOnce(&mut Ui) -> R
     ) -> ResponseValue<R> {
-        self.child(builder.into()
+        self.child(props.into()
             .update(AllocDirection::Row),
             add_content
         )
     }
 
     pub fn column<R>(&mut self, add_content: impl FnOnce(&mut Ui) -> R) -> ResponseValue<R> {
-        self.child(UiBuilder::default()
+        self.child(Props::default()
             .update(AllocDirection::Column),
             add_content
         )
@@ -378,10 +384,10 @@ impl<'a> Ui<'a> {
 
     pub fn column_with<R>(
         &mut self, 
-        builder: impl Into<UiBuilder>,
+        props: impl Into<Props>,
         add_content: impl FnOnce(&mut Ui) -> R
     ) -> ResponseValue<R> {
-        self.child(builder.into()
+        self.child(props.into()
             .update(AllocDirection::Column),
             add_content
         )
@@ -394,7 +400,7 @@ impl<'a> Ui<'a> {
         let size = Size::new(Length::Fill, Length::Fill);
 
         self.child(
-            UiBuilder::default()
+            Props::default()
                 .size(size),
             add_content
         )
@@ -402,19 +408,16 @@ impl<'a> Ui<'a> {
 
     pub fn view_with<R>(
         &mut self, 
-        builder: impl Into<UiBuilder>,
+        props: impl Into<Props>,
         add_content: impl FnOnce(&mut Ui) -> R
     ) -> ResponseValue<R> {
-        let mut builder = builder.into();
+        let mut props = props.into();
 
-        if builder.size.is_none() {
-            builder.size = Some(Size::new(Length::Fill, Length::Fill));
+        if props.size.is_none() {
+            props.size = Some(Size::new(Length::Fill, Length::Fill));
         }
 
-        self.child(
-            builder,
-            add_content
-        )
+        self.child(props, add_content)
     }
 
     pub fn app<'b, State, Message>(
@@ -456,7 +459,7 @@ pub struct StateBase {}
 pub enum MessageBase {}
 
 #[derive(Default, Clone)]
-pub struct UiBuilder {
+pub struct Props {
     id_salt: Option<Id>,
     max_bounds: Option<Bounds<Canvas>>,
     size: Option<Size<Length>>,
@@ -465,7 +468,7 @@ pub struct UiBuilder {
     update: Option<AllocDirection>,
 }
 
-impl UiBuilder {
+impl Props {
     #[inline]
     pub fn id_salt(mut self, hash: impl hash::Hash) -> Self {
         self.id_salt = Some(Id::new(hash));
@@ -521,39 +524,45 @@ impl UiBuilder {
     }
 }
 
-impl From<&UiBuilder> for UiBuilder {
-    fn from(builder: &UiBuilder) -> Self {
-        builder.clone()
+impl From<&Props> for Props {
+    fn from(props: &Props) -> Self {
+        props.clone()
     }
 }
 
-impl From<Padding> for UiBuilder {
+impl From<Padding> for Props {
     fn from(size: Padding) -> Self {
-        UiBuilder::default().margin(size)
+        Props::default().margin(size)
     }
 }
 
-impl From<Size<Length>> for UiBuilder {
+impl From<Size<Length>> for Props {
     fn from(size: Size<Length>) -> Self {
-        UiBuilder::default().size(size)
+        Props::default().size(size)
     }
 }
 
-impl From<Length> for UiBuilder {
+impl From<Length> for Props {
     fn from(length: Length) -> Self {
-        UiBuilder::default().size(Size::from(length))
+        Props::default().size(Size::from(length))
     }
 }
 
-impl From<Frame> for UiBuilder {
+impl From<Frame> for Props {
     fn from(frame: Frame) -> Self {
-        UiBuilder::default().frame(frame)
+        Props::default().frame(frame)
     }
 }
 
-impl From<Color> for UiBuilder {
+impl From<Color> for Props {
     fn from(color: Color) -> Self {
-        UiBuilder::default().frame(Frame::new().background(color))
+        Props::default().frame(Frame::group().background(color))
+    }
+}
+
+impl From<Style> for Props {
+    fn from(style: Style) -> Self {
+        Props::default().frame(Frame::new(style))
     }
 }
 

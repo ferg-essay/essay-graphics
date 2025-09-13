@@ -8,7 +8,7 @@ use essay_graphics_api::renderer::{self, Canvas, FontSetMetrics, GraphicsContext
 use essay_graphics_api::{Bounds, Point};
 
 use crate::style::UiTheme;
-use crate::ui::ui::UiBuilder;
+use crate::ui::ui::Props;
 use crate::ui::{Memory, RenderPass, Ui, UiRender};
 use crate::util::{Id, IdSet};
 
@@ -154,7 +154,7 @@ impl Context {
                 self, 
                 &mut render,
                 id,
-                UiBuilder::default(),
+                Props::default(),
                 &mut draw,
             );
 

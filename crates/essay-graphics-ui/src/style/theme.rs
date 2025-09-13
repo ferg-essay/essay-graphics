@@ -1,21 +1,34 @@
 use std::ops::Index;
 
-use essay_graphics_api::{color::Grey, Color, HorizAlign, PathStyle, TextStyle};
+use essay_graphics_api::{color::Grey, Color, HorizAlign, Padding, PathStyle, TextStyle};
+
+use crate::{style::UiStyle, ui::Ui};
 
 #[derive(Clone)]
 pub struct UiTheme {
+    pub base: Palette,
+    pub base_size: ThemeSize,
+
+    pub button_on: Palette,
+    pub button_off: Palette,
+    pub button_size: ThemeSize,
+
+    pub group: Palette,
+    pub group_size: ThemeSize,
+
     pub background: Color,
     pub foreground: Color,
     pub border: Color,
-    pub focus_border: Color,
-    pub corner_radius: f32,
     pub shadow: Color,
+    pub focus_border: Color,
+
+    pub padding: Padding,
+    pub margin: Padding,
+    pub border_width: f32,
+    pub corner_radius: f32,
 
     pub label: PathStyle,
     pub label_text: TextStyle,
-
-    pub button2_on: UiStyleButton,
-    pub button2_off: UiStyleButton,
 
     pub button: PathStyle,
     pub button_press: PathStyle,
@@ -36,11 +49,41 @@ impl Default for UiTheme {
 }
 
 #[derive(Clone, Debug)]
-pub struct UiStyleButton {
+pub struct Palette {
     pub background: Color,
     pub foreground: Color,
     pub hover_background: Color,
     pub hover_foreground: Color,
+}
+
+impl Default for Palette {
+    fn default() -> Self {
+        Self { 
+            background: Color::white(),
+            foreground: Color::black(),
+            hover_background: Color::from_grey(0.95),
+            hover_foreground: Color::black(),
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct ThemeSize {
+    pub padding: Padding,
+    pub margin: Padding,
+    pub corner_radius: f32,
+    pub border_width: f32,
+}
+
+impl Default for ThemeSize {
+    fn default() -> Self {
+        Self { 
+            padding: Padding::from_all(6.),
+            margin: Padding::from_all(0.),
+            corner_radius: 10.,
+            border_width: 0.,
+        }
+    }
 }
 
 pub trait Theme {
@@ -57,30 +100,56 @@ impl Theme for LightTheme {
         let azure = Color::from("azure");
         let azure_light = Color::from(0x3cadf3);
 
+        let base = Palette {
+            background: Color::white(),
+            foreground: Color::black(),
+            hover_background: Color::white(),
+            hover_foreground: Color::black(),
+        };
+
+        let base_size = ThemeSize::default();
+
         UiTheme {
             background: Color::white(),
             foreground: Color::black(),
             border: Grey(0.7).into(),
-            focus_border: azure,
-            corner_radius: 10.,
             shadow: Color(0x00000020),
 
-            label: PathStyle::new(),
-            label_text: text.clone(),
+            padding: Padding::from(6.),
+            margin: Padding::from(0.),
+            border_width: 0.,
+            focus_border: azure,
+            corner_radius: 10.,
 
-            button2_on: UiStyleButton {
+            base: base.clone(),
+
+            base_size: base_size.clone(),
+
+            button_on: Palette {
                 background: azure,
                 foreground: Color::white(),
                 hover_background: azure_light, // Grey(0.97).into(),
                 hover_foreground: Color::white(), // Grey(0.97).into(),
             },
 
-            button2_off: UiStyleButton {
+            button_off: Palette {
                 background: Color::white(),
                 foreground: Color::black(),
                 hover_background: azure, // Grey(0.97).into(),
                 hover_foreground: Color::white(), // Grey(0.97).into(),
             },
+
+            button_size: base_size.clone(),
+
+            group: base.clone(),
+            group_size: ThemeSize {
+                border_width: 1.,
+                margin: Padding::from_all(5.),
+                .. base_size.clone()
+            },
+
+            label: PathStyle::new(),
+            label_text: text.clone(),
 
             button: PathStyle::new(),
             button_press: PathStyle::new(),

@@ -97,7 +97,7 @@ impl<'a, Message: Clone, V: Clone> Widget<Message> for Radio<'a, Message, V> {
 
         let (background, foreground) = {
             if is_active {
-                (ui_style.button2_on.background, ui_style.button2_on.foreground)
+                (ui_style.button_on.background, ui_style.button_on.foreground)
             } else {
                 (Grey(1.0).into(), Grey(0.90).into())
             }

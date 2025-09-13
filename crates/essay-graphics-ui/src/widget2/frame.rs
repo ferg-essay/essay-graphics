@@ -1,6 +1,6 @@
 use essay_graphics_api::{renderer::Renderer, Color, Padding, Point, Shapes};
 
-use crate::{ui::{ui::UiBuilder, Response, Shell, Ui, Widget}, widget2::Element};
+use crate::{ui::{ui::Props, Response, Shell, Ui, Widget}, widget2::Element};
 
 pub fn frame<'a, Message>(
     content: impl Into<Element<'a, Message>>
@@ -67,7 +67,7 @@ where
 
         let margin = self.total_margin() + corner_margin;
 
-        let builder = UiBuilder::default()
+        let builder = Props::default()
             .margin(margin);
 
         let response = ui.child(builder, |ui| {

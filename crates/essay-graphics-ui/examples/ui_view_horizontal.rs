@@ -6,7 +6,7 @@ fn main() {
                 ui.view(|ui| {
                     ui.label("A")
                 });
-                Frame::group(ui).background("amber").show(ui, |ui| {
+                Frame::group().background("amber").show(ui, |ui| {
                     ui.view(|ui| {
                         ui.label("B")
                     });
@@ -22,7 +22,7 @@ fn main() {
                 ui.view(|ui| {
                     ui.label("1")
                 });
-                Frame::group(ui).background("azure").show(ui, |ui| {
+                Frame::group().background("azure").show(ui, |ui| {
                     ui.view(|ui| {
                         ui.label("2")
                     });

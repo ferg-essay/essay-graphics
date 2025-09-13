@@ -9,12 +9,12 @@ mod text;
 mod radio;
 mod row;
 mod selectable_label;
-mod theme;
+//mod theme;
 mod task;
 pub mod element;
 mod widget;
 
-pub use button::{button, Button, OnStyle, OffStyle};
+pub use button::{button, Button};
 pub use column::{column, Column};
 pub use element::Element;
 pub use frame::{frame, Frame};
@@ -26,6 +26,6 @@ pub use selectable_label::{selectable_label, SelectableLabel};
 pub use task::Task;
 pub use text::{text, Text};
 pub use tooltip::{tooltip, Tooltip};
-pub use theme::Theme;
+//pub use theme::Theme;
 pub use widget::{WidgetFrame};
 

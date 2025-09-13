@@ -374,7 +374,7 @@ mod test {
     use essay_graphics_api::{Length, Size};
     use essay_graphics_test::{TestGraphicsContext, TestRenderer};
 
-    use crate::ui::{Context, Frame};
+    use crate::{style::Style, ui::{Context, Frame}};
 
     #[test]
     fn default_label() {
@@ -475,7 +475,7 @@ text (0.0,600.0) 'B'");
         let ctx = Context::new(Box::new(TestGraphicsContext::new()));
 
         ctx.run(&mut test, |ui| {
-            Frame::group(ui).show(ui, |ui| {
+            Frame::group().show(ui, |ui| {
                 ui.view(|ui| {
                     ui.label("A");
                 });
@@ -492,7 +492,7 @@ text (16.0,16.0) 'A'");
         let ctx = Context::new(Box::new(TestGraphicsContext::new()));
 
         ctx.run(&mut test, |ui| {
-            ui.view_with(Frame::new(), |ui| {
+            ui.view_with(Style::Base, |ui| {
                 ui.label("A");
             });
         }).unwrap();
@@ -508,7 +508,7 @@ text (16.0,16.0) 'A'");
 
         ctx.run(&mut test, |ui| {
             ui.row(|ui| {
-                ui.view_with(Frame::new(), |_| {});
+                ui.view_with(Style::Base, |_| {});
             });
         }).unwrap();
 
@@ -521,9 +521,9 @@ text (16.0,16.0) 'A'");
         let ctx = Context::new(Box::new(TestGraphicsContext::new()));
 
         ctx.run(&mut test, |ui| {
-            Frame::group(ui).show(ui, |ui| {
+            Frame::group().show(ui, |ui| {
                 ui.view(|ui| {
-                    Frame::group(ui).background(0xff0000).show(ui, |ui| {
+                    Frame::group().background(0xff0000).show(ui, |ui| {
                         ui.view(|_| {});
                     });
                 });
@@ -540,8 +540,8 @@ rect (16.0,16.0) 1168.0x1168.0 #ff0000ff");
         let ctx = Context::new(Box::new(TestGraphicsContext::new()));
 
         ctx.run(&mut test, |ui| {
-            ui.view_with(Frame::new(), |_| {});
-            ui.view_with(Frame::new(), |_| {});
+            ui.view_with(Style::Base, |_| {});
+            ui.view_with(Style::Base, |_| {});
         }).unwrap();
 
         assert_eq!(test.take(), "rect (0.0,0.0) 1200.0x600.0 #ffffffff
@@ -555,8 +555,8 @@ rect (0.0,600.0) 1200.0x600.0 #ffffffff");
 
         ctx.run(&mut test, |ui| {
             ui.column(|ui| {
-                ui.view_with(Frame::new(), |_| {});
-                ui.view_with(Frame::new(), |_| {});
+                ui.view_with(Style::Base, |_| {});
+                ui.view_with(Style::Base, |_| {});
             });
         }).unwrap();
 
@@ -591,8 +591,8 @@ text (0.0,600.0) 'b'");
 
         ctx.run(&mut test, |ui| {
             ui.column_with(Length::Fill, |ui| {
-                ui.view_with(Frame::new(), |_| {});
-                ui.view_with(Frame::new(), |_| {});
+                ui.view_with(Style::Base, |_| {});
+                ui.view_with(Style::Base, |_| {});
             });
         }).unwrap();
 
@@ -607,10 +607,10 @@ rect (0.0,600.0) 1200.0x600.0 #ffffffff");
 
         ctx.run(&mut test, |ui| {
             ui.column_with(Size::new(Length::Shrink, Length::View(0.5)), |ui| {
-                ui.view_with(Frame::new(), |_| {});
+                ui.view_with(Style::Base, |_| {});
             });
             ui.column(|ui| {
-                ui.view_with(Frame::new(), |_| {});
+                ui.view_with(Style::Base, |_| {});
             });
         }).unwrap();
 
@@ -625,10 +625,10 @@ rect (0.0,400.0) 1200.0x800.0 #ffffffff");
 
         ctx.run(&mut test, |ui| {
             ui.row_with(Size::new(Length::Shrink, Length::View(0.5)), |ui| {
-                ui.view_with(Frame::new(), |_| {});
+                ui.view_with(Style::Base, |_| {});
             });
             ui.row(|ui| {
-                ui.view_with(Frame::new(), |_| {});
+                ui.view_with(Style::Base, |_| {});
             });
         }).unwrap();
 
@@ -645,7 +645,7 @@ rect (0.0,400.0) 1200.0x800.0 #ffffffff");
             ui.view(|ui| {
                 ui.label("A");
             });
-            ui.view_with(Frame::new(), |ui| {
+            ui.view_with(Style::Base, |ui| {
                 ui.label("B");
             });
             ui.view(|ui| {
@@ -665,10 +665,10 @@ text (0.0,800.0) 'C'");
         let ctx = Context::new(Box::new(TestGraphicsContext::new()));
 
         ctx.run(&mut test, |ui| {
-            ui.view_with(Frame::new(), |ui| {
+            ui.view_with(Style::Base, |ui| {
                 ui.label("A");
             });
-            Frame::group(ui).show(ui, |ui| {
+            Frame::group().show(ui, |ui| {
                 ui.view(|ui| {
                     ui.label("B");
                 });
@@ -676,7 +676,7 @@ text (0.0,800.0) 'C'");
                     ui.label("C");
                 });
             });
-            ui.view_with(Frame::new(), |ui| {
+            ui.view_with(Style::Base, |ui| {
                 ui.label("D");
             });
         }).unwrap();
@@ -696,10 +696,10 @@ text (16.0,916.0) 'D'");
         let ctx = Context::new(Box::new(TestGraphicsContext::new()));
 
         ctx.run(&mut test, |ui| {
-            ui.view_with(Frame::new(), |ui| {
+            ui.view_with(Style::Base, |ui| {
                 ui.label("A");
             });
-            Frame::group(ui).show(ui, |ui| {
+            Frame::group().show(ui, |ui| {
                 ui.row(|ui| {
                     ui.view(|ui| {
                         ui.label("B");
@@ -709,7 +709,7 @@ text (16.0,916.0) 'D'");
                     });
                 });
             });
-            ui.view_with(Frame::new(), |ui| {
+            ui.view_with(Style::Base, |ui| {
                 ui.label("D");
             });
         }).unwrap();
@@ -731,11 +731,11 @@ text (16.0,816.0) 'D'");
         ctx.run(&mut test, |ui| {
             ui.row(|ui| {
                 ui.column(|ui| {
-                    ui.view_with(Frame::new(), |_| {});
+                    ui.view_with(Style::Base, |_| {});
                 });
                 ui.column(|ui| {
-                    ui.view_with(Frame::new(), |_| {});
-                    ui.view_with(Frame::new(), |_| {});
+                    ui.view_with(Style::Base, |_| {});
+                    ui.view_with(Style::Base, |_| {});
                 });
             });
         }).unwrap();
@@ -753,11 +753,11 @@ rect (600.0,600.0) 600.0x600.0 #ffffffff");
         ctx.run(&mut test, |ui| {
             ui.column(|ui| {
                 ui.row(|ui| {
-                    ui.view_with(Frame::new(), |_| {});
+                    ui.view_with(Style::Base, |_| {});
                 });
                 ui.row(|ui| {
-                    ui.view_with(Frame::new(), |_| {});
-                    ui.view_with(Frame::new(), |_| {});
+                    ui.view_with(Style::Base, |_| {});
+                    ui.view_with(Style::Base, |_| {});
                 });
             });
         }).unwrap();
