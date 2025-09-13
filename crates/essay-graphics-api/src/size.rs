@@ -92,6 +92,23 @@ impl Size<Length> {
     pub const FILL: Self = Self::new(Length::Fill, Length::Fill);
 }
 
+impl Size {
+    #[inline]
+    pub fn view(width: f32, height: f32) -> Size<Length> {
+        Size::new(Length::View(width), Length::View(height))
+    }
+
+    #[inline]
+    pub fn fill() -> Size<Length> {
+        Size::new(Length::Fill, Length::Fill)
+    }
+
+    #[inline]
+    pub fn shrink() -> Size<Length> {
+        Size::new(Length::Shrink, Length::Shrink)
+    }
+}
+
 impl From<Size> for Size<Length> {
     fn from(value: Size) -> Self {
         Size::new(

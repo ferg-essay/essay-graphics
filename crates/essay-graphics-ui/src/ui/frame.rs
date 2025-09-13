@@ -2,6 +2,7 @@ use essay_graphics_api::{renderer::Renderer, Color, Padding, Point, Rectangle, S
 
 use crate::ui::{painter::PaintIndex, ui::{ResponseValue, Ui, UiBuilder}};
 
+#[derive(Clone)]
 pub struct Frame {
     pub inner_margin: Padding,
     pub outer_margin: Padding,

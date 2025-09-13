@@ -455,7 +455,7 @@ impl<'a> Ui<'a> {
 pub struct StateBase {}
 pub enum MessageBase {}
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct UiBuilder {
     id_salt: Option<Id>,
     max_bounds: Option<Bounds<Canvas>>,
@@ -518,6 +518,12 @@ impl UiBuilder {
         self.size = Some(size.into());
 
         self
+    }
+}
+
+impl From<&UiBuilder> for UiBuilder {
+    fn from(builder: &UiBuilder) -> Self {
+        builder.clone()
     }
 }
 

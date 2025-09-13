@@ -19,7 +19,7 @@ pub use painter::{Painter, PaintList, PainterLayers};
 pub use response::{Response, Flags};
 //pub use panel::{CentralPanel};
 pub use tabs::Tabs;
-pub use ui::{Ui, UiSize, ResponseValue, OnceView};
+pub use ui::{Ui, UiBuilder, UiSize, ResponseValue, OnceView};
 //pub use ui_view::{UiView, UiTop};
 
 pub use context::{Context};
