@@ -82,6 +82,26 @@ impl Mesh2d {
             vertices,
         }
     }
+
+    pub fn map(&self, map: impl Fn(Point) -> Point) -> Self {
+        let vertices = self.vertices.iter().map(|vertex| {
+            let Point { x, y } = map(Point::new(vertex[0], vertex[1]));
+
+            [x, y, vertex[2], vertex[3]]
+        }).collect();
+
+        Self {
+            vertices,
+        }
+    }
+
+    pub fn round(&self) -> Self {
+        Self {
+            vertices: self.vertices.iter().map(|vertex| {
+                [vertex[0].round(), vertex[1].round(), vertex[2], vertex[3]]
+            }).collect(),
+        }
+    }
 }
 
 pub struct Mesh2dColor {

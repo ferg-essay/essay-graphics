@@ -57,7 +57,9 @@ pub fn lines(
                 join_lines(&mut mesh, &mut bezier, p0, *p1, p_move, lw2, &joinstyle);
                 join_lines(&mut mesh, &mut bezier, *p1, p_move, p_first, lw2, &joinstyle);
 
-                *p1
+                //*p1
+                p_last = p0;
+                p_move
             }
         };
 
