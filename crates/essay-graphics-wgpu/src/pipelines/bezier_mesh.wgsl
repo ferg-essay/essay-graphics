@@ -56,9 +56,21 @@ fn fs_bezier(
 
     let u_sq = bu * bu;
 
-    //if -tb - u * u <= v && v <= ta + u * u {
+    // if -tb - u_sq <= bv && bv <= ta - u_sq {
+    //    return in.color;
+    //} else {
+    //    return vec4<f32>(0.0, 0.0, 0.0, 0.0);
+    //}
+
+    //let upper = clamp((ta - u_sq) - bv, 0., 1.);
+    //let lower = clamp(bv - (-tb - u_sq) - bv, 0., 1.);
+    
+    //return mix(vec4<f32>(0., 0., 0., 0.), 
+    //           mix(in.color, vec4<f32>(0., 0., 0., 0.), upper),
+    //           lower);
+
     if -tb - u_sq <= bv && bv <= ta - u_sq {
-        return in.color; // vec4<f32>(0.0, 1.0, 1.1, 1.0); // in.color;
+        return in.color;
     } else {
         return vec4<f32>(0.0, 0.0, 0.0, 0.0);
     }
